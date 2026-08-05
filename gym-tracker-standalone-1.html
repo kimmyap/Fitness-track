@@ -1,0 +1,3708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Workout Tracker - Proof I'm Not Slacking</title>
+<meta name="description" content="Personal strength training tracker">
+<meta name="theme-color" content="#FF6B4D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Not Slacking">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj4KPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSIzNiIgZmlsbD0iI0ZGNkI0RCIvPgo8ZyBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSI+CjxjaXJjbGUgY3g9IjQwIiBjeT0iOTYiIHI9IjE4IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9Im5vbmUiLz4KPGNpcmNsZSBjeD0iMTUyIiBjeT0iOTYiIHI9IjE4IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9Im5vbmUiLz4KPGxpbmUgeDE9IjUyIiB5MT0iOTYiIHgyPSIxNDAiIHkyPSI5NiIvPgo8cmVjdCB4PSI2NiIgeT0iNzgiIHdpZHRoPSIxNiIgaGVpZ2h0PSIzNiIgcng9IjQiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgo8cmVjdCB4PSIxMTAiIHk9Ijc4IiB3aWR0aD0iMTYiIGhlaWdodD0iMzYiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9Im5vbmUiLz4KPC9nPgo8L3N2Zz4=">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj4KPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSIzNiIgZmlsbD0iI0ZGNkI0RCIvPgo8ZyBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSI+CjxjaXJjbGUgY3g9IjQwIiBjeT0iOTYiIHI9IjE4IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9Im5vbmUiLz4KPGNpcmNsZSBjeD0iMTUyIiBjeT0iOTYiIHI9IjE4IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9Im5vbmUiLz4KPGxpbmUgeDE9IjUyIiB5MT0iOTYiIHgyPSIxNDAiIHkyPSI5NiIvPgo8cmVjdCB4PSI2NiIgeT0iNzgiIHdpZHRoPSIxNiIgaGVpZ2h0PSIzNiIgcng9IjQiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgo8cmVjdCB4PSIxMTAiIHk9Ijc4IiB3aWR0aD0iMTYiIGhlaWdodD0iMzYiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIiBzdHJva2U9Im5vbmUiLz4KPC9nPgo8L3N2Zz4=">
+<style>html, body { margin: 0; padding: 0; background: #FBF6EE; }</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+  :root {
+    --ink: #1E2235;
+    --paper: #FBF6EE;
+    --card: #FFFFFF;
+    --line: #E8E0D2;
+    --brass: #E8A23D;
+    --brass-soft: #FBE3B8;
+    --sage: #14A085;
+    --sage-soft: #CDF1E8;
+    --done: #38D178;
+    --done-soft: #C8F5DA;
+    --coral: #FF6B4D;
+    --coral-soft: #FFE0D4;
+    --muted: #8B8677;
+  }
+  #gt-root.dark-mode, body.gt-dark-body {
+    --ink: #F2F1EC;
+    --paper: #14161F;
+    --card: #1C1F2C;
+    --line: #2E3142;
+    --brass: #F0B860;
+    --brass-soft: #3A2E1A;
+    --sage: #2FD1B0;
+    --sage-soft: #16332C;
+    --done: #4ADE80;
+    --done-soft: #163524;
+    --coral: #FF7A5C;
+    --coral-soft: #3A2019;
+    --muted: #8A8FA3;
+  }
+  body.gt-dark-body { background: var(--paper); }
+  * { box-sizing: border-box; }
+  #gt-root {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: transparent;
+    color: var(--ink);
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 4px;
+  }
+  .gt-h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 24px;
+    margin: 4px 0 2px;
+    color: var(--ink);
+    position: relative;
+    display: inline-block;
+    padding-bottom: 6px;
+  }
+  .gt-h1::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 32px;
+    height: 3px;
+    background: var(--brass);
+    border-radius: 2px;
+  }
+  .gt-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .gt-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .gt-tab {
+    flex: 1;
+    min-width: 60px;
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: 8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    font-family: 'Oswald', 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .gt-tab-icon { width: 16px; height: 16px; }
+  .gt-tab-icon svg { width: 100%; height: 100%; }
+  .gt-tab-icon i { font-size: 15px; display: block; }
+  .gt-tab.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .gt-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(28,31,43,0.06), 0 1px 2px rgba(28,31,43,0.04);
+    animation: gt-card-in 0.25s ease;
+  }
+  @keyframes gt-card-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .gt-accordion {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(28,31,43,0.06), 0 1px 2px rgba(28,31,43,0.04);
+    overflow: hidden;
+    animation: gt-card-in 0.25s ease;
+  }
+  .gt-accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px;
+    cursor: pointer;
+  }
+  .gt-accordion-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .gt-accordion-chevron {
+    color: var(--muted);
+    font-size: 12px;
+    transition: transform 0.2s ease;
+  }
+  .gt-accordion-chevron.open {
+    transform: rotate(180deg);
+  }
+  .gt-accordion-body {
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+    animation: gt-card-in 0.2s ease;
+  }
+  #gt-splash {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: var(--coral);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+  }
+  #gt-splash.gt-splash-hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .gt-splash-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: #fff;
+    margin-bottom: 16px;
+    animation: gt-splash-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes gt-splash-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  .gt-splash-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .gt-splash-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    margin-top: 4px;
+  }
+  .gt-history {
+    transition: opacity 0.2s ease;
+  }
+  .gt-ex-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+  .gt-ex-name {
+    font-weight: 600;
+    font-size: 14.5px;
+  }
+  .gt-ex-icon {
+    width: 26px;
+    height: 26px;
+    background: var(--paper);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+  .gt-ex-icon svg { width: 15px; height: 15px; }
+  .gt-ex-icon i { font-size: 14px; }
+  .gt-ex-icon-ring {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gt-ring-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 40px;
+    height: 40px;
+  }
+  .gt-ex-head-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .gt-target {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .gt-pb-badge {
+    font-size: 13px;
+    color: var(--brass);
+    font-weight: 700;
+    background: var(--brass-soft);
+    padding: 4px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .gt-session-badge {
+    font-size: 11.5px;
+    color: var(--muted);
+    background: var(--paper);
+    padding: 3px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+    font-weight: 700;
+  }
+  .gt-session-badge.done {
+    color: var(--done);
+    background: var(--done-soft);
+  }
+  .gt-load-bar {
+    height: 6px;
+    background: var(--paper);
+    border-radius: 4px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .gt-load-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--sage), var(--brass));
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .gt-history { margin-top: 10px; display: none; }
+  .gt-history.open { display: block; }
+  .gt-chart-box {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .gt-suggest-box {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    background: var(--sage-soft);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+  .gt-suggest-icon { font-size: 14px; flex-shrink: 0; }
+  .gt-info-box {
+    background: var(--paper);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+  .gt-info-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 3px 0;
+  }
+  .gt-info-row i {
+    color: var(--sage);
+    font-size: 12px;
+    margin-top: 1px;
+    flex-shrink: 0;
+    width: 14px;
+  }
+  .gt-set-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    padding: 6px 0;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .gt-set-row .gt-new-pb { color: var(--brass); font-weight: 700; }
+  .gt-weight-num { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .gt-warmup-row { opacity: 0.7; }
+  .gt-hist-day-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 10px 2px 4px;
+    border-top: 1px solid var(--line);
+    margin-top: 4px;
+  }
+  .gt-history > .gt-hist-day-header:first-child {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 2px;
+  }
+  .gt-warmup-row .gt-weight-num { font-weight: 600; color: var(--muted); }
+  .gt-set-row.logged {
+    background: var(--done-soft);
+    border-top: none;
+    border-radius: 6px;
+    padding: 7px 8px;
+    margin-top: 4px;
+  }
+  .gt-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--done);
+    color: #fff;
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+  }
+  .gt-del-x {
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 15px;
+    padding: 6px 4px 6px 10px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .gt-del-x:active { color: #B5573F; }
+  .gt-add-row { display: flex; gap: 6px; margin-top: 10px; }
+  .gt-var-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .gt-var-label {
+    font-size: 11.5px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .gt-warmup-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .gt-warmup-toggle-row input { transform: scale(1.1); }
+  .gt-warmup-tag {
+    font-size: 10px;
+    background: var(--coral-soft);
+    color: var(--coral);
+    border-radius: 10px;
+    padding: 1px 6px;
+    margin-left: 4px;
+    font-weight: 700;
+  }
+  .gt-week-strip {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    gap: 4px;
+  }
+  .gt-strip-day {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: var(--paper);
+    border-radius: 6px;
+    padding: 6px 2px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .gt-strip-day span {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .gt-strip-day.done {
+    background: var(--done-soft);
+    color: var(--done);
+    font-weight: 700;
+  }
+  .gt-strip-day.done span { color: var(--sage); }
+  .gt-input {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 8px;
+    font-size: 13px;
+    width: 100%;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .gt-add-btn {
+    background: var(--coral);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.1s ease;
+  }
+  .gt-add-btn:active { opacity: 0.85; transform: scale(0.97); }
+  .gt-empty { font-size: 12px; color: var(--muted); padding: 4px 0; }
+  .gt-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 10px;
+    text-align: center;
+  }
+  .gt-empty-state i {
+    font-size: 22px;
+    color: var(--line);
+  }
+  .gt-empty-state span {
+    font-size: 12px;
+    color: var(--muted);
+    max-width: 220px;
+  }
+  .gt-footer-note {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin: 14px 0 4px;
+  }
+  .gt-clear {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 2px;
+  }
+  .gt-sync-warning {
+    background: var(--coral-soft);
+    color: var(--ink);
+    border: 1px solid var(--coral);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .gt-sync-warning span {
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+  .gt-last-saved {
+    font-size: 10.5px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .gt-last-saved .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--done);
+    margin-right: 5px;
+  }
+
+  /* Calendar */
+  .gt-cal-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .gt-cal-nav button {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .gt-cal-month {
+    font-family: 'Oswald', 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .gt-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .gt-cal-dow {
+    text-align: center;
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+    padding-bottom: 2px;
+  }
+  .gt-cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 12px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    position: relative;
+    color: var(--ink);
+  }
+  .gt-cal-day.empty { visibility: hidden; cursor: default; }
+  .gt-cal-day.trained { background: var(--done-soft); border-color: var(--done); font-weight: 700; }
+  .gt-cal-day.selected { outline: 2px solid var(--brass); }
+  .gt-cal-day .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--brass);
+    position: absolute;
+    bottom: 4px;
+  }
+  .gt-cal-day.today { border-color: var(--ink); border-width: 2px; }
+  .gt-cal-detail {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 6px rgba(28,31,43,0.06), 0 1px 2px rgba(28,31,43,0.04);
+  }
+  .gt-cal-detail-title {
+    font-weight: 600;
+    font-size: 13.5px;
+    margin-bottom: 6px;
+  }
+  .gt-legend {
+    display: flex;
+    gap: 14px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .gt-legend span { display: flex; align-items: center; gap: 5px; }
+  .gt-legend .sw {
+    width: 10px; height: 10px; border-radius: 3px;
+  }
+
+  /* Stats strip */
+  .gt-stats {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .gt-stat {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 6px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(28,31,43,0.06), 0 1px 2px rgba(28,31,43,0.04);
+    animation: gt-card-in 0.25s ease;
+  }
+  .gt-stat-num {
+    font-family: 'Oswald', 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brass);
+    line-height: 1;
+  }
+  .gt-stat-label {
+    font-size: 9.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-top: 2px;
+  }
+  .gt-stat-glow {
+    background: linear-gradient(180deg, var(--brass-soft), var(--card));
+    border-color: var(--brass);
+    animation: gt-flicker 2s ease-in-out infinite;
+  }
+  @keyframes gt-flicker {
+    0%, 100% { box-shadow: 0 0 0 rgba(232,162,61,0); }
+    50% { box-shadow: 0 0 12px rgba(232,162,61,0.6); }
+  }
+
+  /* Rest timer */
+  .gt-timer-bar {
+    background: var(--ink);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    position: sticky;
+    top: 4px;
+    z-index: 40;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  }
+  .gt-timer-display {
+    font-family: 'Oswald', 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    color: var(--paper);
+    min-width: 58px;
+  }
+  .gt-timer-display.done { color: var(--brass); }
+  .gt-timer-presets {
+    display: flex;
+    gap: 4px;
+  }
+  .gt-timer-presets button, .gt-timer-controls button {
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: var(--paper);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .gt-timer-controls { display: flex; gap: 4px; }
+  .gt-timer-controls .go { background: var(--coral); color: #fff; font-weight: 700; }
+
+  /* RPE + volume trend */
+  .gt-rpe-tag {
+    font-size: 10.5px;
+    background: var(--paper);
+    border-radius: 10px;
+    padding: 1px 6px;
+    margin-left: 4px;
+    color: var(--muted);
+  }
+  .gt-trend-up { color: var(--sage); font-weight: 700; }
+  .gt-trend-down { color: #B5573F; font-weight: 700; }
+
+  .gt-rpe-legend {
+    display: flex;
+    gap: 5px;
+    margin-top: 8px;
+  }
+  .gt-rpe-pill {
+    flex: 1;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .gt-rpe-pill.active {
+    background: var(--coral);
+    color: #fff;
+    border-color: var(--coral);
+  }
+
+  .gt-activity-btns {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .gt-activity-btn {
+    flex: 1;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 8px 6px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .gt-activity-btn:active { background: var(--sage-soft); }
+  .gt-note-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+  .gt-note-input {
+    width: 100%;
+    min-height: 50px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 8px;
+    font-size: 12.5px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+    resize: vertical;
+  }
+  .gt-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 16px;
+    border-radius: 30px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s ease;
+    z-index: 100;
+    max-width: 90%;
+  }
+  .gt-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .gt-toast button {
+    background: var(--brass);
+    color: var(--ink);
+    border: none;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .gt-modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(20,20,25,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 20px;
+    animation: gt-modal-fade 0.2s ease;
+  }
+  @keyframes gt-modal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .gt-modal-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px 20px;
+    max-width: 340px;
+    width: 100%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    animation: gt-pop 0.3s ease;
+  }
+  .gt-modal-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .gt-hype-line {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--coral-soft);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+
+  .gt-confetti {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 200;
+    overflow: hidden;
+  }
+  .gt-confetti-piece {
+    position: absolute;
+    top: -10px;
+    width: 8px;
+    height: 8px;
+    opacity: 0.9;
+    animation: gt-confetti-fall linear forwards;
+  }
+  @keyframes gt-confetti-fall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(540deg); opacity: 0; }
+  }
+  .gt-pr-banner {
+    background: linear-gradient(90deg, var(--brass), #D9A868);
+    color: #fff;
+    text-align: center;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 13px;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    animation: gt-pop 0.4s ease;
+  }
+  @keyframes gt-pop {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .gt-edit-icon {
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 15px;
+    padding: 6px 6px 6px 8px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .gt-date-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+  .gt-date-label { color: var(--muted); white-space: nowrap; }
+  .gt-date-bar input[type="date"] {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    flex: 1;
+  }
+  .gt-date-today {
+    background: var(--brass-soft);
+    color: var(--ink);
+    border: none;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .gt-ach-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .gt-ach-badge {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 6px;
+    text-align: center;
+    opacity: 0.55;
+    box-shadow: 0 2px 6px rgba(28,31,43,0.06), 0 1px 2px rgba(28,31,43,0.04);
+  }
+  .gt-ach-badge.unlocked {
+    opacity: 1;
+    background: linear-gradient(180deg, var(--brass-soft), var(--card));
+    border-color: var(--brass);
+    box-shadow: 0 3px 10px rgba(232,162,61,0.25);
+  }
+  .gt-ach-icon { font-size: 24px; margin-bottom: 4px; }
+  .gt-ach-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .gt-ach-desc {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+</style>
+
+<div id="gt-splash">
+  <div class="gt-splash-icon"><i class="fa-solid fa-dumbbell"></i></div>
+  <div class="gt-splash-title">Workout Tracker</div>
+  <div class="gt-splash-sub">Proof I'm Not Slacking</div>
+</div>
+
+<div id="gt-root">
+  <div class="gt-h1">Workout Tracker</div>
+  <div class="gt-sub">Proof I'm Not Slacking</div>
+  <div class="gt-tabs" id="gt-tabs"></div>
+  <div id="gt-list"></div>
+  <div class="gt-footer-note" id="gt-footer-note">Bar fills as your top weight climbs toward your goal for that lift</div>
+  <div id="gt-sync-warning" class="gt-sync-warning" style="display:none;"><i class="fa-solid fa-triangle-exclamation"></i> Storage had trouble saving recently. A backup auto-downloaded, check your downloads. <span id="gt-sync-dismiss">Dismiss</span></div>
+  <div id="gt-last-saved" class="gt-last-saved"></div>
+  <div class="gt-clear" id="gt-export-data">Export backup (JSON)</div>
+  <div class="gt-clear" id="gt-import-data">Import backup (JSON)</div>
+  <input type="file" id="gt-import-file" accept="application/json" style="display:none;">
+  <div class="gt-clear" id="gt-clear-all">Reset all logged data</div>
+  <div id="gt-toast" class="gt-toast"></div>
+  <div id="gt-confetti" class="gt-confetti"></div>
+</div>
+
+<script>
+(function() {
+  // Standalone version: replaces Claude's window.storage with a localStorage-backed
+  // equivalent, so the rest of the app's code doesn't need to change at all.
+  const PREFIX = "gymlog_";
+  window.storage = {
+    async get(key) {
+      const raw = localStorage.getItem(PREFIX + key);
+      if (raw === null) return null;
+      return { key, value: raw, shared: false };
+    },
+    async set(key, value) {
+      localStorage.setItem(PREFIX + key, value);
+      return { key, value, shared: false };
+    },
+    async delete(key) {
+      localStorage.removeItem(PREFIX + key);
+      return { key, deleted: true, shared: false };
+    },
+    async list(prefix) {
+      const keys = Object.keys(localStorage)
+        .filter(k => k.startsWith(PREFIX + (prefix || "")))
+        .map(k => k.slice(PREFIX.length));
+      return { keys, prefix, shared: false };
+    }
+  };
+})();
+</script>
+<script>
+(function() {
+  const TAB_ICONS = {
+    "Today": `<i class="fa-solid fa-house"></i>`,
+    "Warm-up": `<i class="fa-solid fa-sun"></i>`,
+    "Lower A": `<i class="fa-solid fa-dumbbell"></i>`,
+    "Upper": `<i class="fa-solid fa-dumbbell"></i>`,
+    "Lower B": `<i class="fa-solid fa-dumbbell"></i>`,
+    "Core": `<i class="fa-solid fa-bullseye"></i>`,
+    "Calendar": `<i class="fa-solid fa-calendar-days"></i>`,
+    "Plates": `<i class="fa-solid fa-compact-disc"></i>`,
+    "Weight": `<i class="fa-solid fa-weight-scale"></i>`,
+    "Achievements": `<i class="fa-solid fa-trophy"></i>`,
+    "Settings": `<i class="fa-solid fa-gear"></i>`
+  };
+
+  const CUSTOM_EX_ICON = `<i class="fa-solid fa-plus"></i>`;
+
+  const ALTERNATIVES = {
+    "Sumo Squats": [
+      { name: "Leg Press (feet wide, low)", reason: "same emphasis, easier to load heavy safely", targetSets: 3, targetReps: "10-12", cues: "Feet wide and low on the platform, knees track out over toes as you lower.", muscles: "Glutes, inner thighs, quads" },
+      { name: "Goblet Squat", reason: "lighter option if the rack's busy", targetSets: 3, targetReps: "10-12", cues: "Hold the weight at your chest, squat between your knees, elbows brush your inner thighs at the bottom.", muscles: "Glutes, quads, core" },
+    ],
+    "Deadlifts": [
+      { name: "Hamstring Curl + Hip Thrust", reason: "hits the same posterior chain, less technical demand", targetSets: 3, targetReps: "10-12", cues: "Curl: control the eccentric. Hip thrust: drive through heels, squeeze glutes at the top.", muscles: "Hamstrings, glutes" },
+      { name: "Romanian Deadlift (dumbbell)", reason: "gentler on the lower back, same hip hinge pattern", targetSets: 3, targetReps: "8-10", cues: "Soft knees, push hips back, weights stay close to your legs, feel the stretch in your hamstrings.", muscles: "Hamstrings, glutes, lower back" },
+    ],
+    "Hip Thrust": [
+      { name: "Glute Bridge (bodyweight or banded)", reason: "same movement, no machine needed", targetSets: 3, targetReps: "12-15", cues: "Flat on your back, drive hips up, squeeze glutes hard at the top, don't overarch your back.", muscles: "Glutes, hamstrings" },
+      { name: "Cable Pull-Through", reason: "similar hip hinge under constant tension", targetSets: 3, targetReps: "10-12", cues: "Face away from the cable, hinge at the hips, pull through by squeezing your glutes forward.", muscles: "Glutes, hamstrings" },
+    ],
+    "KB Swings": [
+      { name: "Cable Pull-Through", reason: "similar hip-power pattern, more controlled", targetSets: 3, targetReps: "12-15", cues: "Same hip hinge as a swing, just on a cable, more controlled tempo.", muscles: "Glutes, hamstrings, core" },
+      { name: "Jump Squats", reason: "swaps hip power for explosive leg power", targetSets: 3, targetReps: "8-10", cues: "Squat down, explode straight up, land soft with bent knees.", muscles: "Glutes, quads, calves" },
+    ],
+    "Bench Press": [
+      { name: "Chest Press Machine", reason: "same pressing pattern, more stability if shoulders feel off", targetSets: 4, targetReps: "6-10", cues: "Handles at chest height, press forward and slightly together, control the return.", muscles: "Chest, triceps, front shoulders" },
+      { name: "Push-ups (weighted or not)", reason: "no equipment needed at all", targetSets: 3, targetReps: "10-15", cues: "Body in a straight line, hands under shoulders, lower chest to just above the floor.", muscles: "Chest, triceps, core" },
+    ],
+    "Rows": [
+      { name: "Seated Cable Row", reason: "same pulling pattern, easier to control tempo", targetSets: 3, targetReps: "10-12", cues: "Sit tall, pull the handle to your stomach, squeeze shoulder blades together at the end.", muscles: "Upper back, lats, biceps" },
+      { name: "Resistance Band Row", reason: "works anywhere, no machine needed", targetSets: 3, targetReps: "12-15", cues: "Anchor the band, pull elbows back, squeeze at the end, control the return.", muscles: "Upper back, lats, biceps" },
+    ],
+    "Shoulder Press": [
+      { name: "Shoulder Press Machine", reason: "removes stabilizer demand, lets you push harder", targetSets: 3, targetReps: "10-12", cues: "Press straight up, avoid flaring elbows too wide, control the descent.", muscles: "Shoulders, triceps" },
+      { name: "Arnold Press", reason: "same movement, adds a bit of rotation for variety", targetSets: 3, targetReps: "10-12", cues: "Start palms facing you, rotate as you press so palms face forward at the top.", muscles: "Shoulders, triceps, upper chest" },
+    ],
+    "Lat Pulldown": [
+      { name: "Assisted Pull-up", reason: "closer to a true pull-up pattern", targetSets: 3, targetReps: "6-10", cues: "Pull chest toward the bar, lead with your elbows, control the lowering phase.", muscles: "Lats, upper back, biceps" },
+      { name: "Band Pulldown", reason: "works if the cable machine's busy", targetSets: 3, targetReps: "10-12", cues: "Anchor the band overhead, pull elbows down and back, squeeze your lats at the bottom.", muscles: "Lats, upper back, biceps" },
+    ],
+    "Leg Press / Lunges": [
+      { name: "Bodyweight Lunges", reason: "no equipment needed", targetSets: 3, targetReps: "10-12", cues: "Step forward, both knees bend to about 90\u00b0, front knee tracks over the ankle, push back to start.", muscles: "Quads, glutes, hamstrings" },
+      { name: "Step-ups", reason: "similar single-leg emphasis, different stimulus", targetSets: 3, targetReps: "8-10", cues: "Drive through the heel of the working leg, avoid pushing off the trailing foot.", muscles: "Quads, glutes" },
+    ],
+  };
+
+  const EXERCISE_INFO = {
+    "Sumo Squats": {
+      muscles: "Glutes, inner thighs (adductors), quads",
+      cuesByVariation: {
+        "Barbell": "Bar rests across your upper traps like a back squat. Wide stance, toes out 30-45\u00b0, push hips back and down.",
+        "Dumbbell": "Hold one dumbbell vertically at your chest with both hands, elbows pointed down, squat between your knees.",
+        "Kettlebell": "Hold the kettlebell by the horns at your chest, same wide stance, keep the bell close to your body.",
+        "default": "Wide stance, toes turned out 30-45\u00b0. Push hips back and down, knees track over toes. Chest stays upright."
+      }
+    },
+    "Deadlifts": {
+      muscles: "Hamstrings, glutes, lower back, lats",
+      cuesByVariation: {
+        "Barbell": "Bar over midfoot, shins close to the bar, flat back. Push the floor away, hips and shoulders rise together.",
+        "Dumbbell": "Dumbbells at your sides, hinge at the hips, keep them close to your legs the whole way down and up.",
+        "Trap Bar": "Stand inside the frame, grip the handles at your sides. More upright torso, generally easier on the lower back.",
+        "default": "Bar over midfoot, flat back, chest up. Push the floor away with your legs, hips and shoulders rise together."
+      }
+    },
+    "Hip Thrust": {
+      muscles: "Glutes, hamstrings",
+      cuesByVariation: {
+        "Barbell": "Bar padded across your hips, upper back on a bench, drive hips up squeezing glutes hard at the top.",
+        "Machine": "Adjust the pad to sit across your hips, same hip-drive motion, the machine guides the path for you.",
+        "Bodyweight": "Flat on your back, feet flat on the floor, drive hips up using just your bodyweight, squeeze at the top.",
+        "default": "Upper back on a bench, feet flat, drive hips up by squeezing glutes. Chin tucked, avoid over-arching the lower back."
+      }
+    },
+    "KB Swings": {
+      muscles: "Glutes, hamstrings, core",
+      cuesByVariation: {
+        "Two-Hand": "Both hands on the handle, hinge and snap your hips to swing the bell, arms stay relaxed.",
+        "Single-Arm": "One hand on the handle, brace your core hard to resist rotating, switch hands between sets.",
+        "default": "Hinge at the hips, not a squat. Snap hips forward to swing the bell, arms stay relaxed and just along for the ride."
+      }
+    },
+    "Bench Press": {
+      muscles: "Chest, front shoulders, triceps",
+      cuesByVariation: {
+        "Barbell": "Shoulder blades pulled back and down. Lower the bar to mid-chest, press up and slightly back.",
+        "Dumbbell": "Same pressing path as barbell, but each arm works independently, keep them moving together and controlled.",
+        "Machine": "Handles at chest height, press forward, the machine's path is fixed so focus on control, not stability.",
+        "default": "Shoulder blades pulled back and down. Lower the bar to mid-chest, press up and slightly back over your shoulders."
+      }
+    },
+    "Rows": {
+      muscles: "Upper back, lats, biceps",
+      cuesByVariation: {
+        "Dumbbell": "Hinge forward, row the dumbbell to your hip, squeeze your shoulder blade at the top.",
+        "Cable": "Sit or stand tall, pull the handle to your torso, control the return, don't let the weight yank you forward.",
+        "Machine": "Chest against the pad if there is one, pull elbows back, squeeze at the end range.",
+        "Barbell": "Hinge at the hips, flat back, pull the bar to your lower ribs, elbows close to your body.",
+        "default": "Hinge forward slightly, pull elbows back toward your hips, squeeze shoulder blades together at the top."
+      }
+    },
+    "Shoulder Press": {
+      muscles: "Shoulders, triceps, upper chest",
+      cuesByVariation: {
+        "Dumbbell": "Press straight overhead, avoid arching your lower back, dumbbells can rotate slightly inward at the top.",
+        "Barbell": "Press straight up, the bar path is fixed, you may need to move your head back slightly to clear it.",
+        "Machine": "Handles at shoulder height, press up, the machine controls the path so focus on the muscle, not balance.",
+        "default": "Press straight overhead, not forward. Keep core tight so your lower back doesn't arch as the weight goes up."
+      }
+    },
+    "Lat Pulldown": {
+      muscles: "Lats, upper back, biceps",
+      cuesByVariation: {
+        "Cable": "Lead with your elbows, pull the bar to your upper chest. Avoid leaning back too far or using momentum.",
+        "Assisted Pull-up": "Pull your chest toward the bar, more assistance makes it easier. This one's tracked separately from your PB.",
+        "default": "Lead with your elbows, pull the bar to your upper chest. Avoid leaning back too far or using momentum."
+      }
+    },
+    "Leg Press / Lunges": {
+      muscles: "Quads, glutes, hamstrings",
+      cuesByVariation: {
+        "Leg Press": "Feet shoulder-width on the platform, knees track over toes, don't let your lower back round at the bottom.",
+        "Walking Lunges": "Step forward into a lunge, push off the front leg to step into the next rep, keep your torso upright.",
+        "Bodyweight Lunges": "Same lunge pattern as with weight, just no added load. Focus on control and balance.",
+        "default": "Knees track in line with toes, don't let them cave in. Control the descent, drive through the whole foot."
+      }
+    }
+  };
+
+  const EXERCISE_VARIATIONS = {
+    "Sumo Squats": ["Barbell", "Dumbbell", "Kettlebell"],
+    "Deadlifts": ["Barbell", "Dumbbell", "Trap Bar"],
+    "Hip Thrust": ["Barbell", "Machine", "Bodyweight"],
+    "KB Swings": ["Two-Hand", "Single-Arm"],
+    "Bench Press": ["Barbell", "Dumbbell", "Machine"],
+    "Rows": ["Dumbbell", "Cable", "Machine", "Barbell"],
+    "Shoulder Press": ["Dumbbell", "Barbell", "Machine"],
+    "Lat Pulldown": ["Cable", "Assisted Pull-up"],
+    "Leg Press / Lunges": ["Leg Press", "Walking Lunges", "Bodyweight Lunges"]
+  };
+
+  const EXERCISE_ICONS = {
+    "Sumo Squats": `<i class="fa-solid fa-down-long"></i>`,
+    "Deadlifts": `<i class="fa-solid fa-weight-hanging"></i>`,
+    "Hip Thrust": `<i class="fa-solid fa-bridge"></i>`,
+    "KB Swings": `<i class="fa-solid fa-bell"></i>`,
+    "Bench Press": `<i class="fa-solid fa-arrow-up"></i>`,
+    "Rows": `<i class="fa-solid fa-arrows-left-right"></i>`,
+    "Shoulder Press": `<i class="fa-solid fa-angles-up"></i>`,
+    "Lat Pulldown": `<i class="fa-solid fa-arrow-down"></i>`,
+    "Leg Press / Lunges": `<i class="fa-solid fa-shoe-prints"></i>`
+  };
+
+  const DAYS = {
+    "Lower A": [
+      { name: "Sumo Squats", goal: 135, targetSets: 4, targetReps: "8-12", prefillReps: 10 },
+      { name: "Deadlifts", goal: 200, targetSets: 3, targetReps: "6-8", prefillReps: 7 },
+      { name: "Hip Thrust", goal: 175, targetSets: 3, targetReps: "10-12", prefillReps: 11 },
+      { name: "KB Swings", goal: 45, targetSets: 3, targetReps: "15", prefillReps: 15 },
+    ],
+    "Upper": [
+      { name: "Bench Press", goal: 110, targetSets: 4, targetReps: "6-10", prefillReps: 8 },
+      { name: "Rows", goal: 90, targetSets: 3, targetReps: "10-12", prefillReps: 11 },
+      { name: "Shoulder Press", goal: 65, targetSets: 3, targetReps: "10-12", prefillReps: 11 },
+      { name: "Lat Pulldown", goal: 100, targetSets: 3, targetReps: "8-12", prefillReps: 10 },
+    ],
+    "Lower B": [
+      { name: "Sumo Squats", goal: 135, targetSets: 3, targetReps: "10-12", prefillReps: 11 },
+      { name: "Hip Thrust", goal: 175, targetSets: 4, targetReps: "10-12", prefillReps: 11 },
+      { name: "KB Swings", goal: 45, targetSets: 3, targetReps: "15-20", prefillReps: 17 },
+      { name: "Leg Press / Lunges", goal: 155, targetSets: 3, targetReps: "10-12", prefillReps: 11 },
+    ]
+  };
+  const TAB_ORDER = ["Today", "Warm-up", "Lower A", "Upper", "Lower B", "Core", "Calendar", "Plates", "Weight", "Achievements", "Settings"];
+
+  const STORAGE_KEY = "gymlog:entries";
+  const NOTES_KEY = "gymlog:notes";
+  const GOALS_KEY = "gymlog:goals";
+  const BW_KEY = "gymlog:bodyweight";
+  const ACH_KEY = "gymlog:achievements";
+  const UNIT_KEY = "gymlog:unit";
+  const CUSTOM_EX_KEY = "gymlog:customExercises";
+  const EXCLUDED_KEY = "gymlog:excludedBuiltIns";
+  const REVIEW_KEY = "gymlog:lastProgramReview";
+  let lastProgramReviewAt = null; // ISO date string
+  const THEME_KEY = "gymlog:theme";
+  const MEASURE_KEY = "gymlog:measurements";
+  const EQUIP_KEY = "gymlog:equipmentWeights";
+  let measurements = []; // { id, date, waist, hips }
+  let darkMode = false;
+  let customExercises = {}; // { "Lower A": [{name, targetSets, targetReps, goal}], ... }
+  let excludedBuiltIns = {}; // { "Lower A": ["Sumo Squats"], ... } — built-ins hidden because they were replaced
+  let unitPref = "lbs"; // "lbs" or "kg", display only, storage always stays in lbs
+  let seenAchievements = [];
+  let entries = []; // {exercise, weight, sets, reps, date: "YYYY-MM-DD"}
+  let notes = {}; // { "YYYY-MM-DD": "note text" }
+  let customGoals = {}; // { exerciseName: goalWeight }
+  let bwEntries = []; // { id, date, weight }
+  let lastDeleted = null;
+  let lastDeletedFrom = null; // "entries" or "bw"
+  let toastTimeout = null;
+  let editingId = null; // id of entry currently being edited
+  let logLock = false; // double-tap guard
+  let logDate = null; // set on first render to today's iso date
+  let lastWarmupChecked = {}; // { exerciseName: true/false }, remembers checkbox state within the session
+  let activeTab = "Today";
+  let openExercise = null;
+  let calYear, calMonth; // 0-indexed month
+  let selectedDate = null;
+  let timerSeconds = 0;
+  let timerTotal = 90;
+  let timerRunning = false;
+  let timerInterval = null;
+
+  const today = new Date();
+  calYear = today.getFullYear();
+  calMonth = today.getMonth();
+
+  const tabsEl = document.getElementById("gt-tabs");
+  const listEl = document.getElementById("gt-list");
+  const footerEl = document.getElementById("gt-footer-note");
+
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {}
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  }
+
+  function startTimer(seconds) {
+    clearInterval(timerInterval);
+    timerTotal = seconds;
+    timerSeconds = seconds;
+    timerRunning = true;
+    renderTimerBar();
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      if (timerSeconds <= 0) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        timerSeconds = 0;
+        beep();
+      }
+      renderTimerBar();
+    }, 1000);
+  }
+  function pauseTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    renderTimerBar();
+  }
+  function resetTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerSeconds = 0;
+    renderTimerBar();
+  }
+  function fmtTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${String(sec).padStart(2,'0')}`;
+  }
+  function renderTimerBar() {
+    const bar = document.getElementById("gt-timer-bar");
+    if (!bar) return;
+    const disp = bar.querySelector(".gt-timer-display");
+    disp.textContent = fmtTime(timerSeconds);
+    disp.classList.toggle("done", timerSeconds === 0 && !timerRunning);
+    const goBtn = bar.querySelector(".go");
+    if (goBtn) goBtn.textContent = timerRunning ? "Pause" : "Start";
+  }
+
+  function weekRange(offsetWeeks) {
+    const now = new Date();
+    const day = now.getDay(); // 0 = Sun
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((day + 6) % 7) + (offsetWeeks * 7));
+    monday.setHours(0,0,0,0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return [monday, sunday];
+  }
+  function volumeInRange(start, end) {
+    return entries
+      .filter(e => e.weight && e.sets && e.reps && !e.warmupSet && !e.assistedPullup)
+      .filter(e => { const d = new Date(e.date); return d >= start && d <= end; })
+      .reduce((sum, e) => sum + (e.weight * e.sets * e.reps), 0);
+  }
+  function weeklyRecap() {
+    const [thisMon, thisSun] = weekRange(0);
+    const [lastMon, lastSun] = weekRange(-1);
+    const thisWeek = volumeInRange(thisMon, thisSun);
+    const lastWeek = volumeInRange(lastMon, lastSun);
+    return { thisWeek, lastWeek };
+  }
+  function trainingDates() {
+    return [...new Set(entries.map(e => e.date))].sort();
+  }
+  function computeStats() {
+    const dates = trainingDates();
+    const totalWorkouts = dates.length;
+    const now = new Date();
+    const thisMonthCount = dates.filter(d => {
+      const dt = new Date(d);
+      return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+    }).length;
+    // streak: count back from most recent date, allow gaps up to 4 days between sessions
+    let streak = 0;
+    if (dates.length) {
+      const sorted = [...dates].sort((a,b) => new Date(b) - new Date(a));
+      let prev = new Date(sorted[0]);
+      const daysSinceLast = Math.floor((now - prev) / 86400000);
+      if (daysSinceLast <= 4) {
+        streak = 1;
+        for (let i = 1; i < sorted.length; i++) {
+          const cur = new Date(sorted[i]);
+          const gap = Math.floor((prev - cur) / 86400000);
+          if (gap <= 4) { streak++; prev = cur; } else break;
+        }
+      }
+    }
+    return { totalWorkouts, thisMonthCount, streak };
+  }
+  function volumeTrend(exName, currentDate) {
+    const rows = entries.filter(e => e.exercise === exName && e.weight && !e.warmupSet && !e.assistedPullup);
+    const byDate = {};
+    rows.forEach(r => {
+      byDate[r.date] = (byDate[r.date] || 0) + (r.weight * r.sets * r.reps);
+    });
+    const dates = Object.keys(byDate).sort((a, b) => new Date(a) - new Date(b));
+    if (dates.length < 2) return null;
+    const lastVol = byDate[dates[dates.length - 1]];
+    const prevVol = byDate[dates[dates.length - 2]];
+    if (lastVol > prevVol) return "up";
+    if (lastVol < prevVol) return "down";
+    return "same";
+  }
+
+  // Epley formula: 1RM = weight * (1 + reps/30)
+  function estimated1RM(exName) {
+    const rows = entries.filter(e => e.exercise === exName && e.weight && e.reps && !e.warmupSet && !e.assistedPullup);
+    if (!rows.length) return null;
+    const best = rows.reduce((max, r) => {
+      const est = r.weight * (1 + r.reps / 30);
+      return est > max ? est : max;
+    }, 0);
+    return Math.round(best);
+  }
+
+  const RPE_SCALE = [
+    { val: "6", desc: "Easy, could do 4+ more reps. This is warm-up territory, not a real working set." },
+    { val: "7", desc: "Could do 3 more reps. Solid effort, still some room." },
+    { val: "8", desc: "Could do 2 more reps. This is the sweet spot for most working sets." },
+    { val: "9", desc: "Could maybe squeeze out 1 more rep. Genuinely hard." },
+    { val: "10", desc: "Max effort, couldn't do another rep. Save this for occasional top sets." },
+  ];
+
+  const LOWER_BODY_COMPOUNDS = ["Sumo Squats", "Deadlifts", "Hip Thrust", "Leg Press / Lunges"];
+  function suggestedNextWeight(ex) {
+    const working = entries.filter(e => e.exercise === ex.name && e.weight && !e.warmupSet && !e.assistedPullup);
+    if (!working.length) return null;
+    const lastDate = [...new Set(working.map(e => e.date))].sort((a, b) => new Date(b) - new Date(a))[0];
+    const lastSets = working.filter(e => e.date === lastDate);
+    const rpeVals = lastSets.map(e => e.rpe).filter(v => v);
+    const avgRPE = rpeVals.length ? rpeVals.reduce((a, b) => a + b, 0) / rpeVals.length : null;
+    const targetMin = parseInt(ex.targetReps) || 8;
+    const metReps = lastSets.every(e => e.reps >= targetMin);
+    const lastTopWeight = Math.max(...lastSets.map(e => e.weight));
+    const isLowerCompound = LOWER_BODY_COMPOUNDS.includes(ex.name);
+    const baseIncrement = unitPref === "kg"
+      ? (isLowerCompound ? 5 : 2.5)
+      : (isLowerCompound ? 10 : 5);
+
+    let direction = "hold";
+    let suggestion = lastTopWeight;
+    let note = "";
+
+    if (!metReps) {
+      direction = "hold";
+      note = "You didn't hit full reps last time, repeat this weight and nail your reps first.";
+    } else if (avgRPE !== null && avgRPE >= 9) {
+      direction = "hold";
+      note = "Last session was tough, repeat this weight and see if it feels a bit easier.";
+    } else if (avgRPE !== null && avgRPE <= 6) {
+      // Felt easy, big jump, push toward the RPE 7-8 zone faster
+      suggestion = lastTopWeight + baseIncrement * 2;
+      direction = "up";
+      note = `That felt easy (RPE ${fmtNum(avgRPE)}), pushing a bigger jump than usual.`;
+    } else if (avgRPE !== null && avgRPE <= 7.5) {
+      suggestion = lastTopWeight + baseIncrement * 1.5;
+      direction = "up";
+      note = `Solid session at RPE ${fmtNum(avgRPE)}, still some room, adding a bit more than the standard jump.`;
+    } else if (avgRPE !== null) {
+      // 7.5-9 range: right in the sweet spot
+      suggestion = lastTopWeight + baseIncrement;
+      direction = "up";
+      note = `RPE ${fmtNum(avgRPE)} is the sweet spot, standard jump.`;
+    } else {
+      // no RPE logged, hit reps: moderate default nudge, and prompt for RPE next time
+      suggestion = lastTopWeight + baseIncrement * 1.25;
+      direction = "up";
+      note = "Log your RPE next time for a more precise suggestion, using a moderate jump for now.";
+    }
+
+    return {
+      suggestion: toDisplayWeight(suggestion),
+      lastWeight: toDisplayWeight(lastTopWeight),
+      direction,
+      lastDate,
+      avgRPE,
+      note
+    };
+  }
+
+  function buildProgressRing(pct) {
+    const size = 40, stroke = 3, r = (size - stroke) / 2;
+    const circumference = 2 * Math.PI * r;
+    const offset = circumference * (1 - Math.min(pct, 100) / 100);
+    return `
+      <svg viewBox="0 0 ${size} ${size}" class="gt-ring-svg">
+        <circle cx="${size/2}" cy="${size/2}" r="${r}" style="fill:none; stroke:var(--paper); stroke-width:${stroke};" />
+        <circle cx="${size/2}" cy="${size/2}" r="${r}" style="fill:none; stroke:var(--brass); stroke-width:${stroke}; stroke-linecap:round; transform:rotate(-90deg); transform-origin:50% 50%;"
+          stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" />
+      </svg>
+    `;
+  }
+
+  function buildMiniChart(exName) {
+    const rows = entries.filter(e => e.exercise === exName && e.weight && !e.warmupSet && !e.assistedPullup)
+      .sort((a,b) => new Date(a.date) - new Date(b.date))
+      .slice(-10);
+    if (rows.length < 2) {
+      return `<div class="gt-empty">Log a couple more sessions to see a trend line here.</div>`;
+    }
+    const W = 280, H = 90, pad = 10;
+    const weights = rows.map(r => toDisplayWeight(r.weight));
+    const min = Math.min(...weights);
+    const max = Math.max(...weights);
+    const range = max - min || 1;
+    const stepX = (W - pad * 2) / (rows.length - 1);
+    const points = weights.map((w, i) => {
+      const x = pad + i * stepX;
+      const y = H - pad - ((w - min) / range) * (H - pad * 2);
+      return [x, y];
+    });
+    const pathD = points.map((p, i) => (i === 0 ? `M${p[0]},${p[1]}` : `L${p[0]},${p[1]}`)).join(" ");
+    const dots = points.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="3" style="fill:var(--brass);" />`).join("");
+    const firstLabel = displayDate(rows[0].date);
+    const lastLabel = displayDate(rows[rows.length - 1].date);
+    return `
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:80px; margin-top:6px;">
+        <path d="${pathD}" style="fill:none; stroke:var(--sage); stroke-width:2;" />
+        ${dots}
+      </svg>
+      <div class="gt-set-row" style="border-top:none; padding-top:0; font-size:10.5px;">
+        <span>${firstLabel} \u00b7 ${toDisplayWeight(rows[0].weight)}${unitLabel()}</span>
+        <span>${lastLabel} \u00b7 ${toDisplayWeight(rows[rows.length-1].weight)}${unitLabel()}</span>
+      </div>
+    `;
+  }
+
+  function fireTier(streak) {
+    if (streak >= 30) return { icon: `<i class="fa-solid fa-crown" style="color:#F0B860;"></i>`, label: "Unstoppable", glow: true };
+    if (streak >= 14) return { icon: `<i class="fa-solid fa-fire" style="color:#FF6B4D;"></i>`, label: "On fire", glow: true };
+    if (streak >= 7) return { icon: `<i class="fa-solid fa-fire" style="color:#FF8A6B;"></i>`, label: "Heating up", glow: true };
+    if (streak >= 3) return { icon: `<i class="fa-solid fa-fire" style="color:#E8A23D;"></i>`, label: "Building", glow: false };
+    return { icon: `<i class="fa-solid fa-seedling" style="color:#14A085;"></i>`, label: "Getting started", glow: false };
+  }
+
+  function totalVolumeAllTime() {
+    return entries.filter(e => e.weight && e.sets && e.reps && !e.warmupSet && !e.assistedPullup).reduce((sum, e) => sum + (e.weight * e.sets * e.reps), 0);
+  }
+  function crossTrainingCount() {
+    return entries.filter(e => e.type === "activity").length;
+  }
+  function prCountAllTime() {
+    const seen = {};
+    let count = 0;
+    const sorted = [...entries].filter(e => e.weight && !e.warmupSet && !e.assistedPullup).sort((a,b) => new Date(a.date) - new Date(b.date));
+    sorted.forEach(e => {
+      if (!seen[e.exercise] || e.weight > seen[e.exercise]) {
+        seen[e.exercise] = e.weight;
+        count++;
+      }
+    });
+    return count;
+  }
+
+  const ACHIEVEMENTS = [
+    { id: "first-set", icon: `<i class="fa-solid fa-dumbbell"></i>`, label: "First Rep", desc: "Log your first set", check: (s) => s.totalWorkouts >= 1 },
+    { id: "streak-3", icon: `<i class="fa-solid fa-fire" style="color:#E8A23D;"></i>`, label: "3-Day Streak", desc: "Train 3 sessions in a row", check: (s) => s.streak >= 3 },
+    { id: "streak-7", icon: `<i class="fa-solid fa-fire" style="color:#FF8A6B;"></i>`, label: "Week Warrior", desc: "Hit a 7-session streak", check: (s) => s.streak >= 7 },
+    { id: "streak-14", icon: `<i class="fa-solid fa-fire" style="color:#FF6B4D;"></i>`, label: "On Fire", desc: "Hit a 14-session streak", check: (s) => s.streak >= 14 },
+    { id: "streak-30", icon: `<i class="fa-solid fa-crown" style="color:#F0B860;"></i>`, label: "Unstoppable", desc: "Hit a 30-session streak", check: (s) => s.streak >= 30 },
+    { id: "workouts-10", icon: `<i class="fa-solid fa-fire-flame-curved"></i>`, label: "Regular", desc: "Log 10 total sessions", check: (s) => s.totalWorkouts >= 10 },
+    { id: "workouts-25", icon: `<i class="fa-solid fa-star"></i>`, label: "Committed", desc: "Log 25 total sessions", check: (s) => s.totalWorkouts >= 25 },
+    { id: "workouts-50", icon: `<i class="fa-solid fa-trophy"></i>`, label: "Half Century", desc: "Log 50 total sessions", check: (s) => s.totalWorkouts >= 50 },
+    { id: "first-pr", icon: `<i class="fa-solid fa-medal"></i>`, label: "First PR", desc: "Beat a previous best weight", check: (s) => s.prCount >= 1 },
+    { id: "pr-5", icon: `<i class="fa-solid fa-medal" style="color:#E8A23D;"></i>`, label: "PR Machine", desc: "Rack up 5 PRs across lifts", check: (s) => s.prCount >= 5 },
+    { id: "cross-train", icon: `<i class="fa-solid fa-volleyball"></i>`, label: "Well Rounded", desc: "Log a Pilates or volleyball day", check: (s) => s.crossTraining >= 1 },
+    { id: "volume-10k", icon: `<i class="fa-solid fa-box"></i>`, label: "Ten Thousand Club", desc: "Lift 10,000lbs total volume", check: (s) => s.totalVolume >= 10000 },
+    { id: "volume-50k", icon: `<i class="fa-solid fa-rocket"></i>`, label: "Fifty Thousand Club", desc: "Lift 50,000lbs total volume", check: (s) => s.totalVolume >= 50000 },
+    { id: "bodyweight-log", icon: `<i class="fa-solid fa-scale-balanced"></i>`, label: "Checking In", desc: "Log your bodyweight for the first time", check: (s) => s.bwCount >= 1 },
+  ];
+
+  function achievementStatsSnapshot() {
+    const s = computeStats();
+    return {
+      ...s,
+      prCount: prCountAllTime(),
+      crossTraining: crossTrainingCount(),
+      totalVolume: totalVolumeAllTime(),
+      bwCount: bwEntries.length,
+    };
+  }
+
+  async function checkAchievements() {
+    const snap = achievementStatsSnapshot();
+    const newlyUnlocked = ACHIEVEMENTS.filter(a => a.check(snap) && !seenAchievements.includes(a.id));
+    if (newlyUnlocked.length) {
+      seenAchievements = [...seenAchievements, ...newlyUnlocked.map(a => a.id)];
+      try { await window.storage.set(ACH_KEY, JSON.stringify(seenAchievements), false); } catch (e) {}
+      newlyUnlocked.forEach((a, i) => {
+        setTimeout(() => { spawnConfetti(); showToast(`${a.icon} Achievement unlocked: ${a.label} \u2014 ${randomHype()}`); }, 3200 + i * 5200);
+      });
+    }
+  }
+  function isoDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function fmtNum(n, decimals) {
+    if (decimals === undefined) decimals = 1;
+    if (n === null || n === undefined || isNaN(n)) return '--';
+    const factor = Math.pow(10, decimals);
+    return String(Math.round(n * factor) / factor);
+  }
+
+  function emptyState(icon, text) {
+    return `<div class="gt-empty-state"><i class="fa-solid ${icon}"></i><span>${text}</span></div>`;
+  }
+
+  function displayDate(iso) {
+    const [y,m,d] = iso.split("-");
+    return `${parseInt(m)}/${parseInt(d)}`;
+  }
+
+  // Weight unit helpers: all data is stored internally in lbs. These convert for display/input only.
+  function toDisplayWeight(lbsVal) {
+    if (lbsVal === null || lbsVal === undefined || lbsVal === "") return lbsVal;
+    if (unitPref === "kg") return Math.round((lbsVal / 2.20462) * 10) / 10;
+    return lbsVal;
+  }
+  function fromDisplayWeight(displayVal) {
+    if (!displayVal) return displayVal;
+    if (unitPref === "kg") return Math.round(displayVal * 2.20462 * 10) / 10;
+    return displayVal;
+  }
+  function unitLabel() { return unitPref; }
+  function barWeight() { return unitPref === "kg" ? 20 : 45; }
+  let equipmentWeights = { trapBar: null, legPressSled: null }; // stored in lbs, converted for display
+  function trapBarWeight() {
+    if (equipmentWeights.trapBar != null) return equipmentWeights.trapBar;
+    return unitPref === "kg" ? 25 : 55; // sensible default, editable in Settings
+  }
+  function legPressSledWeight() {
+    return equipmentWeights.legPressSled != null ? equipmentWeights.legPressSled : 0; // varies too much to guess, defaults to 0
+  }
+
+  async function loadData() {
+    try {
+      const res = await window.storage.get(STORAGE_KEY, false);
+      entries = res && res.value ? JSON.parse(res.value) : [];
+    } catch (e) { entries = []; }
+    try {
+      const nres = await window.storage.get(NOTES_KEY, false);
+      notes = nres && nres.value ? JSON.parse(nres.value) : {};
+    } catch (e) { notes = {}; }
+    try {
+      const gres = await window.storage.get(GOALS_KEY, false);
+      customGoals = gres && gres.value ? JSON.parse(gres.value) : {};
+    } catch (e) { customGoals = {}; }
+    try {
+      const bres = await window.storage.get(BW_KEY, false);
+      bwEntries = bres && bres.value ? JSON.parse(bres.value) : [];
+    } catch (e) { bwEntries = []; }
+    try {
+      const ares = await window.storage.get(ACH_KEY, false);
+      seenAchievements = ares && ares.value ? JSON.parse(ares.value) : [];
+    } catch (e) { seenAchievements = []; }
+    try {
+      const ures = await window.storage.get(UNIT_KEY, false);
+      unitPref = ures && ures.value ? ures.value : "lbs";
+    } catch (e) { unitPref = "lbs"; }
+    try {
+      const cres = await window.storage.get(CUSTOM_EX_KEY, false);
+      customExercises = cres && cres.value ? JSON.parse(cres.value) : {};
+    } catch (e) { customExercises = {}; }
+    try {
+      const xres = await window.storage.get(EXCLUDED_KEY, false);
+      excludedBuiltIns = xres && xres.value ? JSON.parse(xres.value) : {};
+    } catch (e) { excludedBuiltIns = {}; }
+    try {
+      const rres = await window.storage.get(REVIEW_KEY, false);
+      lastProgramReviewAt = rres && rres.value ? rres.value : null;
+    } catch (e) { lastProgramReviewAt = null; }
+    try {
+      const tres = await window.storage.get(THEME_KEY, false);
+      darkMode = tres && tres.value === "dark";
+    } catch (e) { darkMode = false; }
+    try {
+      const mres = await window.storage.get(MEASURE_KEY, false);
+      measurements = mres && mres.value ? JSON.parse(mres.value) : [];
+    } catch (e) { measurements = []; }
+    try {
+      const eres = await window.storage.get(EQUIP_KEY, false);
+      equipmentWeights = eres && eres.value ? JSON.parse(eres.value) : { trapBar: null, legPressSled: null };
+    } catch (e) { equipmentWeights = { trapBar: null, legPressSled: null }; }
+    if (!lastProgramReviewAt && entries.length) {
+      const earliestDate = entries.map(e => e.date).sort()[0];
+      lastProgramReviewAt = earliestDate || isoDate(new Date());
+    }
+    applyTheme();
+    let needsSave = false;
+    entries.forEach(e => { if (!e.id) { e.id = Math.random().toString(36).slice(2) + Date.now(); needsSave = true; } });
+    if (needsSave) await saveData();
+    // Silently mark already-earned achievements as seen so we don't toast a backlog on load
+    const snap = achievementStatsSnapshot();
+    const alreadyEarned = ACHIEVEMENTS.filter(a => a.check(snap)).map(a => a.id);
+    const newlySeen = alreadyEarned.filter(id => !seenAchievements.includes(id));
+    if (newlySeen.length) {
+      seenAchievements = [...seenAchievements, ...newlySeen];
+      try { await window.storage.set(ACH_KEY, JSON.stringify(seenAchievements), false); } catch (e) {}
+    }
+    render();
+    const splashEl = document.getElementById("gt-splash");
+    if (splashEl) {
+      setTimeout(() => {
+        splashEl.classList.add("gt-splash-hide");
+        setTimeout(() => splashEl.remove(), 450);
+      }, 300);
+    }
+  }
+  let pendingSyncFailed = false;
+  let lastSavedAt = null;
+
+  async function storageSetWithRetry(key, value, label) {
+    const delays = [300, 800, 1800];
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      try {
+        await window.storage.set(key, value, false);
+        lastSavedAt = new Date();
+        return true;
+      } catch (e) {
+        if (attempt < delays.length) {
+          await new Promise(res => setTimeout(res, delays[attempt]));
+        } else {
+          console.error(`${label} save failed after retries`, e);
+          triggerAutoBackup(label);
+          return false;
+        }
+      }
+    }
+  }
+
+  let autoBackupCooldown = false;
+  function triggerAutoBackup(label) {
+    pendingSyncFailed = true;
+    if (autoBackupCooldown) return;
+    autoBackupCooldown = true;
+    setTimeout(() => { autoBackupCooldown = false; }, 60000);
+    try {
+      const payload = { entries, notes, customGoals, bwEntries, seenAchievements, unitPref, exportedAt: new Date().toISOString(), reason: `auto-backup after ${label} save failure` };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `gymlog-autobackup-${isoDate(new Date())}-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Storage failed, backup downloaded automatically");
+    } catch (e) {
+      console.error("Auto-backup also failed", e);
+    }
+  }
+
+  async function saveData() {
+    await storageSetWithRetry(STORAGE_KEY, JSON.stringify(entries), "Workout log");
+  }
+  async function saveNotes() {
+    await storageSetWithRetry(NOTES_KEY, JSON.stringify(notes), "Notes");
+  }
+  async function saveGoals() {
+    await storageSetWithRetry(GOALS_KEY, JSON.stringify(customGoals), "Goals");
+  }
+  async function saveBw() {
+    await storageSetWithRetry(BW_KEY, JSON.stringify(bwEntries), "Bodyweight");
+  }
+  async function saveUnit() {
+    await storageSetWithRetry(UNIT_KEY, unitPref, "Unit preference");
+  }
+  async function saveCustomExercises() {
+    await storageSetWithRetry(CUSTOM_EX_KEY, JSON.stringify(customExercises), "Custom exercises");
+  }
+  async function saveExcludedBuiltIns() {
+    await storageSetWithRetry(EXCLUDED_KEY, JSON.stringify(excludedBuiltIns), "Replaced exercises");
+  }
+  async function markProgramReviewed() {
+    lastProgramReviewAt = isoDate(new Date());
+    await storageSetWithRetry(REVIEW_KEY, lastProgramReviewAt, "Program review");
+  }
+  function weeksSinceReview() {
+    if (!lastProgramReviewAt) return 0;
+    const days = Math.floor((new Date() - new Date(lastProgramReviewAt)) / 86400000);
+    return Math.floor(days / 7);
+  }
+  function applyTheme() {
+    const rootEl = document.getElementById("gt-root");
+    if (rootEl) rootEl.classList.toggle("dark-mode", darkMode);
+    document.body.classList.toggle("gt-dark-body", darkMode);
+  }
+  async function saveTheme() {
+    await storageSetWithRetry(THEME_KEY, darkMode ? "dark" : "light", "Theme");
+  }
+  async function saveMeasurements() {
+    await storageSetWithRetry(MEASURE_KEY, JSON.stringify(measurements), "Measurements");
+  }
+  async function saveEquipmentWeights() {
+    await storageSetWithRetry(EQUIP_KEY, JSON.stringify(equipmentWeights), "Equipment weights");
+  }
+  async function deleteMeasurementWithUndo(id) {
+    const idx = measurements.findIndex(e => e.id === id);
+    if (idx === -1) return;
+    const removed = measurements[idx];
+    measurements = measurements.filter(e => e.id !== id);
+    await saveMeasurements();
+    render();
+    showToast("Measurement deleted", async () => {
+      measurements.push(removed);
+      await saveMeasurements();
+      render();
+    });
+  }
+  function exercisesForDay(day) {
+    const excluded = excludedBuiltIns[day] || [];
+    const builtIn = (DAYS[day] || []).filter(ex => !excluded.includes(ex.name));
+    const custom = (customExercises[day] || []).filter(c => c.archived !== true);
+    return [...builtIn, ...custom];
+  }
+  function goalFor(ex) {
+    return customGoals[ex.name] || ex.goal;
+  }
+  function spawnConfetti() {
+    const container = document.getElementById("gt-confetti");
+    if (!container) return;
+    const colors = ["#E8A23D", "#38D178", "#14A085", "#FF6B4D", "#FFD166"];
+    const count = 24;
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement("div");
+      piece.className = "gt-confetti-piece";
+      piece.style.left = Math.random() * 100 + "%";
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.width = piece.style.height = (5 + Math.random() * 5) + "px";
+      piece.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+      const duration = 1.6 + Math.random() * 1.2;
+      const delay = Math.random() * 0.3;
+      piece.style.animationDuration = duration + "s";
+      piece.style.animationDelay = delay + "s";
+      container.appendChild(piece);
+      setTimeout(() => piece.remove(), (duration + delay) * 1000 + 200);
+    }
+  }
+
+  const HYPE_LINES = [
+    "You're freaking awesome, no notes.",
+    "Looking snatched today, not gonna lie.",
+    "You earned yourself a free snack. We don't do judgment here.",
+    "10/10, would recommend this energy to a friend.",
+    "Your future self just texted 'thank you.'",
+    "Certified hot girl workout. No crumbs left.",
+    "The gains are immaculate right now.",
+    "This is your villain origin story, but the good kind.",
+    "Somewhere, a personal trainer shed a single tear of pride.",
+    "Not slacking? In this economy? Groundbreaking.",
+    "Log it, love it, leave it. Iconic behavior.",
+    "The streak lives. Long live the streak.",
+    "You showed up. That's more than most people did today.",
+    "This set had no business being that clean.",
+    "She really said 'not today, weakness' and meant it.",
+    "You + consistency = a whole vibe.",
+    "Reddit r/gainit would be proud of this.",
+    "This is the kind of behavior that gets you into the good group chat.",
+    "Certified snack-worthy performance. Go treat yourself.",
+    "Your gym partner is definitely telling people about you right now.",
+    "That's a whole lot of not slacking, actually.",
+    "Ate that set. Left zero crumbs.",
+    "Future you called, they said thanks for the assist.",
+    "This is what main character energy looks like.",
+    "Achievement unlocked: certified snack-earner.",
+  ];
+  function randomHype() {
+    return HYPE_LINES[Math.floor(Math.random() * HYPE_LINES.length)];
+  }
+
+  function showToast(message, onUndo) {
+    clearTimeout(toastTimeout);
+    const t = document.getElementById("gt-toast");
+    t.innerHTML = `<span>${message}</span>${onUndo ? '<button id="toast-undo">Undo</button>' : ''}`;
+    t.classList.add("show");
+    if (onUndo) document.getElementById("toast-undo").onclick = () => { onUndo(); hideToast(); };
+    toastTimeout = setTimeout(hideToast, 5000);
+  }
+  function hideToast() {
+    const t = document.getElementById("gt-toast");
+    t.classList.remove("show");
+  }
+  async function deleteEntryWithUndo(id) {
+    const idx = entries.findIndex(e => e.id === id);
+    if (idx === -1) return;
+    lastDeleted = entries[idx];
+    lastDeletedFrom = "entries";
+    entries = entries.filter(e => e.id !== id);
+    await saveData();
+    render();
+    showToast("Set deleted", async () => {
+      entries.push(lastDeleted);
+      await saveData();
+      render();
+    });
+  }
+  async function deleteBwWithUndo(id) {
+    const idx = bwEntries.findIndex(e => e.id === id);
+    if (idx === -1) return;
+    lastDeleted = bwEntries[idx];
+    lastDeletedFrom = "bw";
+    bwEntries = bwEntries.filter(e => e.id !== id);
+    await saveBw();
+    render();
+    showToast("Entry deleted", async () => {
+      bwEntries.push(lastDeleted);
+      await saveBw();
+      render();
+    });
+  }
+  function exportData() {
+    const payload = { entries, notes, customGoals, bwEntries, seenAchievements, unitPref, exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `gymlog-backup-${isoDate(new Date())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function mergeById(current, incoming) {
+    const map = new Map(current.map(e => [e.id, e]));
+    incoming.forEach(e => map.set(e.id, e));
+    return [...map.values()];
+  }
+
+  async function importData(file, confirmed) {
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      if (!payload || typeof payload !== "object") throw new Error("Invalid file");
+      const incomingEntries = Array.isArray(payload.entries) ? payload.entries : [];
+      const incomingBw = Array.isArray(payload.bwEntries) ? payload.bwEntries : [];
+
+      // Warn if this import would REMOVE data you currently have (ids present now but not in the file)
+      const currentIds = new Set(entries.map(e => e.id));
+      const incomingIds = new Set(incomingEntries.map(e => e.id));
+      const wouldLose = [...currentIds].filter(id => !incomingIds.has(id)).length;
+
+      if (wouldLose > 0 && !confirmed) {
+        pendingImportFile = file;
+        showToast(`This file is missing ${wouldLose} set(s) you currently have logged. Tap Import again to merge anyway (nothing gets deleted, just merged together).`);
+        return;
+      }
+
+      entries = mergeById(entries, incomingEntries);
+      bwEntries = mergeById(bwEntries, incomingBw);
+      if (payload.notes && typeof payload.notes === "object") notes = { ...notes, ...payload.notes };
+      if (payload.customGoals && typeof payload.customGoals === "object") customGoals = { ...customGoals, ...payload.customGoals };
+      if (Array.isArray(payload.seenAchievements)) seenAchievements = [...new Set([...seenAchievements, ...payload.seenAchievements])];
+      if (payload.unitPref === "lbs" || payload.unitPref === "kg") unitPref = payload.unitPref;
+      entries.forEach(e => { if (!e.id) e.id = Math.random().toString(36).slice(2) + Date.now(); });
+      bwEntries.forEach(e => { if (!e.id) e.id = Math.random().toString(36).slice(2) + Date.now(); });
+      await saveData();
+      await saveNotes();
+      await saveGoals();
+      await saveBw();
+      try { await window.storage.set(ACH_KEY, JSON.stringify(seenAchievements), false); } catch (e) {}
+      await saveUnit();
+      pendingImportFile = null;
+      showToast("Backup merged in successfully");
+      render();
+    } catch (e) {
+      showToast("Couldn't read that file, make sure it's a Gym Log backup JSON");
+    }
+  }
+  let pendingImportFile = null;
+  function bestFor(exName) {
+    const rows = entries.filter(e => e.exercise === exName && !e.warmupSet);
+    if (!rows.length) return null;
+    return rows.reduce((a, b) => (b.weight > a.weight ? b : a));
+  }
+  function historyFor(exName) {
+    return entries.filter(e => e.exercise === exName)
+      .sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
+  }
+  function setNumberInDay(entry) {
+    const sameDay = entries.filter(e => e.exercise === entry.exercise && e.date === entry.date && !e.warmupSet);
+    const idx = sameDay.findIndex(e => e.id === entry.id);
+    return idx + 1;
+  }
+
+  function renderTabs() {
+    tabsEl.innerHTML = "";
+    TAB_ORDER.forEach(t => {
+      const tab = document.createElement("div");
+      tab.className = "gt-tab" + (t === activeTab ? " active" : "");
+      tab.innerHTML = `<span class="gt-tab-icon">${TAB_ICONS[t] || ''}</span><span>${t}</span>`;
+      tab.onclick = () => { activeTab = t; openExercise = null; addingCustomExercise = false; render(); };
+      tabsEl.appendChild(tab);
+    });
+  }
+
+  function renderStatsStrip() {
+    const s = computeStats();
+    const fire = fireTier(s.streak);
+    const strip = document.createElement("div");
+    strip.className = "gt-stats";
+    strip.innerHTML = `
+      <div class="gt-stat${fire.glow ? ' gt-stat-glow' : ''}"><div class="gt-stat-num">${fire.icon} ${s.streak}</div><div class="gt-stat-label">${fire.label}</div></div>
+      <div class="gt-stat"><div class="gt-stat-num">${s.thisMonthCount}</div><div class="gt-stat-label">This Month</div></div>
+      <div class="gt-stat"><div class="gt-stat-num">${s.totalWorkouts}</div><div class="gt-stat-label">All Time</div></div>
+    `;
+    listEl.appendChild(strip);
+
+    const todayIso = isoDate(today);
+    const todayActivities = entries.filter(e => e.date === todayIso && e.type === "activity").map(e => e.activity);
+    const quick = document.createElement("div");
+    quick.className = "gt-activity-btns";
+    quick.style.marginBottom = "12px";
+    quick.innerHTML = `
+      <button class="gt-activity-btn" id="quick-pilates" ${todayActivities.includes("Pilates") ? "disabled" : ""}>${todayActivities.includes("Pilates") ? "\u2713 Pilates logged" : "+ Log Pilates (today)"}</button>
+      <button class="gt-activity-btn" id="quick-volleyball" ${todayActivities.includes("Volleyball") ? "disabled" : ""}>${todayActivities.includes("Volleyball") ? "\u2713 Volleyball logged" : "+ Log Volleyball (today)"}</button>
+    `;
+    listEl.appendChild(quick);
+    if (!todayActivities.includes("Pilates")) {
+      document.getElementById("quick-pilates").onclick = async () => {
+        entries.push({ id: Math.random().toString(36).slice(2) + Date.now(), type: "activity", activity: "Pilates", date: todayIso });
+        await saveData();
+        await checkAchievements();
+        showToast("Pilates logged for today");
+        render();
+      };
+    }
+    if (!todayActivities.includes("Volleyball")) {
+      document.getElementById("quick-volleyball").onclick = async () => {
+        entries.push({ id: Math.random().toString(36).slice(2) + Date.now(), type: "activity", activity: "Volleyball", date: todayIso });
+        await saveData();
+        await checkAchievements();
+        showToast("Volleyball logged for today");
+        render();
+      };
+    }
+  }
+
+  function renderFinishWorkoutButton() {
+    const btn = document.createElement("button");
+    btn.className = "gt-add-btn";
+    btn.style.width = "100%";
+    btn.style.marginBottom = "12px";
+    btn.style.background = "var(--sage)";
+    btn.textContent = "\u2713 Finish Workout";
+    btn.onclick = () => showWorkoutSummary();
+    listEl.appendChild(btn);
+  }
+
+  function showWorkoutSummary() {
+    const todayIso = isoDate(today);
+    const todayEntries = entries.filter(e => e.date === todayIso && e.exercise && !e.warmupSet);
+    const totalSets = todayEntries.length;
+    const totalVolume = todayEntries.filter(e => !e.assistedPullup && e.weight).reduce((s, e) => s + (e.weight * e.sets * e.reps), 0);
+    const exNames = [...new Set(todayEntries.map(e => e.exercise))];
+    let prCount = 0;
+    exNames.forEach(name => {
+      const best = bestFor(name);
+      if (best && best.date === todayIso) prCount++;
+    });
+    const warmupCount = entries.filter(e => e.date === todayIso && e.warmupSet).length;
+    const doneActivity = entries.filter(e => e.date === todayIso && e.type === "activity").map(e => e.activity);
+    const doneCore = entries.some(e => e.type === "core" && e.date === todayIso);
+
+    const overlay = document.createElement("div");
+    overlay.className = "gt-modal-overlay";
+    overlay.innerHTML = `
+      <div class="gt-modal-card">
+        <div class="gt-modal-title">${prCount > 0 ? '<i class="fa-solid fa-fire" style="color:#FF6B4D;"></i> Great Session!' : "Workout Complete"}</div>
+        <div class="gt-stats" style="margin-top:14px;">
+          <div class="gt-stat"><div class="gt-stat-num">${totalSets}</div><div class="gt-stat-label">Sets</div></div>
+          <div class="gt-stat"><div class="gt-stat-num">${Math.round(toDisplayWeight(totalVolume)).toLocaleString()}</div><div class="gt-stat-label">${unitLabel()} Volume</div></div>
+          <div class="gt-stat"><div class="gt-stat-num">${prCount}</div><div class="gt-stat-label">PRs Today</div></div>
+        </div>
+        <div class="gt-target" style="margin-top:14px; text-align:center;">
+          ${exNames.length} exercise${exNames.length !== 1 ? 's' : ''}${warmupCount ? ` \u00b7 ${warmupCount} warm-up set${warmupCount !== 1 ? 's' : ''}` : ''}
+          ${doneCore ? ' \u00b7 Core done' : ''}${doneActivity.length ? ` \u00b7 ${doneActivity.join(', ')}` : ''}
+        </div>
+        <div class="gt-hype-line">${randomHype()}</div>
+        <button class="gt-add-btn" id="gt-modal-close" style="width:100%; margin-top:16px;">Nice</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    if (prCount > 0) spawnConfetti();
+    overlay.querySelector("#gt-modal-close").onclick = () => overlay.remove();
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  }
+
+  function renderTimerBarEl() {
+    const bar = document.createElement("div");
+    bar.className = "gt-timer-bar";
+    bar.id = "gt-timer-bar";
+    bar.innerHTML = `
+      <div class="gt-timer-display">${fmtTime(timerSeconds)}</div>
+      <div class="gt-timer-presets">
+        <button data-t="60">60s</button>
+        <button data-t="90">90s</button>
+        <button data-t="120">120s</button>
+      </div>
+      <div class="gt-timer-controls">
+        <button class="go">${timerRunning ? "Pause" : "Start"}</button>
+        <button class="reset">Reset</button>
+      </div>
+    `;
+    bar.querySelectorAll(".gt-timer-presets button").forEach(btn => {
+      btn.onclick = () => startTimer(parseInt(btn.dataset.t));
+    });
+    bar.querySelector(".go").onclick = () => {
+      if (timerRunning) pauseTimer();
+      else startTimer(timerSeconds > 0 ? timerSeconds : timerTotal);
+    };
+    bar.querySelector(".reset").onclick = () => resetTimer();
+    listEl.appendChild(bar);
+  }
+
+  function renderRecapCard() {
+    const { thisWeek, lastWeek } = weeklyRecap();
+    const card = document.createElement("div");
+    card.className = "gt-card";
+    let diffHtml = "";
+    if (lastWeek > 0) {
+      const pct = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+      if (pct > 0) diffHtml = `<span class="gt-trend-up">&#8593; ${pct}% vs last week</span>`;
+      else if (pct < 0) diffHtml = `<span class="gt-trend-down">&#8595; ${Math.abs(pct)}% vs last week</span>`;
+      else diffHtml = `<span style="color:var(--muted)">Same as last week</span>`;
+    } else if (thisWeek > 0) {
+      diffHtml = `<span style="color:var(--muted)">No data last week to compare</span>`;
+    } else {
+      diffHtml = `<span style="color:var(--muted)">Log a set to get started this week</span>`;
+    }
+    card.innerHTML = `
+      <div class="gt-ex-name">This Week's Volume</div>
+      <div class="gt-target" style="margin-top:4px;">${Math.round(toDisplayWeight(thisWeek)).toLocaleString()} ${unitLabel()} lifted &middot; ${diffHtml}</div>
+    `;
+    listEl.appendChild(card);
+  }
+
+  function renderDatePickerBar() {
+    const todayIso = isoDate(today);
+    if (!logDate) logDate = todayIso;
+    const bar = document.createElement("div");
+    bar.className = "gt-date-bar";
+    const isToday = logDate === todayIso;
+    bar.innerHTML = `
+      <span class="gt-date-label">Logging for:</span>
+      <input type="date" id="log-date-input" value="${logDate}" max="${todayIso}">
+      ${!isToday ? '<button class="gt-date-today" id="log-date-reset">Back to today</button>' : ''}
+    `;
+    listEl.appendChild(bar);
+    document.getElementById("log-date-input").onchange = (e) => {
+      logDate = e.target.value || todayIso;
+      render();
+    };
+    if (!isToday) {
+      document.getElementById("log-date-reset").onclick = () => {
+        logDate = todayIso;
+        render();
+      };
+    }
+  }
+
+  function renderExerciseList() {
+    footerEl.textContent = "Bar fills as your top weight climbs toward your goal for that lift";
+    renderStatsStrip();
+    renderRecapCard();
+    renderDatePickerBar();
+    renderTimerBarEl();
+    renderFinishWorkoutButton();
+    exercisesForDay(activeTab).forEach(ex => {
+      const best = bestFor(ex.name);
+      const pct = best ? Math.min(100, Math.round((best.weight / goalFor(ex)) * 100)) : 0;
+      const trend = volumeTrend(ex.name);
+      const sessionDate = logDate || isoDate(today);
+      const setsCompletedForSession = entries.filter(e => e.exercise === ex.name && e.date === sessionDate && !e.warmupSet).length;
+
+      const card = document.createElement("div");
+      card.className = "gt-card";
+
+      const head = document.createElement("div");
+      head.className = "gt-ex-head";
+      const sessionDone = setsCompletedForSession >= ex.targetSets;
+      head.innerHTML = `
+        <div class="gt-ex-head-left">
+          <div class="gt-ex-icon-ring">
+            ${buildProgressRing(pct)}
+            <div class="gt-ex-icon">${EXERCISE_ICONS[ex.name] || CUSTOM_EX_ICON}</div>
+          </div>
+          <div>
+            <div class="gt-ex-name">${ex.name}${ex.custom ? ' <span class="gt-rpe-tag">custom</span>' : ''}</div>
+            <div class="gt-target">Target: ${ex.targetSets} x ${ex.targetReps}</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+          <div class="gt-pb-badge">${best ? "PB " + toDisplayWeight(best.weight) + unitLabel() : "No log yet"}${trend === 'up' ? ' <span class="gt-trend-up">&#8593;</span>' : trend === 'down' ? ' <span class="gt-trend-down">&#8595;</span>' : ''}</div>
+          <div class="gt-session-badge${sessionDone ? ' done' : ''}">${setsCompletedForSession}/${ex.targetSets} sets ${sessionDone ? '\u2713' : 'today'}</div>
+        </div>
+      `;
+      head.onclick = () => { openExercise = openExercise === ex.name ? null : ex.name; render(); };
+      card.appendChild(head);
+
+      if (openExercise === ex.name) {
+        const info = EXERCISE_INFO[ex.name] || null;
+        if (info) {
+          const variationsList = EXERCISE_VARIATIONS[ex.name];
+          const recentVarEntry = entries.filter(e => e.exercise === ex.name && e.variation)
+            .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+          const displayVariation = recentVarEntry ? recentVarEntry.variation : (variationsList ? variationsList[0] : null);
+          const cueText = info.cuesByVariation
+            ? (info.cuesByVariation[displayVariation] || info.cuesByVariation.default)
+            : info.cues;
+          const mwQuery = encodeURIComponent(`site:musclewiki.com ${ex.name}`);
+          const infoBox = document.createElement("div");
+          infoBox.className = "gt-info-box";
+          infoBox.innerHTML = `
+            ${cueText ? `<div class="gt-info-row"><i class="fa-solid fa-circle-info"></i><span>${cueText}${displayVariation ? ` <span class="gt-var-label">(${displayVariation})</span>` : ''}</span></div>` : ''}
+            ${info.muscles ? `<div class="gt-info-row"><i class="fa-solid fa-person"></i><span>${info.muscles}</span></div>` : ''}
+            <div class="gt-info-row"><a href="https://www.google.com/search?q=${mwQuery}" target="_blank" rel="noopener" style="color:var(--sage); text-decoration:underline; font-size:11.5px;"><i class="fa-solid fa-video"></i> Watch on MuscleWiki</a></div>
+          `;
+          card.appendChild(infoBox);
+        }
+        const altOptions = ALTERNATIVES[ex.name];
+        if (altOptions && altOptions.length) {
+          const altBtn = document.createElement("button");
+          altBtn.className = "gt-activity-btn";
+          altBtn.style.marginTop = "8px";
+          altBtn.style.width = "100%";
+          altBtn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> Suggest an alternative`;
+          altBtn.onclick = () => {
+            const pick = altOptions[Math.floor(Math.random() * altOptions.length)];
+            altBtn.textContent = `Try: ${pick.name} \u2014 ${pick.reason}`;
+            let swapBtn = card.querySelector(".gt-swap-confirm");
+            if (!swapBtn) {
+              swapBtn = document.createElement("button");
+              swapBtn.className = "gt-add-btn gt-swap-confirm";
+              swapBtn.style.width = "100%";
+              swapBtn.style.marginTop = "6px";
+              altBtn.insertAdjacentElement("afterend", swapBtn);
+            }
+            swapBtn.textContent = `Swap in ${pick.name} for today`;
+            swapBtn.onclick = () => {
+              oneOffPrefillName = pick.name;
+              oneOffPrefillTarget = { sets: pick.targetSets, reps: pick.targetReps, cues: pick.cues, muscles: pick.muscles };
+              addingCustomExercise = true;
+              customExerciseMode = "oneoff";
+              openExercise = null;
+              render();
+            };
+            let permBtn = card.querySelector(".gt-perm-confirm");
+            if (!permBtn) {
+              permBtn = document.createElement("div");
+              permBtn.className = "gt-clear gt-perm-confirm";
+              permBtn.style.marginTop = "6px";
+              swapBtn.insertAdjacentElement("afterend", permBtn);
+            }
+            permBtn.textContent = `Or add ${pick.name} permanently instead`;
+            permBtn.onclick = () => {
+              const notesParts = [];
+              if (pick.cues) notesParts.push(pick.cues);
+              if (pick.muscles) notesParts.push(`Targets: ${pick.muscles}`);
+              recurringPrefill = {
+                name: pick.name,
+                sets: pick.targetSets,
+                reps: pick.targetReps,
+                notes: notesParts.join(" ")
+              };
+              addingCustomExercise = true;
+              customExerciseMode = "recurring";
+              openExercise = null;
+              render();
+            };
+          };
+          card.appendChild(altBtn);
+        }
+        if (ex.custom) {
+          let editingNote = editingCustomNoteFor === ex.name;
+          const noteBox = document.createElement("div");
+          noteBox.className = "gt-info-box";
+          if (editingNote) {
+            noteBox.innerHTML = `
+              <textarea class="gt-input" id="custom-note-edit" style="min-height:50px; resize:vertical;">${ex.notes || ''}</textarea>
+              <div class="gt-add-row" style="margin-top:6px;">
+                <button class="gt-add-btn" id="custom-note-save" style="flex:1;">Save Note</button>
+                <button class="gt-activity-btn" id="custom-note-cancel" style="flex:0.6;">Cancel</button>
+              </div>
+            `;
+            noteBox.querySelector("#custom-note-save").onclick = async () => {
+              const val = noteBox.querySelector("#custom-note-edit").value.trim();
+              const item = (customExercises[activeTab] || []).find(c => c.name === ex.name);
+              if (item) item.notes = val || null;
+              await saveCustomExercises();
+              editingCustomNoteFor = null;
+              render();
+            };
+            noteBox.querySelector("#custom-note-cancel").onclick = () => { editingCustomNoteFor = null; render(); };
+          } else {
+            noteBox.innerHTML = `<div class="gt-info-row"><i class="fa-solid fa-note-sticky"></i><span>${ex.notes || 'No notes yet, tap edit to add form cues or reminders for yourself.'}</span></div>`;
+          }
+          card.appendChild(noteBox);
+          if (!editingNote) {
+            const editNoteLink = document.createElement("div");
+            editNoteLink.className = "gt-clear";
+            editNoteLink.style.marginTop = "2px";
+            editNoteLink.textContent = ex.notes ? "Edit note" : "Add a note";
+            editNoteLink.onclick = () => { editingCustomNoteFor = ex.name; render(); };
+            card.appendChild(editNoteLink);
+          }
+
+          const actionRow = document.createElement("div");
+          actionRow.className = "gt-add-row";
+          actionRow.style.marginTop = "6px";
+          actionRow.innerHTML = `
+            <button class="gt-activity-btn" id="archive-ex-btn" style="flex:1;">Archive (hide from this week)</button>
+          `;
+          card.appendChild(actionRow);
+          actionRow.querySelector("#archive-ex-btn").onclick = async () => {
+            const item = (customExercises[activeTab] || []).find(c => c.name === ex.name);
+            if (item) item.archived = true;
+            await saveCustomExercises();
+            openExercise = null;
+            showToast(`${ex.name} archived, find it again in Settings if you want it back`);
+            render();
+          };
+
+          const delBtn = document.createElement("div");
+          delBtn.className = "gt-clear";
+          delBtn.style.marginTop = "6px";
+          delBtn.textContent = "Delete permanently (loses goal weight config)";
+          delBtn.onclick = async () => {
+            if (!delBtn.dataset.armed) {
+              delBtn.dataset.armed = "1";
+              delBtn.textContent = "Tap again to permanently delete";
+              setTimeout(() => { delBtn.dataset.armed = ""; delBtn.textContent = "Delete permanently (loses goal weight config)"; }, 4000);
+              return;
+            }
+            customExercises[activeTab] = (customExercises[activeTab] || []).filter(c => c.name !== ex.name);
+            await saveCustomExercises();
+            openExercise = null;
+            render();
+          };
+          card.appendChild(delBtn);
+        }
+      }
+
+      if (openExercise === ex.name) {
+        const oneRM = estimated1RM(ex.name);
+        const suggestion = suggestedNextWeight(ex);
+        if (suggestion) {
+          const suggestCard = document.createElement("div");
+          suggestCard.className = "gt-suggest-box";
+          const diff = Math.round((suggestion.suggestion - suggestion.lastWeight) * 10) / 10;
+          const suggestText = suggestion.direction === "up"
+            ? `Suggested: <b>${suggestion.suggestion}${unitLabel()}</b> (+${diff}${unitLabel()}). ${suggestion.note}`
+            : `Suggested: <b>${suggestion.suggestion}${unitLabel()}</b> (hold). ${suggestion.note}`;
+          suggestCard.innerHTML = `<span class="gt-suggest-icon"><i class="fa-solid fa-lightbulb" style="color:var(--sage);"></i></span><span>${suggestText}</span>`;
+          card.appendChild(suggestCard);
+        }
+        const chartCard = document.createElement("div");
+        chartCard.className = "gt-chart-box";
+        chartCard.innerHTML = `
+          <div class="gt-set-row" style="border-top:none; padding-top:0;">
+            <span style="font-weight:600; color:var(--ink);">Est. 1-Rep Max</span>
+            <span style="font-weight:700; color:var(--brass);">${oneRM ? toDisplayWeight(oneRM) + unitLabel() : '--'}</span>
+          </div>
+          ${buildMiniChart(ex.name)}
+        `;
+        card.appendChild(chartCard);
+      }
+
+      const hist = document.createElement("div");
+      hist.className = "gt-history" + (openExercise === ex.name ? " open" : "");
+      const rows = historyFor(ex.name);
+      if (rows.length === 0) {
+        hist.innerHTML = emptyState("fa-clipboard-list", "No sets logged yet, add your first below.");
+      } else {
+        const grouped = {};
+        const dateOrder = [];
+        rows.forEach(r => {
+          if (!grouped[r.date]) { grouped[r.date] = []; dateOrder.push(r.date); }
+          grouped[r.date].push(r);
+        });
+        const todayIso = isoDate(today);
+        dateOrder.forEach(date => {
+          const dayHeader = document.createElement("div");
+          dayHeader.className = "gt-hist-day-header";
+          const dayVol = grouped[date].filter(r => !r.warmupSet && !r.assistedPullup && r.weight).reduce((s, r) => s + (r.weight * r.sets * r.reps), 0);
+          dayHeader.innerHTML = `<span>${date === todayIso ? "Today" : displayDate(date)}</span><span>${grouped[date].length} set${grouped[date].length > 1 ? 's' : ''}${dayVol ? ` \u00b7 ${Math.round(toDisplayWeight(dayVol)).toLocaleString()}${unitLabel()} vol` : ''}</span>`;
+          hist.appendChild(dayHeader);
+          grouped[date].forEach(r => {
+            const isPB = best && r.weight === best.weight && r.date === best.date && !r.warmupSet && !r.assistedPullup;
+            const row = document.createElement("div");
+            row.className = "gt-set-row logged" + (r.warmupSet ? " gt-warmup-row" : "");
+            const setLabel = r.warmupSet
+              ? `Warm-up \u00b7 ${r.reps} reps`
+              : (r.sets && r.sets > 1 ? `${r.sets}x${r.reps}` : `Set ${setNumberInDay(r)} \u00b7 ${r.reps} reps`);
+            const weightDisplay = r.assistedPullup
+              ? `${toDisplayWeight(r.weight)}${unitLabel()} assist`
+              : (!r.weight && (r.variation === "Bodyweight" || r.variation === "Bodyweight Lunges"))
+                ? "Bodyweight"
+                : `${toDisplayWeight(r.weight)}${unitLabel()}${isPB ? ' \u2605' : ''}`;
+            row.innerHTML = `
+              <span>${r.variation ? `<span class="gt-rpe-tag">${r.variation}</span>` : ''}</span>
+              <span>${setLabel}${r.rpe ? `<span class="gt-rpe-tag">RPE ${r.rpe}</span>` : ''}</span>
+              <span class="gt-weight-num ${isPB ? 'gt-new-pb' : ''}">${weightDisplay}</span>
+              <span class="gt-check">&#10003;</span>
+              <span class="gt-edit-icon" data-id="${r.id}">&#9998;</span>
+              <span class="gt-del-x" data-id="${r.id}">&#10005;</span>
+            `;
+            hist.appendChild(row);
+          });
+        });
+      }
+      const isEditing = editingId && rows.some(r => r.id === editingId);
+      const editRow = isEditing ? entries.find(e => e.id === editingId) : null;
+      const variations = EXERCISE_VARIATIONS[ex.name];
+      let selectedVar = null;
+      let varSelectEl = null;
+      if (variations) {
+        const varRow = document.createElement("div");
+        varRow.className = "gt-var-row";
+        if (editRow && editRow.variation) {
+          selectedVar = editRow.variation;
+        } else {
+          const lastLogged = entries
+            .filter(e => e.exercise === ex.name && e.variation)
+            .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+          selectedVar = lastLogged ? lastLogged.variation : variations[0];
+        }
+        varRow.innerHTML = `
+          <span class="gt-var-label">Variation:</span>
+          <select class="gt-input" style="flex:1;">
+            ${variations.map(v => `<option value="${v}" ${v === selectedVar ? "selected" : ""}>${v}</option>`).join("")}
+          </select>
+        `;
+        hist.appendChild(varRow);
+        varSelectEl = varRow.querySelector("select");
+      }
+      const isBarbell = selectedVar === "Barbell";
+      const isDumbbell = selectedVar === "Dumbbell";
+      const lastLoggedSet = !editRow
+        ? entries.filter(e => e.exercise === ex.name && e.weight && !e.warmupSet && !e.assistedPullup)
+            .sort((a, b) => (new Date(b.date) - new Date(a.date)) || ((b.createdAt || 0) - (a.createdAt || 0)))[0]
+        : null;
+      let initialWeightVal = "";
+      let initialRepsVal = ex.prefillReps;
+      let initialRpeVal = "";
+      if (editRow) {
+        const totalDisplay = toDisplayWeight(editRow.weight);
+        initialWeightVal = isBarbell ? Math.round(((totalDisplay - barWeight()) / 2) * 10) / 10
+          : isDumbbell ? Math.round((totalDisplay / 2) * 10) / 10
+          : totalDisplay;
+        initialRepsVal = editRow.reps;
+        initialRpeVal = editRow.rpe || "";
+      } else if (lastLoggedSet) {
+        const totalDisplay = toDisplayWeight(lastLoggedSet.weight);
+        initialWeightVal = isBarbell ? Math.round(((totalDisplay - barWeight()) / 2) * 10) / 10
+          : isDumbbell ? Math.round((totalDisplay / 2) * 10) / 10
+          : totalDisplay;
+        initialRepsVal = lastLoggedSet.reps;
+        initialRpeVal = lastLoggedSet.rpe || "";
+      }
+
+      const warmupRow = document.createElement("label");
+      warmupRow.className = "gt-warmup-toggle-row";
+      const warmupDefaultChecked = editRow ? !!editRow.warmupSet : !!lastWarmupChecked[ex.name];
+      warmupRow.innerHTML = `<input type="checkbox" ${warmupDefaultChecked ? "checked" : ""}> Warm-up set <span class="gt-var-label">(won't count toward PB or 1RM)</span>`;
+      hist.appendChild(warmupRow);
+      const warmupCheckbox = warmupRow.querySelector("input");
+      warmupCheckbox.onchange = () => { lastWarmupChecked[ex.name] = warmupCheckbox.checked; };
+
+      const addRow = document.createElement("div");
+      addRow.className = "gt-add-row";
+      addRow.innerHTML = `
+        <input class="gt-input" type="number" placeholder="${isBarbell ? 'per side' : isDumbbell ? 'per dumbbell' : unitLabel()}" value="${initialWeightVal}" style="flex:1;">
+        <input class="gt-input" type="number" placeholder="reps" value="${initialRepsVal}" style="flex:0.8;">
+        <input class="gt-input" type="number" placeholder="RPE" min="1" max="10" value="${initialRpeVal}" style="flex:0.7;">
+        <button class="gt-add-btn">${isEditing ? "Save" : "Log Set"}</button>
+      `;
+      hist.appendChild(addRow);
+      const rowInputs = addRow.querySelectorAll("input");
+      const wEl = rowInputs[0];
+      const rEl = rowInputs[1];
+      const rpeEl = rowInputs[2];
+      const logBtn = addRow.querySelector("button");
+
+      const rpeLegend = document.createElement("div");
+      rpeLegend.className = "gt-rpe-legend";
+      rpeLegend.innerHTML = RPE_SCALE.map(r => `<button class="gt-rpe-pill${String(initialRpeVal) === r.val ? ' active' : ''}" data-val="${r.val}">${r.val}</button>`).join("");
+      hist.appendChild(rpeLegend);
+      const rpeHint = document.createElement("div");
+      rpeHint.className = "gt-target";
+      rpeHint.style.marginTop = "3px";
+      rpeHint.textContent = "Tap a number for what it means, or just type it in above";
+      hist.appendChild(rpeHint);
+      rpeLegend.querySelectorAll(".gt-rpe-pill").forEach(btn => {
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          const val = btn.dataset.val;
+          const match = RPE_SCALE.find(r => r.val === val);
+          rpeEl.value = val;
+          rpeHint.textContent = match ? `RPE ${val}: ${match.desc}` : "";
+          rpeLegend.querySelectorAll(".gt-rpe-pill").forEach(b => b.classList.toggle("active", b === btn));
+        };
+      });
+      rpeEl.oninput = () => {
+        rpeLegend.querySelectorAll(".gt-rpe-pill").forEach(b => b.classList.toggle("active", b.dataset.val === rpeEl.value));
+      };
+
+      const weightHelper = document.createElement("div");
+      weightHelper.className = "gt-target";
+      weightHelper.style.marginTop = "4px";
+      hist.appendChild(weightHelper);
+
+      function updateWeightHelper() {
+        const currentVar = varSelectEl ? varSelectEl.value : null;
+        if (currentVar === "Barbell") {
+          wEl.placeholder = "per side";
+          wEl.disabled = false;
+          const perSide = parseFloat(wEl.value);
+          if (perSide) {
+            const total = perSide * 2 + barWeight();
+            weightHelper.textContent = `= ${total}${unitLabel()} total (${perSide} per side x2 + ${barWeight()}${unitLabel()} bar)`;
+          } else {
+            weightHelper.textContent = `Enter weight per side, bar (${barWeight()}${unitLabel()}) added automatically`;
+          }
+        } else if (currentVar === "Trap Bar") {
+          wEl.placeholder = "per side";
+          wEl.disabled = false;
+          const perSide = parseFloat(wEl.value);
+          if (perSide) {
+            const total = perSide * 2 + trapBarWeight();
+            weightHelper.textContent = `= ${total}${unitLabel()} total (${perSide} per side x2 + ${trapBarWeight()}${unitLabel()} trap bar)`;
+          } else {
+            weightHelper.textContent = `Enter weight per side, trap bar (${trapBarWeight()}${unitLabel()}) added automatically. Adjust its weight in Settings if needed.`;
+          }
+        } else if (currentVar === "Dumbbell") {
+          wEl.placeholder = "per dumbbell";
+          wEl.disabled = false;
+          const each = parseFloat(wEl.value);
+          if (each) {
+            const total = each * 2;
+            weightHelper.textContent = `= ${total}${unitLabel()} total (${each}${unitLabel()} x2 dumbbells)`;
+          } else {
+            weightHelper.textContent = `Enter the weight of ONE dumbbell, doubled automatically`;
+          }
+        } else if (currentVar === "Leg Press") {
+          wEl.placeholder = "plates loaded";
+          wEl.disabled = false;
+          const plates = parseFloat(wEl.value);
+          const sled = legPressSledWeight();
+          if (plates) {
+            const total = plates + sled;
+            weightHelper.textContent = sled
+              ? `= ${total}${unitLabel()} total (${plates}${unitLabel()} plates + ${sled}${unitLabel()} sled)`
+              : `Sled weight not set, logging ${plates}${unitLabel()} as-is. Add your machine's sled weight in Settings for accuracy.`;
+          } else {
+            weightHelper.textContent = sled
+              ? `Enter plates loaded, sled (${sled}${unitLabel()}) added automatically`
+              : `Enter total weight, or set your leg press's sled weight in Settings first`;
+          }
+        } else if (currentVar === "Bodyweight" || currentVar === "Bodyweight Lunges") {
+          wEl.placeholder = "optional";
+          wEl.disabled = false;
+          weightHelper.textContent = `Bodyweight move, leave weight blank if you're not adding load`;
+        } else if (currentVar === "Assisted Pull-up") {
+          wEl.placeholder = "assistance amount";
+          wEl.disabled = false;
+          weightHelper.textContent = `More assistance = easier. This is tracked separately and won't affect your Lat Pulldown PB or 1RM.`;
+        } else {
+          wEl.placeholder = unitLabel();
+          wEl.disabled = false;
+          weightHelper.textContent = "";
+        }
+      }
+      updateWeightHelper();
+      wEl.oninput = updateWeightHelper;
+      if (varSelectEl) {
+        varSelectEl.onchange = updateWeightHelper;
+      }
+      if (!isEditing) {
+        const setsToday = entries.filter(e => e.exercise === ex.name && e.date === (logDate || isoDate(today)) && !e.warmupSet).length;
+        const setsNote = document.createElement("div");
+        setsNote.className = "gt-target";
+        setsNote.style.marginTop = "6px";
+        setsNote.textContent = `${setsToday} of ${ex.targetSets} sets logged for this session`;
+        hist.appendChild(setsNote);
+      }
+      if (isEditing) {
+        const cancelBtn = document.createElement("div");
+        cancelBtn.className = "gt-clear";
+        cancelBtn.style.marginTop = "6px";
+        cancelBtn.textContent = "Cancel edit";
+        cancelBtn.onclick = () => { editingId = null; render(); };
+        hist.appendChild(cancelBtn);
+      }
+      card.appendChild(hist);
+      listEl.appendChild(card);
+
+      hist.querySelectorAll(".gt-del-x").forEach(x => {
+        x.onclick = (ev) => {
+          ev.stopPropagation();
+          deleteEntryWithUndo(x.dataset.id);
+        };
+      });
+      hist.querySelectorAll(".gt-edit-icon").forEach(x => {
+        x.onclick = (ev) => {
+          ev.stopPropagation();
+          editingId = x.dataset.id;
+          openExercise = ex.name;
+          render();
+        };
+      });
+
+      if (openExercise === ex.name) {
+        logBtn.onclick = async () => {
+          if (logLock) return;
+          logLock = true;
+          setTimeout(() => { logLock = false; }, 800);
+          const wRaw = parseFloat(wEl.value);
+          const r = parseInt(rEl.value);
+          const rpeVal = parseInt(rpeEl.value);
+          const varVal = varSelectEl ? varSelectEl.value : null;
+          const isWarmup = warmupCheckbox ? warmupCheckbox.checked : false;
+          const isBodyweightVar = varVal === "Bodyweight" || varVal === "Bodyweight Lunges";
+          if ((!wRaw && !isBodyweightVar && !isWarmup) || !r) { logLock = false; return; }
+
+          const wSafe = wRaw || 0;
+          const isBarbellNow = varVal === "Barbell";
+          const isDumbbellNow = varVal === "Dumbbell";
+          const isTrapBarNow = varVal === "Trap Bar";
+          const isLegPressNow = varVal === "Leg Press";
+          const isAssistedNow = varVal === "Assisted Pull-up";
+          const wInput = isBarbellNow ? (wSafe ? wSafe * 2 + barWeight() : 0)
+            : isDumbbellNow ? (wSafe * 2)
+            : isTrapBarNow ? (wSafe ? wSafe * 2 + trapBarWeight() : 0)
+            : isLegPressNow ? (wSafe ? wSafe + legPressSledWeight() : 0)
+            : wSafe;
+          const w = fromDisplayWeight(wInput);
+
+          // Sanity check: flag a big jump from the last logged weight so a typo doesn't corrupt PR/1RM history
+          // Skipped for bodyweight (no meaningful weight) and assisted pull-up (inverted scale)
+          if (!isWarmup && !editingId && !logBtn.dataset.confirmed && !isBodyweightVar && !isAssistedNow) {
+            const lastLogged = entries.filter(e => e.exercise === ex.name && e.weight && !e.warmupSet && !e.assistedPullup)
+              .sort((a, b) => (new Date(b.date) - new Date(a.date)) || ((b.createdAt || 0) - (a.createdAt || 0)))[0];
+            if (lastLogged) {
+              const pctChange = Math.abs(w - lastLogged.weight) / lastLogged.weight;
+              if (pctChange > 0.4) {
+                logLock = false;
+                logBtn.dataset.confirmed = "1";
+                logBtn.textContent = "That's a big jump, tap again to confirm";
+                setTimeout(() => { logBtn.dataset.confirmed = ""; logBtn.textContent = isEditing ? "Save" : "Log Set"; }, 4000);
+                return;
+              }
+            }
+          }
+          logBtn.dataset.confirmed = "";
+
+          if (editingId) {
+            const entry = entries.find(e => e.id === editingId);
+            if (entry) {
+              entry.weight = w; entry.reps = r;
+              if (rpeVal) entry.rpe = rpeVal; else delete entry.rpe;
+              if (varVal) entry.variation = varVal;
+              if (isWarmup) entry.warmupSet = true; else delete entry.warmupSet;
+              if (isAssistedNow) entry.assistedPullup = true; else delete entry.assistedPullup;
+              await saveData();
+            }
+            editingId = null;
+            render();
+            return;
+          }
+
+          const prevBest = best ? best.weight : 0;
+          const entry = { id: Math.random().toString(36).slice(2) + Date.now(), exercise: ex.name, weight: w, sets: 1, reps: r, date: logDate || isoDate(new Date()), createdAt: Date.now() };
+          if (rpeVal) entry.rpe = rpeVal;
+          if (varVal) entry.variation = varVal;
+          if (isWarmup) entry.warmupSet = true;
+          if (isAssistedNow) entry.assistedPullup = true;
+          entries.push(entry);
+          await saveData();
+          if (logDate === isoDate(new Date())) startTimer(90);
+          if (!isWarmup && !isAssistedNow && !isBodyweightVar && w > prevBest) {
+            spawnConfetti();
+            showToast(`New PR on ${ex.name}! ${wInput}${unitLabel()}${isBarbellNow ? ` (${wRaw} per side)` : isDumbbellNow ? ` (${wRaw} per dumbbell)` : isTrapBarNow ? ` (${wRaw} per side)` : ''} \u2014 ${randomHype()}`);
+          }
+          await checkAchievements();
+          render();
+        };
+      }
+    });
+
+    renderAddCustomExercise();
+  }
+
+  let addingCustomExercise = false;
+  let editingCustomNoteFor = null;
+  let customExerciseMode = "recurring"; // "recurring" or "oneoff"
+  let oneOffPrefillName = "";
+  let oneOffPrefillTarget = null; // { sets, reps }
+  let recurringPrefill = null; // { name, sets, reps, notes }
+  function renderAddCustomExercise() {
+    if (!addingCustomExercise) {
+      const openBtn = document.createElement("div");
+      openBtn.className = "gt-clear";
+      openBtn.style.marginTop = "6px";
+      openBtn.textContent = "+ Add or log an exercise not in this list";
+      openBtn.onclick = () => { addingCustomExercise = true; oneOffPrefillName = ""; oneOffPrefillTarget = null; recurringPrefill = null; render(); };
+      listEl.appendChild(openBtn);
+      return;
+    }
+    const card = document.createElement("div");
+    card.className = "gt-card";
+    card.innerHTML = `
+      <div class="gt-ex-name" style="margin-bottom:6px;">Not in the list?</div>
+      <div class="gt-tabs" style="margin-bottom:10px;">
+        <div class="gt-tab${customExerciseMode === 'recurring' ? ' active' : ''}" id="mode-recurring">Add permanently</div>
+        <div class="gt-tab${customExerciseMode === 'oneoff' ? ' active' : ''}" id="mode-oneoff">Just log once</div>
+      </div>
+      <div id="custom-ex-form"></div>
+    `;
+    listEl.appendChild(card);
+    const formEl = card.querySelector("#custom-ex-form");
+
+    function renderForm() {
+      if (customExerciseMode === "recurring") {
+        const currentDayExercises = exercisesForDay(activeTab);
+        const prefill = recurringPrefill;
+        formEl.innerHTML = `
+          <div class="gt-target" style="margin-bottom:8px;">This becomes a permanent part of ${activeTab}, going forward every week.</div>
+          <div class="gt-ex-name" style="margin-bottom:4px; font-size:12.5px;">Replace an existing exercise?</div>
+          <select class="gt-input" id="custom-ex-replace" style="margin-bottom:8px;">
+            <option value="">Don't replace, just add as new</option>
+            ${currentDayExercises.map(ex => `<option value="${ex.name}">${ex.name}</option>`).join("")}
+          </select>
+          <input class="gt-input" placeholder="Exercise name" id="custom-ex-name" value="${prefill ? prefill.name : ''}" style="margin-bottom:6px;">
+          <div class="gt-add-row">
+            <input class="gt-input" type="number" placeholder="target sets" id="custom-ex-sets" value="${prefill ? prefill.sets : ''}" style="flex:1;">
+            <input class="gt-input" placeholder="target reps, e.g. 8-12" id="custom-ex-reps" value="${prefill ? prefill.reps : ''}" style="flex:1;">
+          </div>
+          <input class="gt-input" type="number" placeholder="rough goal weight (${unitLabel()}), optional" id="custom-ex-goal" style="margin-top:6px;">
+          <textarea class="gt-input" placeholder="Form cues or notes for yourself, optional" id="custom-ex-notes" style="margin-top:6px; min-height:50px; resize:vertical;">${prefill && prefill.notes ? prefill.notes : ''}</textarea>
+          <div class="gt-add-row" style="margin-top:10px;">
+            <button class="gt-add-btn" id="custom-ex-save" style="flex:1;">Save</button>
+            <button class="gt-activity-btn" id="custom-ex-cancel" style="flex:0.6;">Cancel</button>
+          </div>
+        `;
+        formEl.querySelector("#custom-ex-save").onclick = async () => {
+          const name = formEl.querySelector("#custom-ex-name").value.trim();
+          const sets = parseInt(formEl.querySelector("#custom-ex-sets").value) || 3;
+          const reps = formEl.querySelector("#custom-ex-reps").value.trim() || "8-12";
+          const goalInput = parseFloat(formEl.querySelector("#custom-ex-goal").value);
+          const goal = goalInput ? fromDisplayWeight(goalInput) : 50;
+          const notes = formEl.querySelector("#custom-ex-notes").value.trim();
+          const replaceTarget = formEl.querySelector("#custom-ex-replace").value;
+          if (!name) return;
+          if (replaceTarget) {
+            const isBuiltIn = (DAYS[activeTab] || []).some(ex => ex.name === replaceTarget);
+            if (isBuiltIn) {
+              if (!excludedBuiltIns[activeTab]) excludedBuiltIns[activeTab] = [];
+              if (!excludedBuiltIns[activeTab].includes(replaceTarget)) excludedBuiltIns[activeTab].push(replaceTarget);
+              await saveExcludedBuiltIns();
+            } else {
+              const item = (customExercises[activeTab] || []).find(c => c.name === replaceTarget);
+              if (item) item.archived = true;
+            }
+          }
+          if (!customExercises[activeTab]) customExercises[activeTab] = [];
+          customExercises[activeTab].push({
+            name, targetSets: sets, targetReps: reps, prefillReps: parseInt(reps) || 10, goal, custom: true, notes: notes || null
+          });
+          await saveCustomExercises();
+          if (replaceTarget) await markProgramReviewed();
+          addingCustomExercise = false;
+          recurringPrefill = null;
+          showToast(replaceTarget ? `${name} replaced ${replaceTarget} on ${activeTab}` : `${name} added to ${activeTab}`);
+          render();
+        };
+      } else {
+        const prefillRepsVal = oneOffPrefillTarget ? (parseInt(oneOffPrefillTarget.reps) || "") : "";
+        const todayIsoForOneoff = logDate || isoDate(today);
+        const loggedSoFar = oneOffPrefillName
+          ? entries.filter(e => e.exercise === oneOffPrefillName && e.date === todayIsoForOneoff && !e.warmupSet)
+          : [];
+        formEl.innerHTML = `
+          <div class="gt-target" style="margin-bottom:8px;">Logs sets right now, one at a time. Won't show up as a card, but you can still find it later in Calendar for that day.</div>
+          ${oneOffPrefillTarget ? `<div class="gt-target" style="margin-bottom:8px; color:var(--sage); font-weight:600;">Target: ${oneOffPrefillTarget.sets} x ${oneOffPrefillTarget.reps}</div>` : ''}
+          ${oneOffPrefillTarget && (oneOffPrefillTarget.cues || oneOffPrefillTarget.muscles) ? `
+            <div class="gt-info-box" style="margin-bottom:8px;">
+              ${oneOffPrefillTarget.cues ? `<div class="gt-info-row"><i class="fa-solid fa-circle-info"></i><span>${oneOffPrefillTarget.cues}</span></div>` : ''}
+              ${oneOffPrefillTarget.muscles ? `<div class="gt-info-row"><i class="fa-solid fa-person"></i><span>${oneOffPrefillTarget.muscles}</span></div>` : ''}
+            </div>
+          ` : ''}
+          <input class="gt-input" placeholder="Exercise name" id="oneoff-name" value="${oneOffPrefillName}" style="margin-bottom:6px;">
+          <div class="gt-add-row">
+            <input class="gt-input" type="number" placeholder="${unitLabel()}" id="oneoff-weight" style="flex:1;">
+            <input class="gt-input" type="number" placeholder="reps" id="oneoff-reps" value="${prefillRepsVal}" style="flex:1;">
+          </div>
+          <div class="gt-add-row" style="margin-top:10px;">
+            <button class="gt-add-btn" id="oneoff-save" style="flex:1;">Log Set</button>
+            <button class="gt-activity-btn" id="custom-ex-cancel2" style="flex:0.6;">${loggedSoFar.length ? 'Done' : 'Cancel'}</button>
+          </div>
+          ${loggedSoFar.length ? `
+            <div class="gt-target" style="margin-top:10px; font-weight:600;">${loggedSoFar.length} set${loggedSoFar.length > 1 ? 's' : ''} logged today</div>
+            ${loggedSoFar.map((r, i) => `
+              <div class="gt-set-row logged">
+                <span>Set ${i + 1}</span>
+                <span>${r.reps} reps</span>
+                <span class="gt-weight-num">${toDisplayWeight(r.weight)}${unitLabel()}</span>
+                <span class="gt-del-x" data-id="${r.id}">&#10005;</span>
+              </div>
+            `).join('')}
+          ` : ''}
+        `;
+        formEl.querySelector("#oneoff-save").onclick = async () => {
+          const name = formEl.querySelector("#oneoff-name").value.trim();
+          const wInput = parseFloat(formEl.querySelector("#oneoff-weight").value);
+          const reps = parseInt(formEl.querySelector("#oneoff-reps").value);
+          if (!name || !wInput || !reps) return;
+          entries.push({
+            id: Math.random().toString(36).slice(2) + Date.now(),
+            exercise: name, weight: fromDisplayWeight(wInput), sets: 1, reps,
+            date: todayIsoForOneoff
+          });
+          await saveData();
+          oneOffPrefillName = name;
+          showToast(`Set logged for ${name}`);
+          renderForm();
+        };
+        formEl.querySelector("#custom-ex-cancel2").onclick = () => { addingCustomExercise = false; oneOffPrefillName = ""; oneOffPrefillTarget = null; render(); };
+        formEl.querySelectorAll(".gt-del-x").forEach(x => {
+          x.onclick = async () => {
+            entries = entries.filter(e => e.id !== x.dataset.id);
+            await saveData();
+            renderForm();
+          };
+        });
+      }
+    }
+    renderForm();
+
+    document.getElementById("mode-recurring").onclick = () => { customExerciseMode = "recurring"; oneOffPrefillName = ""; oneOffPrefillTarget = null; renderForm(); card.querySelector("#mode-recurring").classList.add("active"); card.querySelector("#mode-oneoff").classList.remove("active"); };
+    document.getElementById("mode-oneoff").onclick = () => { customExerciseMode = "oneoff"; recurringPrefill = null; renderForm(); card.querySelector("#mode-oneoff").classList.add("active"); card.querySelector("#mode-recurring").classList.remove("active"); };
+    const cancelBtn = formEl.querySelector("#custom-ex-cancel");
+    if (cancelBtn) cancelBtn.onclick = () => { addingCustomExercise = false; recurringPrefill = null; render(); };
+  }
+
+  function renderCalendar() {
+    footerEl.textContent = "Tap a highlighted day to see what you logged";
+    const wrap = document.createElement("div");
+
+    const legend = document.createElement("div");
+    legend.className = "gt-legend";
+    legend.innerHTML = `
+      <span><span class="sw" style="background:var(--sage-soft);border:1px solid var(--sage);"></span>Gym day</span>
+      <span><span class="sw" style="background:var(--brass);border-radius:50%;width:6px;height:6px;"></span>Pilates/Volleyball</span>
+    `;
+    wrap.appendChild(legend);
+
+    const nav = document.createElement("div");
+    nav.className = "gt-cal-nav";
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    nav.innerHTML = `
+      <button id="cal-prev">&larr;</button>
+      <div class="gt-cal-month">${monthNames[calMonth]} ${calYear}</div>
+      <button id="cal-next">&rarr;</button>
+    `;
+    wrap.appendChild(nav);
+
+    const grid = document.createElement("div");
+    grid.className = "gt-cal-grid";
+    ["S","M","T","W","T","F","S"].forEach(d => {
+      const dow = document.createElement("div");
+      dow.className = "gt-cal-dow";
+      dow.textContent = d;
+      grid.appendChild(dow);
+    });
+
+    const firstDay = new Date(calYear, calMonth, 1);
+    const startOffset = firstDay.getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const todayIso = isoDate(today);
+
+    for (let i = 0; i < startOffset; i++) {
+      const blank = document.createElement("div");
+      blank.className = "gt-cal-day empty";
+      grid.appendChild(blank);
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dayEntries = entries.filter(e => e.date === iso);
+      const hasLift = dayEntries.some(e => e.exercise);
+      const hasActivity = dayEntries.some(e => e.type === "activity" || e.type === "warmup" || e.type === "core");
+      const cell = document.createElement("div");
+      cell.className = "gt-cal-day"
+        + (hasLift ? " trained" : "")
+        + (iso === todayIso ? " today" : "")
+        + (iso === selectedDate ? " selected" : "");
+      cell.innerHTML = `${d}${hasActivity ? '<span class="dot"></span>' : ''}`;
+      cell.onclick = () => { selectedDate = iso; render(); };
+      grid.appendChild(cell);
+    }
+    wrap.appendChild(grid);
+
+    if (selectedDate) {
+      const detail = document.createElement("div");
+      detail.className = "gt-cal-detail";
+      const dayEntries = entries.filter(e => e.date === selectedDate);
+      const label = displayDate(selectedDate) + (selectedDate === todayIso ? " (today)" : "");
+
+      let rowsHtml = "";
+      if (!dayEntries.length) {
+        rowsHtml = emptyState("fa-calendar-xmark", "Nothing logged this day.");
+      } else {
+        rowsHtml = dayEntries.map(e => {
+          if (e.type === "activity") {
+            return `
+              <div class="gt-set-row logged">
+                <span>${e.activity}</span>
+                <span>&#10003; done</span>
+                <span class="gt-check">&#10003;</span>
+                <span class="gt-del-x" data-id="${e.id}">&#10005;</span>
+              </div>
+            `;
+          }
+          if (e.type === "warmup") {
+            return `
+              <div class="gt-set-row logged">
+                <span>Warm-up</span>
+                <span>&#10003; done</span>
+                <span class="gt-check">&#10003;</span>
+                <span class="gt-del-x" data-id="${e.id}">&#10005;</span>
+              </div>
+            `;
+          }
+          if (e.type === "core") {
+            return `
+              <div class="gt-set-row logged">
+                <span>Core Finisher</span>
+                <span>&#10003; done</span>
+                <span class="gt-check">&#10003;</span>
+                <span class="gt-del-x" data-id="${e.id}">&#10005;</span>
+              </div>
+            `;
+          }
+          return `
+            <div class="gt-set-row logged">
+              <span>${e.exercise}${e.sets && e.sets > 1 ? '' : ' \u00b7 Set ' + setNumberInDay(e)}</span>
+              <span>${e.sets && e.sets > 1 ? e.sets + 'x' + e.reps : e.reps + ' reps'}</span>
+              <span>${toDisplayWeight(e.weight)}${unitLabel()}</span>
+              <span class="gt-check">&#10003;</span>
+              <span class="gt-del-x" data-id="${e.id}">&#10005;</span>
+            </div>
+          `;
+        }).join("");
+      }
+
+      const noteVal = notes[selectedDate] || "";
+
+      detail.innerHTML = `
+        <div class="gt-cal-detail-title">${label}</div>
+        ${rowsHtml}
+        <div class="gt-activity-btns">
+          <button class="gt-activity-btn" id="log-pilates">+ Pilates</button>
+          <button class="gt-activity-btn" id="log-volleyball">+ Volleyball</button>
+        </div>
+        <div class="gt-note-label">Notes for this day</div>
+        <textarea class="gt-note-input" id="day-note" placeholder="How'd it feel? Sleep, energy, anything worth remembering...">${noteVal}</textarea>
+      `;
+      wrap.appendChild(detail);
+
+      detail.querySelectorAll(".gt-del-x").forEach(x => {
+        x.onclick = () => deleteEntryWithUndo(x.dataset.id);
+      });
+      detail.querySelector("#log-pilates").onclick = async () => {
+        entries.push({ id: Math.random().toString(36).slice(2) + Date.now(), type: "activity", activity: "Pilates", date: selectedDate });
+        await saveData();
+        await checkAchievements();
+        render();
+      };
+      detail.querySelector("#log-volleyball").onclick = async () => {
+        entries.push({ id: Math.random().toString(36).slice(2) + Date.now(), type: "activity", activity: "Volleyball", date: selectedDate });
+        await saveData();
+        await checkAchievements();
+        render();
+      };
+      const noteEl = detail.querySelector("#day-note");
+      let noteTimeout;
+      noteEl.oninput = () => {
+        clearTimeout(noteTimeout);
+        noteTimeout = setTimeout(async () => {
+          notes[selectedDate] = noteEl.value;
+          await saveNotes();
+        }, 600);
+      };
+    }
+
+    listEl.appendChild(wrap);
+
+    document.getElementById("cal-prev").onclick = () => {
+      calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+      render();
+    };
+    document.getElementById("cal-next").onclick = () => {
+      calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+      render();
+    };
+  }
+
+  function renderWarmup() {
+    footerEl.textContent = "5-10 min total, before you touch a weight";
+    const wrap = document.createElement("div");
+    const todayIso = isoDate(today);
+    const doneToday = entries.some(e => e.type === "warmup" && e.date === todayIso);
+
+    const statusCard = document.createElement("div");
+    statusCard.className = "gt-card";
+    statusCard.innerHTML = `
+      <div class="gt-ex-head" style="cursor:default;">
+        <div>
+          <div class="gt-ex-name">Today's Warm-up</div>
+          <div class="gt-target">${doneToday ? "Marked complete" : "Not logged yet"}</div>
+        </div>
+      </div>
+      <button class="gt-add-btn" id="warmup-toggle" style="width:100%; margin-top:10px; background:${doneToday ? 'var(--done)' : 'var(--coral)'};">
+        ${doneToday ? "\u2713 Warm-up Complete" : "Mark Warm-up Complete"}
+      </button>
+      <div class="gt-week-strip" id="warmup-strip"></div>
+    `;
+    wrap.appendChild(statusCard);
+    const cardioCard = document.createElement("div");
+    cardioCard.className = "gt-card";
+    cardioCard.innerHTML = `
+      <div class="gt-ex-name">Cardio, 3-5 min</div>
+      <div class="gt-target">Pick one, just enough to break a light sweat</div>
+      <div class="gt-set-row" style="border-top:none; padding-top:8px;"><span>Bike or rower</span><span>3-5 min, easy pace</span></div>
+      <div class="gt-set-row"><span>Incline treadmill walk</span><span>3-5 min</span></div>
+      <div class="gt-set-row"><span>Jump rope</span><span>2-3 min</span></div>
+    `;
+    wrap.appendChild(cardioCard);
+
+    const lowerCard = document.createElement("div");
+    lowerCard.className = "gt-card";
+    lowerCard.innerHTML = `
+      <div class="gt-ex-name">Before Lower A / Lower B</div>
+      <div class="gt-target">Dynamic, not static, save the deep stretching for after</div>
+      <div class="gt-set-row" style="border-top:none; padding-top:8px;"><span>Bodyweight squats</span><span>10-15 reps</span></div>
+      <div class="gt-set-row"><span>Glute bridges</span><span>12-15 reps</span></div>
+      <div class="gt-set-row"><span>Walking lunges</span><span>8-10 per leg</span></div>
+      <div class="gt-set-row"><span>Leg swings (front/side)</span><span>10 per leg</span></div>
+      <div class="gt-set-row"><span>Light warm-up sets on first lift</span><span>2 sets, empty bar or light lbs</span></div>
+    `;
+    wrap.appendChild(lowerCard);
+
+    const upperCard = document.createElement("div");
+    upperCard.className = "gt-card";
+    upperCard.innerHTML = `
+      <div class="gt-ex-name">Before Upper</div>
+      <div class="gt-target">Wake up shoulders and upper back before pressing</div>
+      <div class="gt-set-row" style="border-top:none; padding-top:8px;"><span>Arm circles</span><span>10 each direction</span></div>
+      <div class="gt-set-row"><span>Band or cable pull-aparts</span><span>15 reps</span></div>
+      <div class="gt-set-row"><span>Push-ups (light)</span><span>8-10 reps</span></div>
+      <div class="gt-set-row"><span>Scapular pull-ups or rows</span><span>10 reps</span></div>
+      <div class="gt-set-row"><span>Light warm-up sets on first lift</span><span>2 sets, empty bar or light lbs</span></div>
+    `;
+    wrap.appendChild(upperCard);
+
+    const note = document.createElement("div");
+    note.className = "gt-cal-detail";
+    note.innerHTML = `<div class="gt-cal-detail-title">Why this matters</div><div class="gt-empty">The cardio bit raises your core temp and gets blood moving, the dynamic stuff preps the exact joints and muscles you're about to load. Skipping straight to heavy weight cold is when tweaks happen.</div>`;
+    wrap.appendChild(note);
+
+    listEl.appendChild(wrap);
+
+    document.getElementById("warmup-toggle").onclick = async () => {
+      if (doneToday) {
+        const idx = entries.findIndex(e => e.type === "warmup" && e.date === todayIso);
+        if (idx > -1) entries.splice(idx, 1);
+      } else {
+        entries.push({ id: Math.random().toString(36).slice(2) + Date.now(), type: "warmup", date: todayIso });
+        showToast(randomHype());
+      }
+      await saveData();
+      render();
+    };
+
+    const stripEl = document.getElementById("warmup-strip");
+    let stripHtml = "";
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const iso = isoDate(d);
+      const done = entries.some(e => e.type === "warmup" && e.date === iso);
+      const dayLabel = ["S","M","T","W","T","F","S"][d.getDay()];
+      stripHtml += `<div class="gt-strip-day${done ? ' done' : ''}"><span>${dayLabel}</span>${done ? '\u2713' : '\u00b7'}</div>`;
+    }
+    stripEl.innerHTML = stripHtml;
+  }
+
+  const CORE_EXERCISES = [
+    { name: "Plank", target: "3 x 30-45 sec" },
+    { name: "Dead Bug", target: "3 x 10 per side" },
+    { name: "Bicycle Crunches", target: "2 x 15 per side (30 touches)" },
+    { name: "Side Plank", target: "2 x 20-30 sec per side" },
+  ];
+
+  function renderCore() {
+    footerEl.textContent = "8-10 min finisher, optional extra on a good energy day";
+    const wrap = document.createElement("div");
+    const todayIso = isoDate(today);
+    const doneToday = entries.some(e => e.type === "core" && e.date === todayIso);
+
+    const statusCard = document.createElement("div");
+    statusCard.className = "gt-card";
+    statusCard.innerHTML = `
+      <div class="gt-ex-head" style="cursor:default;">
+        <div>
+          <div class="gt-ex-name">Today's Core Finisher <span class="gt-rpe-tag">optional</span></div>
+          <div class="gt-target">${doneToday ? "Marked complete" : "Not logged yet"}</div>
+        </div>
+      </div>
+      <button class="gt-add-btn" id="core-toggle" style="width:100%; margin-top:10px; background:${doneToday ? 'var(--done)' : 'var(--coral)'};">
+        ${doneToday ? "\u2713 Core Complete" : "Mark Core Complete"}
+      </button>
+      <div class="gt-week-strip" id="core-strip"></div>
+    `;
+    wrap.appendChild(statusCard);
+
+    const listCard = document.createElement("div");
+    listCard.className = "gt-card";
+    listCard.innerHTML = `<div class="gt-ex-name" style="margin-bottom:6px;">The Finisher</div>` +
+      CORE_EXERCISES.map(c => `
+        <div class="gt-set-row" style="border-top:none; padding-top:6px;"><span>${c.name}</span><span>${c.target}</span></div>
+      `).join("");
+    wrap.appendChild(listCard);
+
+    const note = document.createElement("div");
+    note.className = "gt-cal-detail";
+    note.innerHTML = `<div class="gt-cal-detail-title">When to use this</div><div class="gt-empty">Good for days you finish your lift and warm-up with energy left over. Keeps things low-stakes, no weight, nothing that needs its own recovery day.</div>`;
+    wrap.appendChild(note);
+
+    listEl.appendChild(wrap);
+
+    document.getElementById("core-toggle").onclick = async () => {
+      if (doneToday) {
+        const idx = entries.findIndex(e => e.type === "core" && e.date === todayIso);
+        if (idx > -1) entries.splice(idx, 1);
+      } else {
+        entries.push({ id: Math.random().toString(36).slice(2) + Date.now(), type: "core", date: todayIso });
+        showToast(randomHype());
+      }
+      await saveData();
+      await checkAchievements();
+      render();
+    };
+
+    const stripEl = document.getElementById("core-strip");
+    let stripHtml = "";
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const iso = isoDate(d);
+      const done = entries.some(e => e.type === "core" && e.date === iso);
+      const dayLabel = ["S","M","T","W","T","F","S"][d.getDay()];
+      stripHtml += `<div class="gt-strip-day${done ? ' done' : ''}"><span>${dayLabel}</span>${done ? '\u2713' : '\u00b7'}</div>`;
+    }
+    stripEl.innerHTML = stripHtml;
+  }
+
+  function renderPlates() {
+    const isKg = unitPref === "kg";
+    footerEl.textContent = isKg ? "Standard 20kg bar, plates per side" : "Standard 45lb bar, plates per side";
+    const wrap = document.createElement("div");
+
+    const barOptions = isKg
+      ? `<option value="20">20kg bar</option><option value="15">15kg bar</option><option value="10">10kg bar (training)</option><option value="0">No bar / EZ</option>`
+      : `<option value="45">45lb bar</option><option value="35">35lb bar</option><option value="15">15lb bar (training)</option><option value="0">No bar / EZ</option>`;
+
+    const card = document.createElement("div");
+    card.className = "gt-card";
+    card.innerHTML = `
+      <div class="gt-ex-name">Plate Calculator</div>
+      <div class="gt-target" style="margin-top:4px;">Enter your target total weight (bar + plates)</div>
+      <div class="gt-add-row" style="margin-top:10px;">
+        <input class="gt-input" type="number" placeholder="Target ${unitLabel()}" id="plate-target" style="flex:1;">
+        <select class="gt-input" id="plate-bar" style="flex:0.8;">
+          ${barOptions}
+        </select>
+      </div>
+      <div id="plate-result" style="margin-top:12px;"></div>
+    `;
+    wrap.appendChild(card);
+    listEl.appendChild(wrap);
+
+    function calc() {
+      const target = parseFloat(document.getElementById("plate-target").value);
+      const barWeight = parseFloat(document.getElementById("plate-bar").value);
+      const resultEl = document.getElementById("plate-result");
+      if (!target || target <= barWeight) {
+        resultEl.innerHTML = `<div class="gt-empty">Enter a target above the bar weight.</div>`;
+        return;
+      }
+      let perSide = (target - barWeight) / 2;
+      if (perSide < 0) perSide = 0;
+      const plateSizes = isKg ? [25, 20, 15, 10, 5, 2.5, 1.25] : [45, 35, 25, 10, 5, 2.5];
+      const used = [];
+      let remaining = perSide;
+      plateSizes.forEach(p => {
+        while (remaining >= p - 0.001) {
+          used.push(p);
+          remaining -= p;
+        }
+      });
+      const leftover = Math.round(remaining * 100) / 100;
+      let breakdown = used.length
+        ? used.map(p => `${p}`).join(" + ")
+        : "none, bar only";
+      resultEl.innerHTML = `
+        <div class="gt-cal-detail">
+          <div class="gt-cal-detail-title">Per side: ${fmtNum(perSide)}${unitLabel()}</div>
+          <div class="gt-set-row" style="border-top:none; padding-top:4px;"><span>Plates (per side)</span><span>${breakdown}</span></div>
+          ${leftover > 0 ? `<div class="gt-set-row"><span>Can't hit exactly</span><span>${leftover}${unitLabel()} short per side</span></div>` : ''}
+        </div>
+      `;
+    }
+    document.getElementById("plate-target").oninput = calc;
+    document.getElementById("plate-bar").onchange = calc;
+  }
+
+  function renderWeight() {
+    footerEl.textContent = "Track your bodyweight, separate from your lifts";
+    const wrap = document.createElement("div");
+
+    const sorted = [...bwEntries].sort((a,b) => new Date(b.date) - new Date(a.date));
+    const latest = sorted[0];
+    const first = sorted[sorted.length - 1];
+    const goalLbs = 120;
+
+    const summary = document.createElement("div");
+    summary.className = "gt-stats";
+    summary.innerHTML = `
+      <div class="gt-stat"><div class="gt-stat-num">${latest ? toDisplayWeight(latest.weight) : '--'}</div><div class="gt-stat-label">Latest</div></div>
+      <div class="gt-stat"><div class="gt-stat-num">${toDisplayWeight(goalLbs)}</div><div class="gt-stat-label">Goal</div></div>
+      <div class="gt-stat"><div class="gt-stat-num">${latest && first && sorted.length > 1 ? fmtNum(toDisplayWeight(latest.weight - first.weight)) : '--'}</div><div class="gt-stat-label">Change</div></div>
+    `;
+    wrap.appendChild(summary);
+
+    const addCard = document.createElement("div");
+    addCard.className = "gt-card";
+    addCard.innerHTML = `
+      <div class="gt-ex-name">Log today's weight</div>
+      <div class="gt-add-row" style="margin-top:10px;">
+        <input class="gt-input" type="number" step="0.1" placeholder="${unitLabel()}" value="${latest ? toDisplayWeight(latest.weight) : ''}" id="bw-input" style="flex:1;">
+        <button class="gt-add-btn" id="bw-add">Log</button>
+      </div>
+    `;
+    wrap.appendChild(addCard);
+
+    const histCard = document.createElement("div");
+    histCard.className = "gt-card";
+    if (!sorted.length) {
+      histCard.innerHTML = emptyState("fa-scale-balanced", "No weigh-ins logged yet.");
+    } else {
+      histCard.innerHTML = sorted.slice(0, 10).map(e => `
+        <div class="gt-set-row logged">
+          <span>${displayDate(e.date)}</span>
+          <span>${toDisplayWeight(e.weight)}${unitLabel()}</span>
+          <span class="gt-del-x" data-id="${e.id}">&#10005;</span>
+        </div>
+      `).join("");
+    }
+    wrap.appendChild(histCard);
+
+    const measSorted = [...measurements].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const measLatest = measSorted[0];
+    const measFirst = measSorted[measSorted.length - 1];
+    const isKgUnit = unitPref === "kg";
+    const lengthUnit = isKgUnit ? "cm" : "in";
+    const convertLen = (v) => v == null ? null : (isKgUnit ? Math.round(v * 2.54 * 10) / 10 : v);
+    const revertLen = (v) => isKgUnit ? Math.round((v / 2.54) * 10) / 10 : v;
+
+    const measSummary = document.createElement("div");
+    measSummary.className = "gt-stats";
+    measSummary.innerHTML = `
+      <div class="gt-stat"><div class="gt-stat-num">${measLatest ? convertLen(measLatest.waist) + lengthUnit : '--'}</div><div class="gt-stat-label">Waist</div></div>
+      <div class="gt-stat"><div class="gt-stat-num">${measLatest ? convertLen(measLatest.hips) + lengthUnit : '--'}</div><div class="gt-stat-label">Hips</div></div>
+      <div class="gt-stat"><div class="gt-stat-num">${measLatest && measFirst && measSorted.length > 1 ? fmtNum(convertLen(measLatest.waist) - convertLen(measFirst.waist)) : '--'}</div><div class="gt-stat-label">Waist &Delta;</div></div>
+    `;
+    wrap.appendChild(measSummary);
+
+    const measAddCard = document.createElement("div");
+    measAddCard.className = "gt-card";
+    measAddCard.innerHTML = `
+      <div class="gt-ex-name">Log body measurements</div>
+      <div class="gt-target" style="margin-bottom:6px;">Optional, the scale can stall while these still change</div>
+      <div class="gt-add-row">
+        <input class="gt-input" type="number" step="0.1" placeholder="waist (${lengthUnit})" value="${measLatest && measLatest.waist != null ? convertLen(measLatest.waist) : ''}" id="meas-waist" style="flex:1;">
+        <input class="gt-input" type="number" step="0.1" placeholder="hips (${lengthUnit})" value="${measLatest && measLatest.hips != null ? convertLen(measLatest.hips) : ''}" id="meas-hips" style="flex:1;">
+        <button class="gt-add-btn" id="meas-add">Log</button>
+      </div>
+    `;
+    wrap.appendChild(measAddCard);
+
+    const measHistCard = document.createElement("div");
+    measHistCard.className = "gt-card";
+    if (!measSorted.length) {
+      measHistCard.innerHTML = emptyState("fa-ruler", "No measurements logged yet.");
+    } else {
+      measHistCard.innerHTML = measSorted.slice(0, 10).map(e => `
+        <div class="gt-set-row logged">
+          <span>${displayDate(e.date)}</span>
+          <span>W: ${convertLen(e.waist) ?? '--'}${lengthUnit} / H: ${convertLen(e.hips) ?? '--'}${lengthUnit}</span>
+          <span class="gt-del-x" data-id="${e.id}">&#10005;</span>
+        </div>
+      `).join("");
+    }
+    wrap.appendChild(measHistCard);
+
+    listEl.appendChild(wrap);
+
+    document.getElementById("bw-add").onclick = async () => {
+      const wInput = parseFloat(document.getElementById("bw-input").value);
+      if (!wInput) return;
+      const w = fromDisplayWeight(wInput);
+      bwEntries.push({ id: Math.random().toString(36).slice(2) + Date.now(), date: isoDate(new Date()), weight: w });
+      await saveBw();
+      await checkAchievements();
+      render();
+    };
+    histCard.querySelectorAll(".gt-del-x").forEach(x => {
+      x.onclick = () => deleteBwWithUndo(x.dataset.id);
+    });
+    document.getElementById("meas-add").onclick = async () => {
+      const waistInput = parseFloat(document.getElementById("meas-waist").value);
+      const hipsInput = parseFloat(document.getElementById("meas-hips").value);
+      if (!waistInput && !hipsInput) return;
+      measurements.push({
+        id: Math.random().toString(36).slice(2) + Date.now(),
+        date: isoDate(new Date()),
+        waist: waistInput ? revertLen(waistInput) : null,
+        hips: hipsInput ? revertLen(hipsInput) : null
+      });
+      await saveMeasurements();
+      render();
+    };
+    measHistCard.querySelectorAll(".gt-del-x").forEach(x => {
+      x.onclick = () => deleteMeasurementWithUndo(x.dataset.id);
+    });
+  }
+
+  let settingsOpenSections = {}; // { sectionKey: true/false }
+
+  function renderAccordionSection(wrap, key, title, icon, bodyBuilder) {
+    const section = document.createElement("div");
+    section.className = "gt-accordion";
+    const isOpen = !!settingsOpenSections[key];
+    const header = document.createElement("div");
+    header.className = "gt-accordion-header";
+    header.innerHTML = `
+      <span class="gt-accordion-title"><i class="fa-solid ${icon}"></i> ${title}</span>
+      <i class="fa-solid fa-chevron-down gt-accordion-chevron${isOpen ? ' open' : ''}"></i>
+    `;
+    header.onclick = () => {
+      settingsOpenSections[key] = !settingsOpenSections[key];
+      render();
+    };
+    section.appendChild(header);
+    if (isOpen) {
+      const body = document.createElement("div");
+      body.className = "gt-accordion-body";
+      bodyBuilder(body);
+      section.appendChild(body);
+    }
+    wrap.appendChild(section);
+  }
+
+  function renderSettings() {
+    footerEl.textContent = "Tap a section to expand it";
+    const wrap = document.createElement("div");
+    const allExercises = [...new Map(
+      [...Object.values(DAYS).flat(), ...Object.values(customExercises).flat()].map(ex => [ex.name, ex])
+    ).values()];
+    const archivedList = [];
+    Object.keys(customExercises).forEach(day => {
+      (customExercises[day] || []).forEach(c => {
+        if (c.archived) archivedList.push({ ...c, day, builtIn: false });
+      });
+    });
+    Object.keys(excludedBuiltIns).forEach(day => {
+      (excludedBuiltIns[day] || []).forEach(name => {
+        archivedList.push({ name, day, builtIn: true });
+      });
+    });
+
+    renderAccordionSection(wrap, "data", "Where Your Data Lives", "fa-database", (body) => {
+      body.innerHTML = `
+        <div class="gt-target">Everything is saved only in this browser, on this device. It's not backed up to any account automatically.</div>
+        <div class="gt-target" style="margin-top:6px; color:var(--coral); font-weight:600;">Clearing this browser's site data, or using a different device/browser, will NOT show your history. Export a backup regularly to be safe.</div>
+      `;
+    });
+
+    renderAccordionSection(wrap, "units", "Units & Appearance", "fa-sliders", (body) => {
+      body.innerHTML = `
+        <div class="gt-ex-name" style="margin-bottom:6px;">Weight Unit</div>
+        <div class="gt-target" style="margin-bottom:8px;">Switch if your gym's plates are labeled in kg.</div>
+        <div class="gt-tabs" style="margin-bottom:0;">
+          <div class="gt-tab${unitPref === 'lbs' ? ' active' : ''}" id="unit-lbs">lbs</div>
+          <div class="gt-tab${unitPref === 'kg' ? ' active' : ''}" id="unit-kg">kg</div>
+        </div>
+        <div class="gt-ex-name" style="margin-bottom:6px; margin-top:16px;">Appearance</div>
+        <div class="gt-tabs" style="margin-bottom:0;">
+          <div class="gt-tab${!darkMode ? ' active' : ''}" id="theme-light">Light</div>
+          <div class="gt-tab${darkMode ? ' active' : ''}" id="theme-dark">Dark</div>
+        </div>
+      `;
+      body.querySelector("#unit-lbs").onclick = async (e) => {
+        e.stopPropagation();
+        if (unitPref === "lbs") return;
+        unitPref = "lbs";
+        await saveUnit();
+        render();
+      };
+      body.querySelector("#unit-kg").onclick = async (e) => {
+        e.stopPropagation();
+        if (unitPref === "kg") return;
+        unitPref = "kg";
+        await saveUnit();
+        render();
+      };
+      body.querySelector("#theme-light").onclick = async (e) => {
+        e.stopPropagation();
+        if (!darkMode) return;
+        darkMode = false;
+        applyTheme();
+        await saveTheme();
+        render();
+      };
+      body.querySelector("#theme-dark").onclick = async (e) => {
+        e.stopPropagation();
+        if (darkMode) return;
+        darkMode = true;
+        applyTheme();
+        await saveTheme();
+        render();
+      };
+    });
+
+    renderAccordionSection(wrap, "equipment", "Equipment Weights", "fa-weight-hanging", (body) => {
+      body.innerHTML = `
+        <div class="gt-target" style="margin-bottom:8px;">These vary by machine/gym, set them once so the math is accurate. Leave blank if unsure.</div>
+        <div class="gt-add-row" style="align-items:center; margin-top:6px;">
+          <span style="flex:1.4; font-size:13px;">Trap Bar (${unitLabel()})</span>
+          <input class="gt-input" type="number" placeholder="${trapBarWeight()}" value="${equipmentWeights.trapBar != null ? toDisplayWeight(equipmentWeights.trapBar) : ''}" id="equip-trapbar" style="flex:0.8;">
+        </div>
+        <div class="gt-add-row" style="align-items:center; margin-top:8px;">
+          <span style="flex:1.4; font-size:13px;">Leg Press Sled (${unitLabel()})</span>
+          <input class="gt-input" type="number" placeholder="0" value="${equipmentWeights.legPressSled != null ? toDisplayWeight(equipmentWeights.legPressSled) : ''}" id="equip-legpress" style="flex:0.8;">
+        </div>
+        <button class="gt-add-btn" id="equip-save" style="width:100%; margin-top:10px;">Save Equipment Weights</button>
+      `;
+      body.querySelector("#equip-save").onclick = async (e) => {
+        e.stopPropagation();
+        const trapVal = parseFloat(body.querySelector("#equip-trapbar").value);
+        const legVal = parseFloat(body.querySelector("#equip-legpress").value);
+        equipmentWeights.trapBar = trapVal ? fromDisplayWeight(trapVal) : null;
+        equipmentWeights.legPressSled = legVal ? fromDisplayWeight(legVal) : (legVal === 0 ? 0 : equipmentWeights.legPressSled);
+        await saveEquipmentWeights();
+        showToast("Equipment weights saved");
+        render();
+      };
+    });
+
+    renderAccordionSection(wrap, "goals", `Goal Weights (${unitLabel()})`, "fa-bullseye", (body) => {
+      body.innerHTML = allExercises.map(ex => `
+        <div class="gt-add-row" style="align-items:center; margin-top:8px;">
+          <span style="flex:1.4; font-size:13px;">${ex.name}</span>
+          <input class="gt-input" type="number" value="${toDisplayWeight(goalFor(ex))}" id="goal-${ex.name}" style="flex:0.8;">
+        </div>
+      `).join("") + `<button class="gt-add-btn" id="goals-save" style="width:100%; margin-top:10px;">Save Goals</button>`;
+      body.querySelector("#goals-save").onclick = async (e) => {
+        e.stopPropagation();
+        allExercises.forEach(ex => {
+          const val = parseFloat(body.querySelector(`#goal-${ex.name}`).value);
+          if (val) customGoals[ex.name] = fromDisplayWeight(val);
+        });
+        await saveGoals();
+        showToast("Goals updated");
+        render();
+      };
+    });
+
+    if (archivedList.length) {
+      renderAccordionSection(wrap, "archived", `Archived / Replaced (${archivedList.length})`, "fa-box-archive", (body) => {
+        body.innerHTML = `<div class="gt-target" style="margin-bottom:8px;">Hidden from their day's list, but config and history are kept. Bring one back anytime.</div>` +
+          archivedList.map((c) => `
+            <div class="gt-add-row" style="align-items:center; margin-top:8px;">
+              <span style="flex:1.4; font-size:13px;">${c.name} <span class="gt-var-label">(${c.day}${c.builtIn ? ', replaced' : ''})</span></span>
+              <button class="gt-activity-btn" data-day="${c.day}" data-name="${c.name}" data-builtin="${c.builtIn}" style="flex:0.8;">Restore</button>
+            </div>
+          `).join("");
+        body.querySelectorAll("button[data-name]").forEach(btn => {
+          btn.onclick = async (e) => {
+            e.stopPropagation();
+            const day = btn.dataset.day, name = btn.dataset.name;
+            if (btn.dataset.builtin === "true") {
+              excludedBuiltIns[day] = (excludedBuiltIns[day] || []).filter(n => n !== name);
+              await saveExcludedBuiltIns();
+            } else {
+              const item = (customExercises[day] || []).find(c => c.name === name);
+              if (item) item.archived = false;
+              await saveCustomExercises();
+            }
+            showToast(`${name} is back on ${day}`);
+            render();
+          };
+        });
+      });
+    }
+
+    listEl.appendChild(wrap);
+  }
+
+  function renderAchievements() {
+    footerEl.textContent = "Unlocked badges based on your training history";
+    const snap = achievementStatsSnapshot();
+    const wrap = document.createElement("div");
+
+    const unlockedCount = ACHIEVEMENTS.filter(a => a.check(snap)).length;
+    const summary = document.createElement("div");
+    summary.className = "gt-card";
+    summary.innerHTML = `<div class="gt-ex-name">${unlockedCount} / ${ACHIEVEMENTS.length} unlocked</div>`;
+    wrap.appendChild(summary);
+
+    const grid = document.createElement("div");
+    grid.className = "gt-ach-grid";
+    ACHIEVEMENTS.forEach(a => {
+      const unlocked = a.check(snap);
+      const badge = document.createElement("div");
+      badge.className = "gt-ach-badge" + (unlocked ? " unlocked" : "");
+      badge.innerHTML = `
+        <div class="gt-ach-icon">${unlocked ? a.icon : '<i class="fa-solid fa-lock" style="color:var(--muted); opacity:0.6;"></i>'}</div>
+        <div class="gt-ach-label">${a.label}</div>
+        <div class="gt-ach-desc">${a.desc}</div>
+      `;
+      grid.appendChild(badge);
+    });
+    wrap.appendChild(grid);
+    listEl.appendChild(wrap);
+  }
+
+  function renderToday() {
+    footerEl.textContent = "Your home base, updates automatically based on the day";
+    const wrap = document.createElement("div");
+    const dow = today.getDay(); // 0 = Sun
+    const todayIso = isoDate(today);
+    const dayPlan = {
+      0: { label: "Volleyball Day", detail: "Rest from lifting, get after it on the court.", tab: null },
+      1: { label: "Pilates Day", detail: "Hot HIIT Pilates today, check the Warm-up tab if you want a pre-session routine.", tab: "Warm-up" },
+      2: { label: "Lower A", detail: "Sumo Squats, Deadlifts, Hip Thrust, KB Swings.", tab: "Lower A" },
+      3: { label: "Upper", detail: "Bench Press, Rows, Shoulder Press, Lat Pulldown.", tab: "Upper" },
+      4: { label: "Lower B", detail: "Hip Thrust, Sumo Squats, KB Swings, Leg Press / Lunges.", tab: "Lower B" },
+      5: { label: "Rest Day", detail: "Nothing scheduled, recover up.", tab: null },
+      6: { label: "Rest Day", detail: "Nothing scheduled, recover up.", tab: null },
+    };
+    const plan = dayPlan[dow];
+    const s = computeStats();
+    const fire = fireTier(s.streak);
+    const doneWarmup = entries.some(e => e.type === "warmup" && e.date === todayIso);
+    const doneLift = entries.some(e => e.date === todayIso && e.exercise);
+    const doneActivity = entries.filter(e => e.date === todayIso && e.type === "activity").map(e => e.activity);
+    const doneCore = entries.some(e => e.type === "core" && e.date === todayIso);
+
+    const dayName = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dow];
+
+    const heroCard = document.createElement("div");
+    heroCard.className = "gt-card";
+    heroCard.innerHTML = `
+      <div class="gt-target">${dayName}</div>
+      <div class="gt-ex-name" style="font-size:18px; margin-top:2px;">${plan.label}</div>
+      <div class="gt-target" style="margin-top:4px;">${plan.detail}</div>
+      ${plan.tab ? `<button class="gt-add-btn" id="today-go" style="width:100%; margin-top:10px;">Go to ${plan.tab}</button>` : ''}
+    `;
+    wrap.appendChild(heroCard);
+
+    const weeksIn = weeksSinceReview();
+    if (weeksIn >= 6) {
+      const reviewCard = document.createElement("div");
+      reviewCard.className = "gt-card";
+      reviewCard.style.background = "linear-gradient(180deg, var(--coral-soft), var(--card))";
+      reviewCard.style.borderColor = "var(--coral)";
+      reviewCard.innerHTML = `
+        <div class="gt-ex-name" style="margin-bottom:4px;"><i class="fa-solid fa-magnifying-glass-chart"></i> ${weeksIn} weeks on this plan</div>
+        <div class="gt-target" style="margin-bottom:10px;">This is usually a good point to check in. Look at your weekly volume trend, see which lifts keep hitting "hold" instead of "up," and consider swapping one or two exercises rather than overhauling everything.</div>
+        <div class="gt-add-row">
+          <button class="gt-add-btn" id="review-dismiss" style="flex:1;">I reviewed it, remind me in 6-8 weeks</button>
+        </div>
+      `;
+      wrap.appendChild(reviewCard);
+    }
+
+    const checklist = document.createElement("div");
+    checklist.className = "gt-card";
+    checklist.innerHTML = `
+      <div class="gt-ex-name" style="margin-bottom:6px;">Today's Checklist</div>
+      <div class="gt-set-row" style="border-top:none; padding-top:4px;"><span>Warm-up</span><span>${doneWarmup ? '\u2713 done' : '\u00b7 not yet'}</span></div>
+      <div class="gt-set-row"><span>Lifting logged</span><span>${doneLift ? '\u2713 done' : '\u00b7 not yet'}</span></div>
+      <div class="gt-set-row"><span>Pilates / Volleyball <span class="gt-rpe-tag">optional</span></span><span>${doneActivity.length ? '\u2713 ' + doneActivity.join(', ') : '\u00b7 not yet'}</span></div>
+      <div class="gt-set-row"><span>Core Finisher <span class="gt-rpe-tag">optional</span></span><span>${doneCore ? '\u2713 done' : '\u00b7 not yet'}</span></div>
+      <div class="gt-activity-btns" style="margin-top:10px;">
+        <button class="gt-activity-btn" id="today-pilates" ${doneActivity.includes("Pilates") ? "disabled" : ""}>${doneActivity.includes("Pilates") ? "\u2713 Pilates logged" : "+ Log Pilates"}</button>
+        <button class="gt-activity-btn" id="today-volleyball" ${doneActivity.includes("Volleyball") ? "disabled" : ""}>${doneActivity.includes("Volleyball") ? "\u2713 Volleyball logged" : "+ Log Volleyball"}</button>
+      </div>
+      <div class="gt-activity-btns" style="margin-top:6px;">
+        <button class="gt-activity-btn" id="today-core" ${doneCore ? "disabled" : ""}>${doneCore ? "\u2713 Core logged" : "+ Log Core Finisher"}</button>
+      </div>
+    `;
+    wrap.appendChild(checklist);
+
+    const fireCard = document.createElement("div");
+    fireCard.className = "gt-stats";
+    fireCard.innerHTML = `
+      <div class="gt-stat${fire.glow ? ' gt-stat-glow' : ''}"><div class="gt-stat-num">${fire.icon} ${s.streak}</div><div class="gt-stat-label">${fire.label}</div></div>
+      <div class="gt-stat"><div class="gt-stat-num">${s.thisMonthCount}</div><div class="gt-stat-label">This Month</div></div>
+      <div class="gt-stat"><div class="gt-stat-num">${s.totalWorkouts}</div><div class="gt-stat-label">All Time</div></div>
+    `;
+    wrap.appendChild(fireCard);
+
+    listEl.appendChild(wrap);
+
+    if (weeksIn >= 6) {
+      document.getElementById("review-dismiss").onclick = async () => {
+        await markProgramReviewed();
+        showToast("Nice, we'll check back in with you in 6-8 weeks");
+        render();
+      };
+    }
+    if (plan.tab) {
+      document.getElementById("today-go").onclick = () => { activeTab = plan.tab; render(); };
+    }
+    if (!doneActivity.includes("Pilates")) {
+      document.getElementById("today-pilates").onclick = async () => {
+        entries.push({ id: Math.random().toString(36).slice(2) + Date.now(), type: "activity", activity: "Pilates", date: todayIso });
+        await saveData();
+        await checkAchievements();
+        showToast("Pilates logged for today");
+        render();
+      };
+    }
+    if (!doneActivity.includes("Volleyball")) {
+      document.getElementById("today-volleyball").onclick = async () => {
+        entries.push({ id: Math.random().toString(36).slice(2) + Date.now(), type: "activity", activity: "Volleyball", date: todayIso });
+        await saveData();
+        await checkAchievements();
+        showToast("Volleyball logged for today");
+        render();
+      };
+    }
+    if (!doneCore) {
+      document.getElementById("today-core").onclick = async () => {
+        entries.push({ id: Math.random().toString(36).slice(2) + Date.now(), type: "core", date: todayIso });
+        await saveData();
+        await checkAchievements();
+        showToast("Core Finisher logged for today");
+        render();
+      };
+    }
+  }
+
+  function render() {
+    renderTabs();
+    listEl.innerHTML = "";
+    if (activeTab === "Today") renderToday();
+    else if (activeTab === "Calendar") renderCalendar();
+    else if (activeTab === "Warm-up") renderWarmup();
+    else if (activeTab === "Core") renderCore();
+    else if (activeTab === "Plates") renderPlates();
+    else if (activeTab === "Weight") renderWeight();
+    else if (activeTab === "Achievements") renderAchievements();
+    else if (activeTab === "Settings") renderSettings();
+    else renderExerciseList();
+    const warnEl = document.getElementById("gt-sync-warning");
+    if (warnEl) warnEl.style.display = pendingSyncFailed ? "block" : "none";
+    const savedEl = document.getElementById("gt-last-saved");
+    if (savedEl) {
+      if (lastSavedAt) {
+        const secsAgo = Math.floor((new Date() - lastSavedAt) / 1000);
+        const label = secsAgo < 5 ? "Saved just now" : secsAgo < 60 ? `Saved ${secsAgo}s ago` : `Saved ${Math.floor(secsAgo / 60)}m ago`;
+        savedEl.innerHTML = `<span class="dot"></span>${label}`;
+      } else {
+        savedEl.textContent = "";
+      }
+    }
+  }
+
+  document.getElementById("gt-sync-dismiss").onclick = () => {
+    pendingSyncFailed = false;
+    render();
+  };
+  document.getElementById("gt-export-data").onclick = exportData;
+  document.getElementById("gt-import-data").onclick = () => {
+    if (pendingImportFile) {
+      importData(pendingImportFile, true);
+    } else {
+      document.getElementById("gt-import-file").click();
+    }
+  };
+  document.getElementById("gt-import-file").onchange = async (e) => {
+    const file = e.target.files[0];
+    if (file) await importData(file, false);
+    e.target.value = "";
+  };
+
+  document.getElementById("gt-clear-all").addEventListener("click", async function handler() {
+    const el = document.getElementById("gt-clear-all");
+    if (!el.dataset.armed) {
+      el.textContent = "Tap again to confirm reset";
+      el.dataset.armed = "1";
+      setTimeout(() => { el.textContent = "Reset all logged data"; delete el.dataset.armed; }, 4000);
+      return;
+    }
+    entries = [];
+    selectedDate = null;
+    delete el.dataset.armed;
+    el.textContent = "Reset all logged data";
+    await saveData();
+    render();
+  });
+
+  loadData();
+})();
+</script>
+
+</body>
+</html>
