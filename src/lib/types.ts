@@ -1,0 +1,153 @@
+/**
+ * TypeScript types for the LEGACY localStorage data shapes.
+ *
+ * CRITICAL: these mirror legacy/index.html exactly. Optional fields are
+ * ABSENT (property not present), never null/false — e.g. `warmupSet` is
+ * either the literal `true` or the key does not exist on the object.
+ */
+
+export type Unit = 'lbs' | 'kg';
+
+/** What the user picked in Settings. `system` is stored as ABSENCE of the theme key. */
+export type ThemePref = 'light' | 'dark' | 'system';
+export type ResolvedTheme = 'light' | 'dark';
+
+/** A logged lift set (the common case). `weight` is the TOTAL weight in lbs (bar math already applied). */
+export interface LiftSetEntry {
+  id: string;
+  exercise: string;
+  /** Total lbs. Can be 0 for bodyweight variations. */
+  weight: number;
+  /** Always 1 for entries created by current code; legacy data may have >1. */
+  sets: number;
+  reps: number;
+  /** Local date "YYYY-MM-DD". */
+  date: string;
+  /** Epoch ms. Absent on one-off logs and older entries (sort falls back to 0). */
+  createdAt?: number;
+  /** 1–10, only present if logged. */
+  rpe?: number;
+  /** Only present if the exercise has variations (e.g. "Barbell", "Dumbbell"). */
+  variation?: string;
+  /** Only present when true. Excluded from PB/1RM/volume. */
+  warmupSet?: true;
+  /** Only present when true. Excluded from PB/1RM/volume. */
+  assistedPullup?: true;
+}
+
+export type ActivityName = 'Pilates' | 'Volleyball';
+
+export interface ActivityEntry {
+  id: string;
+  type: 'activity';
+  activity: ActivityName;
+  date: string;
+}
+
+export interface CompletionEntry {
+  id: string;
+  type: 'warmup' | 'core';
+  date: string;
+}
+
+/** gymlog:entries is a heterogeneous array of all three variants. */
+export type Entry = LiftSetEntry | ActivityEntry | CompletionEntry;
+
+/** Legacy discrimination: lift entries have a truthy `exercise`; others have `type`. */
+export function isLiftSet(e: Entry): e is LiftSetEntry {
+  return 'exercise' in e && Boolean(e.exercise);
+}
+export function isActivity(e: Entry): e is ActivityEntry {
+  return 'type' in e && e.type === 'activity';
+}
+export function isCompletion(e: Entry, kind: 'warmup' | 'core'): e is CompletionEntry {
+  return 'type' in e && e.type === kind;
+}
+
+/** gymlog:bodyweight rows. `weight` in lbs. */
+export interface BodyweightEntry {
+  id: string;
+  date: string;
+  weight: number;
+}
+
+/** gymlog:measurements rows. Inches; either may be null. */
+export interface MeasurementEntry {
+  id: string;
+  date: string;
+  waist: number | null;
+  hips: number | null;
+}
+
+/** A built-in program exercise (lib/program.ts DAYS). */
+export interface ProgramExercise {
+  name: string;
+  /** Default goal weight in lbs. */
+  goal: number;
+  targetSets: number;
+  /** e.g. "8-12" — parseInt gives the minimum. */
+  targetReps: string;
+  prefillReps: number;
+}
+
+/** A user-created exercise stored in gymlog:customExercises. */
+export interface CustomExercise extends ProgramExercise {
+  custom: true;
+  notes: string | null;
+  /** Hidden but history/config kept. Optional (absent when false). */
+  archived?: boolean;
+}
+
+/** Anything renderable as an exercise card. */
+export type AnyExercise = ProgramExercise | CustomExercise;
+
+export function isCustomExercise(ex: AnyExercise): ex is CustomExercise {
+  return 'custom' in ex && ex.custom === true;
+}
+
+/** gymlog:coreOverrides values: the swapped-in alternative for a core slot. */
+export interface CoreOverride {
+  name: string;
+  target: string;
+}
+
+/** gymlog:equipmentWeights. Both lbs; null = unset. legPressSled may be explicit 0. */
+export interface EquipmentWeights {
+  trapBar: number | null;
+  legPressSled: number | null;
+}
+
+/** gymlog:notes — "YYYY-MM-DD" → note text. */
+export type NotesMap = Record<string, string>;
+/** gymlog:goals — exercise name → goal weight (lbs). */
+export type GoalsMap = Record<string, number>;
+/** gymlog:customExercises — day tab name → custom exercises. */
+export type CustomExercisesMap = Record<string, CustomExercise[]>;
+/** gymlog:excludedBuiltIns — day tab name → hidden built-in names. */
+export type ExcludedBuiltInsMap = Record<string, string[]>;
+/** gymlog:coreOverrides — original core exercise name → swap. */
+export type CoreOverridesMap = Record<string, CoreOverride>;
+
+/**
+ * Export/backup file shape. The legacy exporter wrote only the first six
+ * data fields; the rebuild may add the optional extras but importers must
+ * accept old files that lack them.
+ */
+export interface BackupPayload {
+  entries: Entry[];
+  notes: NotesMap;
+  customGoals: GoalsMap;
+  bwEntries: BodyweightEntry[];
+  seenAchievements: string[];
+  unitPref: Unit;
+  exportedAt: string;
+  /** Only present in auto-backups. */
+  reason?: string;
+  // Fields the legacy export omitted (rebuild may include them):
+  customExercises?: CustomExercisesMap;
+  excludedBuiltIns?: ExcludedBuiltInsMap;
+  coreOverrides?: CoreOverridesMap;
+  measurements?: MeasurementEntry[];
+  equipmentWeights?: EquipmentWeights;
+  theme?: string;
+}

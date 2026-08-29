@@ -1264,6 +1264,8 @@
   const CUSTOM_EX_KEY = "gymlog:customExercises";
   const EXCLUDED_KEY = "gymlog:excludedBuiltIns";
   const REVIEW_KEY = "gymlog:lastProgramReview";
+  const CORE_OVERRIDE_KEY = "gymlog:coreOverrides";
+  let coreOverrides = {}; // { "Plank": { name, target } } — swapped-in alternative for that slot
   let lastProgramReviewAt = null; // ISO date string
   const THEME_KEY = "gymlog:theme";
   const MEASURE_KEY = "gymlog:measurements";
@@ -1758,6 +1760,10 @@
       lastProgramReviewAt = rres && rres.value ? rres.value : null;
     } catch (e) { lastProgramReviewAt = null; }
     try {
+      const cores = await window.storage.get(CORE_OVERRIDE_KEY, false);
+      coreOverrides = cores && cores.value ? JSON.parse(cores.value) : {};
+    } catch (e) { coreOverrides = {}; }
+    try {
       const tres = await window.storage.get(THEME_KEY, false);
       darkMode = tres && tres.value === "dark";
     } catch (e) { darkMode = false; }
@@ -1863,6 +1869,9 @@
   async function markProgramReviewed() {
     lastProgramReviewAt = isoDate(new Date());
     await storageSetWithRetry(REVIEW_KEY, lastProgramReviewAt, "Program review");
+  }
+  async function saveCoreOverrides() {
+    await storageSetWithRetry(CORE_OVERRIDE_KEY, JSON.stringify(coreOverrides), "Core exercises");
   }
   function weeksSinceReview() {
     if (!lastProgramReviewAt) return 0;
@@ -2465,7 +2474,21 @@
           const dayVol = grouped[date].filter(r => !r.warmupSet && !r.assistedPullup && r.weight).reduce((s, r) => s + (r.weight * r.sets * r.reps), 0);
           dayHeader.innerHTML = `<span>${date === todayIso ? "Today" : displayDate(date)}</span><span>${grouped[date].length} set${grouped[date].length > 1 ? 's' : ''}${dayVol ? ` \u00b7 ${Math.round(toDisplayWeight(dayVol)).toLocaleString()}${unitLabel()} vol` : ''}</span>`;
           hist.appendChild(dayHeader);
-          grouped[date].forEach(r => {
+          const dayKey = `${ex.name}|${date}`;
+          const isExpanded = !!expandedHistoryDays[dayKey];
+          const dayRows = grouped[date];
+          const collapseThreshold = 4;
+          const visibleRows = (dayRows.length > collapseThreshold && !isExpanded) ? dayRows.slice(-collapseThreshold) : dayRows;
+          const hiddenCount = dayRows.length - visibleRows.length;
+          if (hiddenCount > 0) {
+            const showMoreLink = document.createElement("div");
+            showMoreLink.className = "gt-clear";
+            showMoreLink.style.margin = "2px 0 4px";
+            showMoreLink.textContent = `Show ${hiddenCount} earlier set${hiddenCount > 1 ? 's' : ''} from this day`;
+            showMoreLink.onclick = () => { expandedHistoryDays[dayKey] = true; render(); };
+            hist.appendChild(showMoreLink);
+          }
+          visibleRows.forEach(r => {
             const isPB = best && r.weight === best.weight && r.date === best.date && !r.warmupSet && !r.assistedPullup;
             const row = document.createElement("div");
             row.className = "gt-set-row logged" + (r.warmupSet ? " gt-warmup-row" : "");
@@ -2825,6 +2848,8 @@
 
   let addingCustomExercise = false;
   let editingCustomNoteFor = null;
+  let expandedHistoryDays = {}; // { "exerciseName|date": true } — manually expanded collapsed day groups
+  let oneOffHistoryExpanded = false;
   let customExerciseMode = "recurring"; // "recurring" or "oneoff"
   let suggestedPrefill = null; // { name, sets, reps, cues, muscles } — shared across one-off and recurring modes
   function renderAddCustomExercise() {
@@ -2938,16 +2963,30 @@
           </div>
           ${loggedSoFar.length ? `
             <div class="gt-target" style="margin-top:10px; font-weight:600;">${loggedSoFar.length} set${loggedSoFar.length > 1 ? 's' : ''} logged today</div>
-            ${loggedSoFar.map((r, i) => `
-              <div class="gt-set-row logged">
-                <span>Set ${i + 1}</span>
-                <span>${r.reps} reps</span>
-                <span class="gt-weight-num">${toDisplayWeight(r.weight)}${unitLabel()}</span>
-                <span class="gt-del-x" data-id="${r.id}">&#10005;</span>
-              </div>
-            `).join('')}
+            ${(() => {
+              const collapseThreshold = 4;
+              const isExpanded = oneOffHistoryExpanded;
+              const visible = (loggedSoFar.length > collapseThreshold && !isExpanded) ? loggedSoFar.slice(-collapseThreshold) : loggedSoFar;
+              const hiddenCount = loggedSoFar.length - visible.length;
+              const startIdx = loggedSoFar.length - visible.length;
+              let html = "";
+              if (hiddenCount > 0) {
+                html += `<div class="gt-clear" id="oneoff-show-more" style="margin:2px 0 4px;">Show ${hiddenCount} earlier set${hiddenCount > 1 ? 's' : ''}</div>`;
+              }
+              html += visible.map((r, i) => `
+                <div class="gt-set-row logged">
+                  <span>Set ${startIdx + i + 1}</span>
+                  <span>${r.reps} reps</span>
+                  <span class="gt-weight-num">${toDisplayWeight(r.weight)}${unitLabel()}</span>
+                  <span class="gt-del-x" data-id="${r.id}">&#10005;</span>
+                </div>
+              `).join('');
+              return html;
+            })()}
           ` : ''}
         `;
+        const showMoreOneoff = formEl.querySelector("#oneoff-show-more");
+        if (showMoreOneoff) showMoreOneoff.onclick = () => { oneOffHistoryExpanded = true; renderForm(); };
         formEl.querySelector("#oneoff-save").onclick = async () => {
           const name = formEl.querySelector("#oneoff-name").value.trim();
           const wInput = parseFloat(formEl.querySelector("#oneoff-weight").value);
@@ -2966,7 +3005,7 @@
           showToast(`Set logged for ${name}`);
           renderForm();
         };
-        formEl.querySelector("#custom-ex-cancel2").onclick = () => { addingCustomExercise = false; suggestedPrefill = null; render(); };
+        formEl.querySelector("#custom-ex-cancel2").onclick = () => { addingCustomExercise = false; suggestedPrefill = null; oneOffHistoryExpanded = false; render(); };
         formEl.querySelectorAll(".gt-del-x").forEach(x => {
           x.onclick = async () => {
             entries = entries.filter(e => e.id !== x.dataset.id);
@@ -3273,6 +3312,25 @@
     { name: "Side Plank", target: "2 x 20-30 sec per side" },
   ];
 
+  const CORE_ALTERNATIVES = {
+    "Plank": [
+      { name: "Forearm Plank with Shoulder Taps", reason: "adds an anti-rotation challenge to the same hold", target: "3 x 20-30 sec" },
+      { name: "RKC Plank", reason: "shorter but far more intense glute/ab squeeze", target: "3 x 15-20 sec" },
+    ],
+    "Dead Bug": [
+      { name: "Bird Dog", reason: "similar core stability, more focus on the back extensors too", target: "3 x 10 per side" },
+      { name: "Hollow Body Hold", reason: "more advanced, builds full-body core tension", target: "3 x 20-30 sec" },
+    ],
+    "Bicycle Crunches": [
+      { name: "Russian Twists", reason: "more oblique-focused rotation", target: "2 x 15 per side" },
+      { name: "Mountain Climbers", reason: "adds a bit of cardio to the core work", target: "2 x 20 per side" },
+    ],
+    "Side Plank": [
+      { name: "Side Plank with Leg Raise", reason: "adds a hip/glute challenge to the same hold", target: "2 x 15-20 sec per side" },
+      { name: "Copenhagen Plank", reason: "more advanced, adds adductor strength work", target: "2 x 15-20 sec per side" },
+    ],
+  };
+
   function renderCore() {
     footerEl.textContent = "8-10 min finisher, optional extra on a good energy day";
     const wrap = document.createElement("div");
@@ -3297,11 +3355,55 @@
 
     const listCard = document.createElement("div");
     listCard.className = "gt-card";
-    listCard.innerHTML = `<div class="gt-ex-name" style="margin-bottom:6px;">The Finisher</div>` +
-      CORE_EXERCISES.map(c => `
-        <div class="gt-set-row" style="border-top:none; padding-top:6px;"><span>${c.name}</span><span>${c.target}</span></div>
-      `).join("");
+    listCard.innerHTML = `<div class="gt-ex-name" style="margin-bottom:6px;">The Finisher</div>`;
     wrap.appendChild(listCard);
+
+    CORE_EXERCISES.forEach(original => {
+      const effective = coreOverrides[original.name] || original;
+      const row = document.createElement("div");
+      row.className = "gt-set-row" + (coreOverrides[original.name] ? " logged" : "");
+      row.style.borderTop = "none";
+      row.style.paddingTop = "6px";
+      row.innerHTML = `
+        <span>${effective.name}${coreOverrides[original.name] ? `<span class="gt-rpe-tag">swapped from ${original.name}</span>` : ''}</span>
+        <span>${effective.target}</span>
+      `;
+      listCard.appendChild(row);
+
+      if (CORE_ALTERNATIVES[original.name]) {
+        const altBtn = document.createElement("div");
+        altBtn.className = "gt-clear";
+        altBtn.style.margin = "2px 0 6px";
+        altBtn.textContent = coreOverrides[original.name] ? `Revert to ${original.name}` : `Suggest an alternative to ${original.name}`;
+        altBtn.onclick = async () => {
+          if (coreOverrides[original.name]) {
+            delete coreOverrides[original.name];
+            await saveCoreOverrides();
+            render();
+          } else {
+            const options = CORE_ALTERNATIVES[original.name];
+            const pick = options[Math.floor(Math.random() * options.length)];
+            altBtn.textContent = `Try: ${pick.name} \u2014 ${pick.reason}`;
+            let confirmBtn = listCard.querySelector(`.gt-core-confirm-${original.name.replace(/\s/g, '')}`);
+            if (!confirmBtn) {
+              confirmBtn = document.createElement("button");
+              confirmBtn.className = `gt-add-btn gt-core-confirm-${original.name.replace(/\s/g, '')}`;
+              confirmBtn.style.width = "100%";
+              confirmBtn.style.marginBottom = "6px";
+              altBtn.insertAdjacentElement("afterend", confirmBtn);
+            }
+            confirmBtn.textContent = `Swap in ${pick.name}`;
+            confirmBtn.onclick = async () => {
+              coreOverrides[original.name] = { name: pick.name, target: pick.target };
+              await saveCoreOverrides();
+              showToast(`${pick.name} swapped in for ${original.name}`);
+              render();
+            };
+          }
+        };
+        listCard.appendChild(altBtn);
+      }
+    });
 
     const note = document.createElement("div");
     note.className = "gt-cal-detail";
