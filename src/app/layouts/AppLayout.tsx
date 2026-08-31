@@ -37,6 +37,8 @@ const Main = styled.main`
   max-width: 72rem;
   margin: 0 auto;
   padding: ${({ theme }) => theme.space[4]};
+  /* clear the iOS status bar when running as an installed standalone app */
+  padding-top: calc(${({ theme }) => theme.space[4]} + env(safe-area-inset-top, 0px));
   /* keep content clear of the fixed bottom nav on mobile */
   padding-bottom: calc(${({ theme }) => theme.space[6]} + 64px + env(safe-area-inset-bottom, 0px));
 
