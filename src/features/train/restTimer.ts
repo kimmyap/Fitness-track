@@ -57,6 +57,11 @@ export interface RestTimerState {
   /** Last selected duration — Start resumes to this when secondsLeft is 0. */
   total: number;
   running: boolean;
+  /**
+   * True only after a countdown actually reaches zero — distinct from an idle
+   * 0:00. Drives the "rest is over" colour; an untouched timer stays ice blue.
+   */
+  finished: boolean;
   /** Start fresh with `seconds`, or resume (secondsLeft > 0 ? secondsLeft : total) when omitted. */
   start: (seconds?: number) => void;
   pause: () => void;
@@ -76,20 +81,21 @@ export const useRestTimerStore = create<RestTimerState>((set, get) => ({
   secondsLeft: 0,
   total: REST_TIMER_AUTO_START_SECONDS,
   running: false,
+  finished: false,
 
   start: (seconds) => {
     clearTick();
     if (seconds !== undefined) {
-      set({ total: seconds, secondsLeft: seconds, running: true });
+      set({ total: seconds, secondsLeft: seconds, running: true, finished: false });
     } else {
       const resume = get().secondsLeft > 0 ? get().secondsLeft : get().total;
-      set({ secondsLeft: resume, running: true });
+      set({ secondsLeft: resume, running: true, finished: false });
     }
     interval = setInterval(() => {
       const next = get().secondsLeft - 1;
       if (next <= 0) {
         clearTick();
-        set({ secondsLeft: 0, running: false });
+        set({ secondsLeft: 0, running: false, finished: true });
         beep();
       } else {
         set({ secondsLeft: next });
@@ -104,7 +110,7 @@ export const useRestTimerStore = create<RestTimerState>((set, get) => ({
 
   reset: () => {
     clearTick();
-    set({ running: false, secondsLeft: 0 });
+    set({ running: false, secondsLeft: 0, finished: false });
   },
 }));
 

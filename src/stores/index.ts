@@ -7,6 +7,7 @@ export * from './coreOverrides';
 export * from './goals';
 export * from './notes';
 export * from './achievements';
+export * from './weightModes';
 
 import { useEntriesStore } from './entries';
 import { useSettingsStore } from './settings';

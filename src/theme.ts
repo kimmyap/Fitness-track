@@ -1,6 +1,6 @@
 /**
  * Design tokens from docs/research/product-design-spec.md Part 2
- * ("Vibrant & Block-based + Dark Mode (OLED)", Fitness/Gym App palette).
+ * (dark-first, high-energy orange). The palette is authoritative in CLAUDE.md.
  *
  * Components must consume ONLY these semantic tokens — no raw hex in
  * component files.
@@ -9,13 +9,23 @@ import { useSyncExternalStore } from 'react';
 import type { ResolvedTheme, ThemePref } from '@/lib/types';
 
 export interface ThemeColors {
+  /** High-energy orange: action buttons, active set borders, focus. */
   primary: string;
+  /** Text/icons ON primary — dark, because white on #FF6D00 is only 2.82:1. */
   onPrimary: string;
   secondary: string;
   onSecondary: string;
-  /** Success / PR accent — always pair with icon+text, never color-only. */
+  /** Sage green FILL for completed sets / PRs. Pair with onAccent + a checkmark. */
   accent: string;
   onAccent: string;
+  /**
+   * Sage green for TEXT / icons / chart strokes on dark surfaces. Lighter than
+   * `accent` because #2E7D32 as text on #1E1E1E is only 3.25:1.
+   */
+  accentText: string;
+  /** Ice blue — rest timers only. */
+  timer: string;
+  onTimer: string;
   background: string;
   foreground: string;
   card: string;
@@ -32,43 +42,49 @@ export interface ThemeColors {
 }
 
 const darkColors: ThemeColors = {
-  primary: '#F97316',
-  onPrimary: '#0F172A',
-  secondary: '#FB923C',
-  onSecondary: '#0F172A',
-  accent: '#22C55E',
-  onAccent: '#0F172A',
-  background: '#1F2937',
-  foreground: '#F8FAFC',
-  card: '#313742',
-  cardForeground: '#F8FAFC',
-  muted: '#37414F',
-  mutedForeground: '#CBD5E1',
-  border: '#374151',
-  destructive: '#EF4444',
-  onDestructive: '#000000',
-  ring: '#F97316',
-  overlay: 'rgba(0, 0, 0, 0.6)',
+  primary: '#FF6D00',
+  onPrimary: '#121212',
+  secondary: '#FF8A33',
+  onSecondary: '#121212',
+  accent: '#2E7D32',
+  onAccent: '#FFFFFF',
+  accentText: '#4CAF50',
+  timer: '#00B0FF',
+  onTimer: '#121212',
+  background: '#121212',
+  foreground: '#F5F5F5',
+  card: '#1E1E1E',
+  cardForeground: '#F5F5F5',
+  muted: '#262626',
+  mutedForeground: '#B3B3B3',
+  border: '#333333',
+  destructive: '#FF5252',
+  onDestructive: '#121212',
+  ring: '#FF6D00',
+  overlay: 'rgba(0, 0, 0, 0.7)',
 };
 
 const lightColors: ThemeColors = {
-  primary: '#EA580C',
+  primary: '#BF360C',
   onPrimary: '#FFFFFF',
-  secondary: '#F97316',
-  onSecondary: '#0F172A',
-  accent: '#16A34A',
+  secondary: '#A63A00',
+  onSecondary: '#FFFFFF',
+  accent: '#2E7D32',
   onAccent: '#FFFFFF',
-  background: '#F8FAFC',
-  foreground: '#0F172A',
+  accentText: '#2E7D32',
+  timer: '#0277BD',
+  onTimer: '#FFFFFF',
+  background: '#FAFAFA',
+  foreground: '#121212',
   card: '#FFFFFF',
-  cardForeground: '#0F172A',
-  muted: '#F1F5F9',
-  mutedForeground: '#475569',
-  border: '#E2E8F0',
-  destructive: '#DC2626',
+  cardForeground: '#121212',
+  muted: '#F0F0F0',
+  mutedForeground: '#5A5A5A',
+  border: '#D4D4D4',
+  destructive: '#C62828',
   onDestructive: '#FFFFFF',
-  ring: '#EA580C',
-  overlay: 'rgba(15, 23, 42, 0.5)',
+  ring: '#BF360C',
+  overlay: 'rgba(0, 0, 0, 0.5)',
 };
 
 /** Spacing scale (px): --space-1 … --space-6 = 4 / 8 / 12 / 16 / 24 / 32. */

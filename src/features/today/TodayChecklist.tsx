@@ -11,7 +11,7 @@ import { CardTitle, Muted, Row, SetRow, Stack } from '@/features/train/ui';
 import { celebrateAchievements } from './celebrate';
 
 const DoneMark = styled.span`
-  color: ${({ theme }) => theme.colors.accent};
+  color: ${({ theme }) => theme.colors.accentText};
   font-weight: 600;
 `;
 

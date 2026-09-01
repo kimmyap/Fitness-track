@@ -166,6 +166,96 @@ export function inputWeightFromStored(
 }
 
 // ---------------------------------------------------------------------------
+// Weight input modes (plate calculator)
+//
+// 'auto'    — legacy, variation-driven math (see computeTotalDisplayWeight)
+// 'total'   — the number typed IS the total weight
+// 'perSide' — the number typed is plates on ONE side; total = n*2 + bar
+//
+// Mode affects INPUT ONLY. Storage is always the total, in lbs.
+// ---------------------------------------------------------------------------
+
+export type WeightEntryMode = 'auto' | 'total' | 'perSide';
+
+/**
+ * Whether to offer the total/per-side toggle. Barbell and Trap Bar are
+ * plate-loaded; so are exercises with no variation at all (a custom
+ * "Glute Bridges" is usually loaded with plates on a bar).
+ *
+ * Leg Press is deliberately excluded: its legacy math already adds the sled to
+ * the plate total, so a per-side reading would change what the number means.
+ */
+/**
+ * Which of the two visible modes an 'auto' exercise behaves as: Barbell and
+ * Trap Bar are per-side by legacy default, everything else is total.
+ */
+export function effectiveMode(
+  mode: WeightEntryMode,
+  variation: string | null,
+): 'total' | 'perSide' {
+  if (mode !== 'auto') return mode;
+  return variation === 'Barbell' || variation === 'Trap Bar' ? 'perSide' : 'total';
+}
+
+export function isPlateLoaded(variation: string | null | undefined): boolean {
+  return !variation || variation === 'Barbell' || variation === 'Trap Bar';
+}
+
+/** Bar weight that perSide mode adds, in DISPLAY units. */
+export function barForVariation(
+  variation: string | null | undefined,
+  ctx: WeightEntryContext,
+): number {
+  return variation === 'Trap Bar' ? trapBarWeight(ctx.equipment, ctx.unit) : barWeight(ctx.unit);
+}
+
+/** Mode-aware total, in display units. */
+export function computeTotalDisplayWeightWithMode(
+  mode: WeightEntryMode,
+  variation: string | null | undefined,
+  rawInput: number,
+  ctx: WeightEntryContext,
+): number {
+  if (mode === 'auto') return computeTotalDisplayWeight(variation, rawInput, ctx);
+  const wSafe = rawInput || 0;
+  if (mode === 'total') return wSafe;
+  return wSafe ? wSafe * 2 + barForVariation(variation, ctx) : 0;
+}
+
+/** Mode-aware entry math: user input → stored lbs. */
+export function storedWeightFromModeInput(
+  mode: WeightEntryMode,
+  variation: string | null | undefined,
+  rawInput: number,
+  ctx: WeightEntryContext,
+): number {
+  return fromDisplayWeight(computeTotalDisplayWeightWithMode(mode, variation, rawInput, ctx), ctx.unit);
+}
+
+/** Mode-aware reverse math for prefilling the input from a stored total. */
+export function inputWeightFromStoredWithMode(
+  mode: WeightEntryMode,
+  variation: string | null | undefined,
+  storedLbs: number,
+  ctx: WeightEntryContext,
+): number {
+  if (mode === 'auto') return inputWeightFromStored(variation, storedLbs, ctx.unit);
+  const totalDisplay = toDisplayWeight(storedLbs, ctx.unit);
+  if (mode === 'total') return totalDisplay;
+  const perSide = (totalDisplay - barForVariation(variation, ctx)) / 2;
+  return Math.max(0, Math.round(perSide * 10) / 10);
+}
+
+/**
+ * Quick-pick plate loads per side: 1–4 of the heaviest plate.
+ * lbs → 45/90/135/180, kg → 20/40/60/80.
+ */
+export function plateQuickPicks(unit: Unit): { plates: number; perSide: number }[] {
+  const heaviest = PLATE_SIZES[unit][0] ?? 45;
+  return [1, 2, 3, 4].map((plates) => ({ plates, perSide: heaviest * plates }));
+}
+
+// ---------------------------------------------------------------------------
 // Typo guard (sanity check on big jumps)
 // ---------------------------------------------------------------------------
 

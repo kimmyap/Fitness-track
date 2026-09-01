@@ -16,3 +16,4 @@ export { Confetti, type ConfettiProps } from './Confetti';
 export { WeekStrip, type WeekStripProps, type WeekStripDay } from './WeekStrip';
 export { PageHeader, type PageHeaderProps } from './PageHeader';
 export { useReducedMotion } from './useReducedMotion';
+export { BarbellIcon } from './BarbellIcon';

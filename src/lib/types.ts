@@ -151,3 +151,10 @@ export interface BackupPayload {
   equipmentWeights?: EquipmentWeights;
   theme?: string;
 }
+
+/**
+ * Per-exercise weight input mode. NEW key (gymlog:weightInputModes) — not part
+ * of the legacy schema. Absent = 'auto' (legacy variation-driven math).
+ */
+export type StoredWeightInputMode = 'total' | 'perSide';
+export type WeightInputModeMap = Record<string, StoredWeightInputMode>;

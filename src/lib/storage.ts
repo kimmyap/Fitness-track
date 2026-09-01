@@ -22,6 +22,7 @@ import type {
   MeasurementEntry,
   NotesMap,
   Unit,
+  WeightInputModeMap,
 } from './types';
 
 const PREFIX = 'gymlog_';
@@ -40,6 +41,8 @@ export const STORAGE_KEYS = {
   theme: 'gymlog:theme',
   measurements: 'gymlog:measurements',
   equipmentWeights: 'gymlog:equipmentWeights',
+  /** NEW (not legacy): per-exercise weight input mode — see CLAUDE.md Plate Math. */
+  weightInputModes: 'gymlog:weightInputModes',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
@@ -243,6 +246,13 @@ export function getGoals(): GoalsMap {
 }
 export function saveGoals(goals: GoalsMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.goals, JSON.stringify(goals), 'Goals');
+}
+
+export function getWeightInputModes(): WeightInputModeMap {
+  return getJSON<WeightInputModeMap>(STORAGE_KEYS.weightInputModes, {});
+}
+export function saveWeightInputModes(modes: WeightInputModeMap): Promise<boolean> {
+  return setRawWithRetry(STORAGE_KEYS.weightInputModes, JSON.stringify(modes), 'Weight input mode');
 }
 
 export function getBodyweight(): BodyweightEntry[] {

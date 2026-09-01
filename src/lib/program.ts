@@ -15,6 +15,7 @@ import {
   Bell,
   Box,
   Boxes,
+  Cable,
   ChevronsUp,
   Crown,
   Dumbbell,
@@ -25,6 +26,7 @@ import {
   Layers,
   Medal,
   MoveDown,
+  PersonStanding,
   Plus,
   Rocket,
   Ruler,
@@ -32,10 +34,12 @@ import {
   Sparkles,
   Sprout,
   Star,
+  Timer,
   Trophy,
   Volleyball,
   Weight,
 } from 'lucide-react';
+import { BarbellIcon } from '@/components/BarbellIcon';
 import type { CoreOverride, ProgramExercise } from './types';
 import type { FireTierLevel } from './domain';
 
@@ -425,8 +429,86 @@ export const EXERCISE_ICONS: Record<string, LucideIcon> = {
 /** Legacy CUSTOM_EX_ICON (fa-plus). */
 export const CUSTOM_EXERCISE_ICON: LucideIcon = Plus;
 
-export function iconForExercise(name: string): LucideIcon {
-  return EXERCISE_ICONS[name] ?? CUSTOM_EXERCISE_ICON;
+/**
+ * Equipment category, used to pick a glanceable icon (CLAUDE.md: barbell for
+ * plate-loaded compounds, dumbbell for isolations, timer for rest).
+ */
+export type ExerciseCategory =
+  | 'barbell'
+  | 'dumbbell'
+  | 'kettlebell'
+  | 'machine'
+  | 'cable'
+  | 'bodyweight'
+  | 'timer';
+
+export const CATEGORY_ICONS: Record<ExerciseCategory, LucideIcon> = {
+  barbell: BarbellIcon,
+  dumbbell: Dumbbell,
+  kettlebell: Bell,
+  machine: Cable,
+  cable: Cable,
+  bodyweight: PersonStanding,
+  timer: Timer,
+};
+
+/** Name fragments that imply a plate-loaded compound (covers custom exercises). */
+const BARBELL_NAME_HINTS = [
+  'squat',
+  'deadlift',
+  'bench',
+  'press',
+  'thrust',
+  'bridge',
+  'row',
+  'hinge',
+  'clean',
+  'snatch',
+  'lunge',
+];
+const DUMBBELL_NAME_HINTS = ['curl', 'fly', 'flye', 'raise', 'extension', 'kickback', 'shrug'];
+
+/** Category for an exercise, optionally refined by the selected variation. */
+export function categoryForExercise(name: string, variation?: string | null): ExerciseCategory {
+  switch (variation) {
+    case 'Barbell':
+    case 'Trap Bar':
+    case 'Leg Press':
+      return 'barbell';
+    case 'Dumbbell':
+      return 'dumbbell';
+    case 'Kettlebell':
+    case 'Two-Hand':
+    case 'Single-Arm':
+      return 'kettlebell';
+    case 'Machine':
+      return 'machine';
+    case 'Cable':
+    case 'Assisted Pull-up':
+      return 'cable';
+    case 'Bodyweight':
+    case 'Bodyweight Lunges':
+    case 'Walking Lunges':
+      return 'bodyweight';
+    default:
+      break;
+  }
+  // No variation chosen (or a custom exercise): infer from the name.
+  const lower = name.toLowerCase();
+  if (DUMBBELL_NAME_HINTS.some((h) => lower.includes(h))) return 'dumbbell';
+  if (BARBELL_NAME_HINTS.some((h) => lower.includes(h))) return 'barbell';
+  // Built-ins default to their first listed variation.
+  const first = EXERCISE_VARIATIONS[name]?.[0];
+  if (first) return categoryForExercise(name, first);
+  return 'dumbbell';
+}
+
+/**
+ * Category icon for an exercise. Falls back to the legacy per-exercise icon map
+ * only for names with no inferable category.
+ */
+export function iconForExercise(name: string, variation?: string | null): LucideIcon {
+  return CATEGORY_ICONS[categoryForExercise(name, variation)] ?? EXERCISE_ICONS[name] ?? CUSTOM_EXERCISE_ICON;
 }
 
 /** Fire-tier icons (legacy: seedling / fire / crown). */

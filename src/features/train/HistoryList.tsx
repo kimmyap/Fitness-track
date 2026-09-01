@@ -46,10 +46,18 @@ const Actions = styled.span`
   margin-left: auto;
 `;
 
+/** Completed-set badge: sage-green fill + white checkmark (glanceable status). */
 const CheckMark = styled.span`
-  color: ${({ theme }) => theme.colors.accent};
   display: inline-flex;
-  padding: 0 ${({ theme }) => theme.space[1]};
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: ${({ theme }) => theme.space[1]};
+  flex: none;
+  border-radius: ${({ theme }) => theme.radii.full};
+  background: ${({ theme }) => theme.colors.accent};
+  color: ${({ theme }) => theme.colors.onAccent};
 `;
 
 const HISTORY_DAY_COLLAPSE_THRESHOLD = 4;
@@ -61,9 +69,19 @@ export interface HistoryListProps {
   onRepeat: (entry: LiftSetEntry) => void;
   onEdit: (entry: LiftSetEntry) => void;
   onDelete: (entry: LiftSetEntry) => void;
+  /** Set currently open in the edit form — gets the orange active border. */
+  editingId?: string | null;
 }
 
-export function HistoryList({ exerciseName, best, todayIso, onRepeat, onEdit, onDelete }: HistoryListProps) {
+export function HistoryList({
+  exerciseName,
+  best,
+  todayIso,
+  onRepeat,
+  onEdit,
+  onDelete,
+  editingId = null,
+}: HistoryListProps) {
   const entries = useEntriesStore((s) => s.entries);
   const unit = useSettingsStore((s) => s.unit);
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
@@ -138,7 +156,7 @@ export function HistoryList({ exerciseName, best, todayIso, onRepeat, onEdit, on
                   ? 'Bodyweight'
                   : `${fmtStoredWeight(r.weight, unit)}${isPB ? ' ★' : ''}`;
               return (
-                <SetRow key={r.id}>
+                <SetRow key={r.id} completed editing={r.id === editingId}>
                   <RowInfo>
                     {r.variation ? <Badge>{r.variation}</Badge> : null}
                     <span>{setLabel}</span>

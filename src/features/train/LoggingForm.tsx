@@ -17,21 +17,31 @@ import { useId, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import styled from '@emotion/styled';
 import { Badge, Button, Field, FieldLabel, NumberInput, toast } from '@/components';
-import { useAchievementsStore, useEntriesStore, useSettingsStore } from '@/stores';
+import {
+  modeForExercise,
+  useAchievementsStore,
+  useEntriesStore,
+  useSettingsStore,
+  useWeightModesStore,
+} from '@/stores';
 import {
   LOG_LOCK_MS,
   TYPO_GUARD_CONFIRM_MS,
   barWeight,
   bestFor,
-  computeTotalDisplayWeight,
-  inputWeightFromStored,
+  barForVariation,
+  computeTotalDisplayWeightWithMode,
+  effectiveMode,
+  inputWeightFromStoredWithMode,
   isBigJump,
+  isPlateLoaded,
   lastLoggedWorkingSet,
   legPressSledWeight,
-  storedWeightFromInput,
+  plateQuickPicks,
+  storedWeightFromModeInput,
   trapBarWeight,
 } from '@/lib/domain';
-import type { WeightEntryContext } from '@/lib/domain';
+import type { WeightEntryContext, WeightEntryMode } from '@/lib/domain';
 import { EXERCISE_VARIATIONS, RPE_SCALE, randomHype } from '@/lib/program';
 import type { AnyExercise, Entry, EquipmentWeights, LiftSetEntry, Unit } from '@/lib/types';
 import { isLiftSet } from '@/lib/types';
@@ -41,6 +51,44 @@ import { Muted, Row, SelectBase, Stack, TextButton, unitLabel } from './ui';
 
 /** Warm-up checkbox state remembered per exercise per app session (legacy lastWarmupChecked). */
 const sessionWarmupChecked: Record<string, boolean> = {};
+
+const ModeToggle = styled.div`
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radii.sm};
+  overflow: hidden;
+`;
+
+const ModeButton = styled.button<{ active: boolean }>`
+  min-height: ${({ theme }) => theme.touchTarget};
+  padding: ${({ theme }) => `${theme.space[1]} ${theme.space[3]}`};
+  border: none;
+  background: ${({ theme, active }) => (active ? theme.colors.primary : 'transparent')};
+  color: ${({ theme, active }) => (active ? theme.colors.onPrimary : theme.colors.mutedForeground)};
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  font-weight: ${({ active }) => (active ? 700 : 500)};
+  cursor: pointer;
+`;
+
+const PlateChip = styled.button`
+  min-height: ${({ theme }) => theme.touchTarget};
+  padding: ${({ theme }) => `${theme.space[1]} ${theme.space[3]}`};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radii.full};
+  background: ${({ theme }) => theme.colors.muted};
+  color: ${({ theme }) => theme.colors.cardForeground};
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.colors.primary};
+  }
+`;
 
 const InputRow = styled.div`
   display: flex;
@@ -108,7 +156,10 @@ function computePrefill(
   editingEntry: LiftSetEntry | null,
   entries: Entry[],
   unit: Unit,
+  mode: WeightEntryMode = 'auto',
+  equipment: EquipmentWeights = { trapBar: null, legPressSled: null },
 ): { variation: string | null; values: FormValues } {
+  const ctx: WeightEntryContext = { unit, equipment };
   const variations = EXERCISE_VARIATIONS[exercise.name];
   let variation: string | null = null;
   if (editingEntry?.variation) {
@@ -120,7 +171,7 @@ function computePrefill(
     return {
       variation,
       values: {
-        weight: inputWeightFromStored(variation, editingEntry.weight, unit),
+        weight: inputWeightFromStoredWithMode(mode, variation, editingEntry.weight, ctx),
         reps: editingEntry.reps,
         rpe: editingEntry.rpe ?? '',
       },
@@ -131,7 +182,7 @@ function computePrefill(
     return {
       variation,
       values: {
-        weight: inputWeightFromStored(variation, last.weight, unit),
+        weight: inputWeightFromStoredWithMode(mode, variation, last.weight, ctx),
         reps: last.reps,
         rpe: last.rpe ?? '',
       },
@@ -183,6 +234,33 @@ export function weightHelperText(
   return '';
 }
 
+/** Helper text for an explicitly-chosen mode; 'auto' defers to the legacy copy. */
+export function weightHelperTextForMode(
+  mode: WeightEntryMode,
+  variation: string | null,
+  rawInput: number | '',
+  unit: Unit,
+  equipment: EquipmentWeights,
+): string {
+  if (mode === 'auto') return weightHelperText(variation, rawInput, unit, equipment);
+  const u = unitLabel(unit);
+  const w = rawInput === '' ? 0 : rawInput;
+  if (mode === 'perSide') {
+    const bar = barForVariation(variation, { unit, equipment });
+    const barName = variation === 'Trap Bar' ? 'trap bar' : 'bar';
+    if (w) return `= ${w * 2 + bar}${u} total (${w} per side x2 + ${bar}${u} ${barName})`;
+    return `Enter weight per side, ${barName} (${bar}${u}) added automatically`;
+  }
+  if (w) return `Logging ${w}${u} total, bar included`;
+  return 'Enter the full weight including the bar';
+}
+
+function weightLabelForMode(mode: WeightEntryMode, variation: string | null, unit: Unit): string {
+  if (mode === 'auto') return weightLabel(variation, unit);
+  const u = unitLabel(unit);
+  return mode === 'perSide' ? `Weight per side (${u})` : `Total weight (${u})`;
+}
+
 function weightLabel(variation: string | null, unit: Unit): string {
   const u = unitLabel(unit);
   if (variation === 'Barbell' || variation === 'Trap Bar') return `Weight per side (${u})`;
@@ -216,14 +294,23 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
   const isEditing = Boolean(editingEntry);
   const variations = EXERCISE_VARIATIONS[exercise.name];
 
+  const initialMode = modeForExercise(useWeightModesStore.getState().modes, exercise.name);
   const [variation, setVariation] = useState<string | null>(
-    () => computePrefill(exercise, editingEntry, useEntriesStore.getState().entries, unit).variation,
+    () =>
+      computePrefill(exercise, editingEntry, useEntriesStore.getState().entries, unit, initialMode, equipment)
+        .variation,
   );
   const [values, setValues] = useState<FormValues>(
-    () => computePrefill(exercise, editingEntry, useEntriesStore.getState().entries, unit).values,
+    () =>
+      computePrefill(exercise, editingEntry, useEntriesStore.getState().entries, unit, initialMode, equipment)
+        .values,
   );
   const [warmup, setWarmupState] = useState<boolean>(() =>
     editingEntry ? Boolean(editingEntry.warmupSet) : Boolean(sessionWarmupChecked[exercise.name]),
+  );
+  const setStoredMode = useWeightModesStore((s) => s.setMode);
+  const [mode, setMode] = useState<WeightEntryMode>(() =>
+    modeForExercise(useWeightModesStore.getState().modes, exercise.name),
   );
   const [rpeHint, setRpeHint] = useState(DEFAULT_RPE_HINT);
   const [typoArmed, setTypoArmed] = useState(false);
@@ -236,6 +323,21 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
   const setWarmup = (checked: boolean) => {
     setWarmupState(checked);
     sessionWarmupChecked[exercise.name] = checked;
+  };
+
+  // Switching modes converts the typed number so the resulting total is
+  // unchanged — the toggle acts as a plate calculator, not a reset.
+  const switchMode = (next: 'total' | 'perSide') => {
+    const ctx: WeightEntryContext = { unit, equipment };
+    const currentTotal = computeTotalDisplayWeightWithMode(mode, variation, values.weight === '' ? 0 : values.weight, ctx);
+    const bar = barForVariation(variation, ctx);
+    const converted =
+      next === 'perSide'
+        ? Math.max(0, Math.round(((currentTotal - bar) / 2) * 10) / 10)
+        : Math.round(currentTotal * 10) / 10;
+    setMode(next);
+    setStoredMode(exercise.name, next);
+    if (values.weight !== '') setValues((v) => ({ ...v, weight: converted }));
   };
 
   const stepAmount = unit === 'kg' ? 2.5 : 5;
@@ -264,7 +366,7 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
     }
 
     const ctx: WeightEntryContext = { unit, equipment };
-    const stored = storedWeightFromInput(varVal, wRaw, ctx);
+    const stored = storedWeightFromModeInput(mode, varVal, wRaw, ctx);
     const allEntries = useEntriesStore.getState().entries;
 
     // Typo guard (legacy: skipped for warm-ups, edits, bodyweight, assisted)
@@ -315,7 +417,7 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
 
     if (!isWarmup && !isAssisted && !isBodyweightVar && stored > prevBest) {
       onConfetti?.();
-      const totalDisplay = computeTotalDisplayWeight(varVal, wRaw, ctx);
+      const totalDisplay = computeTotalDisplayWeightWithMode(mode, varVal, wRaw, ctx);
       const perNote =
         varVal === 'Barbell' || varVal === 'Trap Bar'
           ? ` (${wRaw} per side)`
@@ -341,7 +443,9 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
         ? 'Save'
         : 'Log Set';
 
-  const helper = weightHelperText(variation, values.weight, unit, equipment);
+  const showPlateToggle = isPlateLoaded(variation);
+  const visibleMode = effectiveMode(mode, variation);
+  const helper = weightHelperTextForMode(mode, variation, values.weight, unit, equipment);
   const numChange =
     (key: keyof FormValues) => (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
@@ -370,9 +474,47 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
         </span>
       </CheckboxRow>
 
+      {showPlateToggle ? (
+        <Row wrap>
+          <ModeToggle role="group" aria-label="Weight entry mode">
+            <ModeButton
+              type="button"
+              active={visibleMode === 'total'}
+              aria-pressed={visibleMode === 'total'}
+              onClick={() => switchMode('total')}
+            >
+              Total weight
+            </ModeButton>
+            <ModeButton
+              type="button"
+              active={visibleMode === 'perSide'}
+              aria-pressed={visibleMode === 'perSide'}
+              onClick={() => switchMode('perSide')}
+            >
+              Plates per side
+            </ModeButton>
+          </ModeToggle>
+        </Row>
+      ) : null}
+
+      {showPlateToggle && visibleMode === 'perSide' ? (
+        <Row wrap role="group" aria-label="Quick plate loads per side">
+          {plateQuickPicks(unit).map(({ plates, perSide }) => (
+            <PlateChip
+              key={plates}
+              type="button"
+              onClick={() => setValues((v) => ({ ...v, weight: perSide }))}
+            >
+              {plates} {plates === 1 ? 'plate' : 'plates'} · {perSide}
+              {unitLabel(unit)}
+            </PlateChip>
+          ))}
+        </Row>
+      ) : null}
+
       <InputRow>
         <NumberInput
-          label={weightLabel(variation, unit)}
+          label={weightLabelForMode(mode, variation, unit)}
           value={values.weight}
           min={0}
           step="any"

@@ -78,15 +78,28 @@ export const Muted = styled.p`
 `;
 
 /** Two-column list row with a hairline top border (legacy gt-set-row). */
-export const SetRow = styled.div<{ noBorder?: boolean }>`
+export const SetRow = styled.div<{ noBorder?: boolean; completed?: boolean; editing?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: ${({ theme }) => theme.space[2]};
   flex-wrap: wrap;
-  padding: ${({ theme }) => `${theme.space[2]} 0`};
+  padding: ${({ theme }) => `${theme.space[2]}`};
   border-top: ${({ theme, noBorder }) => (noBorder ? 'none' : `1px solid ${theme.colors.border}`)};
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  border-radius: ${({ theme }) => theme.radii.sm};
+
+  /* Logged set: sage-green tint + left rule. Reinforced by the checkmark and
+     the set label, so meaning is never carried by colour alone. */
+  ${({ theme, completed }) =>
+    completed
+      ? `background: color-mix(in srgb, ${theme.colors.accent} 14%, transparent);
+         box-shadow: inset 3px 0 0 ${theme.colors.accent};`
+      : ''}
+
+  /* The set currently being edited gets the orange active border. */
+  ${({ theme, editing }) =>
+    editing ? `outline: 2px solid ${theme.colors.primary}; outline-offset: -2px;` : ''}
 `;
 
 /** Info box (form cues / notes; legacy gt-info-box). */
@@ -135,7 +148,7 @@ export const TextButton = styled.button`
 
 /** Positive trend text (up arrow rendered as text, never color-only). */
 export const TrendUp = styled.span`
-  color: ${({ theme }) => theme.colors.accent};
+  color: ${({ theme }) => theme.colors.accentText};
   font-weight: 600;
 `;
 

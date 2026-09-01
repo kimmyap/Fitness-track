@@ -50,7 +50,7 @@ export function MiniChart({ exerciseName }: { exerciseName: string }) {
         role="img"
         aria-label={`Weight trend for ${exerciseName}, last ${rows.length} working sets: ${fmtStoredWeight(first.weight, unit)} on ${displayDate(first.date)} to ${fmtStoredWeight(last.weight, unit)} on ${displayDate(last.date)}`}
       >
-        <path d={pathD} fill="none" stroke={theme.colors.accent} strokeWidth={2} />
+        <path d={pathD} fill="none" stroke={theme.colors.accentText} strokeWidth={2} />
         {points.map((p, i) => (
           <circle key={i} cx={p[0]} cy={p[1]} r={3} fill={theme.colors.secondary} />
         ))}

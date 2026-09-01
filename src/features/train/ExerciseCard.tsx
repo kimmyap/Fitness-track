@@ -144,7 +144,6 @@ export function ExerciseCard({
   ).length;
   const sessionDone = sessionSets >= exercise.targetSets;
   const custom = isCustomExercise(exercise);
-  const Icon = iconForExercise(exercise.name);
 
   const editingEntry =
     (editingId ? entries.find((e): e is LiftSetEntry => isLiftSet(e) && e.id === editingId) : undefined) ?? null;
@@ -156,6 +155,8 @@ export function ExerciseCard({
     .filter((e): e is LiftSetEntry => isLiftSet(e) && e.exercise === exercise.name && Boolean(e.variation))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   const displayVariation = recentVarEntry?.variation ?? variationsList?.[0] ?? null;
+  // Category icon (barbell / dumbbell / …), refined by the variation in use.
+  const Icon = iconForExercise(exercise.name, displayVariation);
   const cueText = info
     ? (displayVariation ? info.cuesByVariation[displayVariation] : undefined) ?? info.cuesByVariation.default
     : null;
@@ -369,6 +370,7 @@ export function ExerciseCard({
             onRepeat={handleRepeat}
             onEdit={(entry) => setEditingId(entry.id)}
             onDelete={handleDelete}
+            editingId={editingId}
           />
 
           <LoggingForm
