@@ -8,19 +8,27 @@ React 19 + TypeScript + Emotion rebuild of a personal gym tracker (legacy single
 
 ## Design System (authoritative)
 
-Dark-first. Components consume **theme tokens only — never raw hex**.
+Dark-first, "Vibrant & Block-based". Components consume **theme tokens only — never raw hex**.
 
-| Role | Token | Dark | Notes |
+| Role | Token | Dark | Light |
 |---|---|---|---|
-| App background | `colors.background` | `#121212` | True dark, OLED-friendly |
-| Cards / surfaces | `colors.card` | `#1E1E1E` | High-contrast dark gray |
-| Primary accent / action buttons / active set borders | `colors.primary` | `#FF6D00` | High-energy orange |
-| Text **on** orange | `colors.onPrimary` | `#121212` | Must be dark — white on `#FF6D00` is 2.82:1 and fails WCAG AA |
-| Rest timers | `colors.timer` | `#00B0FF` | Ice blue. Timer-only; do not reuse as a generic accent |
-| Completed sets / PRs (fill) | `colors.accent` + `colors.onAccent` | `#2E7D32` + `#FFFFFF` | Sage green fill with white checkmark = 5.13:1, passes |
-| Completed/PR **text or icon on dark** | `colors.accentText` | `#4CAF50` | Sage `#2E7D32` as text on dark is only 3.25–3.65:1. Use this lighter green for text, strokes, and standalone icons |
+| App background | `colors.background` | `#1F2937` | `#F8FAFC` |
+| Cards / surfaces | `colors.card` | `#313742` | `#FFFFFF` |
+| Primary accent, action buttons, active set borders | `colors.primary` | `#F97316` | `#EA580C` |
+| Text on primary | `colors.onPrimary` | `#0F172A` | `#FFFFFF` |
+| Completed sets / PRs (fill) | `colors.accent` + `colors.onAccent` | `#22C55E` + `#0F172A` | `#16A34A` + `#FFFFFF` |
+| Green text / icons / chart strokes | `colors.accentText` | `#22C55E` | `#16A34A` |
+
+Rest timers use the inverted bar (`foreground` background) with a Timer icon; the
+digits turn `accentText` green only once a countdown finishes.
 
 Fonts: Space Grotesk (display/stats) + DM Sans (body, `tabular-nums` for numerals). Spacing scale 4/8/12/16/24/32.
+
+**Known contrast gaps in this palette** (kept deliberately — the look was chosen over strict AA;
+fix by darkening the token if it ever matters): light-mode `primary` as text or with white text on it
+is 3.56:1, light-mode `accent` likewise 3.30:1, and dark-mode `primary` as text on a card is 4.27:1.
+Everything else clears 4.5:1. Dark-mode fills (`onAccent` on `accent` 7.83:1, `onPrimary` on
+`primary` 6.37:1) are fine.
 
 ## Plate Math (authoritative)
 - Plate-loaded movements **always support both input modes**: `total` (type the whole number) and `perSide` (type plates per side; app adds the bar).
@@ -33,7 +41,7 @@ Fonts: Space Grotesk (display/stats) + DM Sans (body, `tabular-nums` for numeral
 - Data compatibility: read/write the legacy localStorage keys (`gymlog_gymlog:*`) with their exact shapes — see `docs/research/migration-spec.md` gotchas. Weights stored in **lbs**, measurements in **inches**; kg/cm are display-only. Optional entry fields are **absent, not null**. New keys may be added; existing ones must keep their exact shape.
 - Import from `react-router` (never `react-router-dom`).
 - Emotion css prop via `jsxImportSource` — do not add the Babel plugin or per-file pragmas.
-- Accessibility: text ≥4.5:1 in **both** themes, ≥44px touch targets, visible focus rings, `prefers-reduced-motion` gates all animation, labels never placeholder-only, no color-only meaning (pair color with icon + text).
+- Accessibility: aim for text ≥4.5:1 in **both** themes (see the documented palette exceptions above), ≥44px touch targets, visible focus rings, `prefers-reduced-motion` gates all animation, labels never placeholder-only, no color-only meaning (pair color with icon + text).
 - Zustand v5: array/object-returning store selectors are `getState()`-only. Passing one to the hook causes infinite render loops — subscribe to raw slices and derive with `useMemo`.
 - TypeScript is pinned to 6.0.x until typescript-eslint supports TS 7.
 
