@@ -14,9 +14,23 @@ import { exercisesForDay, fromDisplayWeight } from '@/lib/domain';
 import { DAYS } from '@/lib/program';
 import { isLiftSet } from '@/lib/types';
 import type { LiftSetEntry } from '@/lib/types';
-import { CardTitle, InfoBox, Muted, SelectBase, SetRow, Stack, TextButton, TextAreaBase, fmtStoredWeight, unitLabel } from './ui';
+import {
+  CardTitle,
+  InfoBox,
+  Muted,
+  Row,
+  SelectBase,
+  SetRow,
+  Stack,
+  TextButton,
+  TextAreaBase,
+  fmtStoredWeight,
+  unitLabel,
+} from './ui';
 import { IconButton } from '@/components';
-import { X } from 'lucide-react';
+import { ExercisePicker } from './ExercisePicker';
+import type { LibraryExercise } from '@/services/exerciseLibraryService';
+import { Library, X } from 'lucide-react';
 
 export interface SwapPrefill {
   name: string;
@@ -62,6 +76,16 @@ function RecurringForm({ day, prefill, onClose }: { day: string; prefill: SwapPr
   const [goal, setGoal] = useState<number | ''>('');
   const [notes, setNotes] = useState(prefillNotes);
   const [replaceTarget, setReplaceTarget] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  /** Library pick fills the name and seeds notes with its cues. */
+  const applyLibraryPick = (ex: LibraryExercise) => {
+    setName(ex.name);
+    const cues = ex.execution_cues.slice(0, 2).join(' ');
+    setNotes([cues, `Targets: ${ex.primary_muscles.join(', ')}`].filter(Boolean).join(' '));
+    if (sets === '') setSets(3);
+    if (!reps.trim()) setReps('8-12');
+  };
 
   const save = () => {
     const trimmed = name.trim();
@@ -98,6 +122,12 @@ function RecurringForm({ day, prefill, onClose }: { day: string; prefill: SwapPr
           ))}
         </SelectBase>
       </Field>
+      <Row>
+        <Button variant="secondary" onClick={() => setPickerOpen(true)}>
+          <Library size={16} aria-hidden="true" /> Browse exercise library
+        </Button>
+      </Row>
+      <ExercisePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={applyLibraryPick} />
       <TextInput label="Exercise name" value={name} onChange={(e) => setName(e.target.value)} />
       <NumberInput
         label="Target sets"
@@ -136,6 +166,7 @@ function OneOffForm({ logDate, prefill, onClose }: { logDate: string; prefill: S
   const [reps, setReps] = useState<number | ''>(prefill ? parseInt(prefill.reps) || '' : '');
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const loggedSoFar = currentPrefill?.name
     ? entries.filter(
@@ -193,6 +224,16 @@ function OneOffForm({ logDate, prefill, onClose }: { logDate: string; prefill: S
           {currentPrefill.muscles ? <span>{currentPrefill.muscles}</span> : null}
         </InfoBox>
       ) : null}
+      <Row>
+        <Button variant="secondary" onClick={() => setPickerOpen(true)}>
+          <Library size={16} aria-hidden="true" /> Browse exercise library
+        </Button>
+      </Row>
+      <ExercisePicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(ex) => setName(ex.name)}
+      />
       <TextInput label="Exercise name" value={name} onChange={(e) => setName(e.target.value)} />
       <NumberInput
         label={`Weight (${unitLabel(unit)})`}

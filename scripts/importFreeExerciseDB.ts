@@ -183,6 +183,7 @@ async function convertDatabase(): Promise<void> {
   const formatted: LibraryExercise[] = rawData.map((raw) => {
     const equipment = normalizeEquipment(raw.equipment);
     const barWeight = BAR_WEIGHTS[equipment] ?? 0;
+    const cues = (raw.instructions ?? []).map((c) => c.trim()).filter(Boolean);
 
     return {
       id: raw.id,
@@ -193,9 +194,9 @@ async function convertDatabase(): Promise<void> {
       primary_muscles: raw.primaryMuscles.map(capitalize),
       secondary_muscles: raw.secondaryMuscles.map(capitalize),
       equipment,
-      execution_cues: raw.instructions?.length
-        ? raw.instructions
-        : ['Move under control through a full range of motion.'],
+      // A couple of upstream entries contain blank instruction strings, which
+      // would render as empty numbered steps.
+      execution_cues: cues.length ? cues : ['Move under control through a full range of motion.'],
       default_setup: {
         supports_plate_calculator: barWeight > 0,
         bar_weight_lbs: barWeight,
