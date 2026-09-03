@@ -13,6 +13,8 @@ import {
   saveLastProgramReview,
   saveTheme,
   saveUnit,
+  getBarWeight,
+  saveBarWeight,
 } from '@/lib/storage';
 import { isoDate } from '@/lib/domain';
 import { themePrefFromRaw } from '@/theme';
@@ -27,9 +29,12 @@ export interface SettingsState {
   equipmentWeights: EquipmentWeights;
   /** ISO "YYYY-MM-DD" or null. Drives the 6-week program-review nudge. */
   lastProgramReview: string | null;
+  /** Straight-bar weight in lbs; null = the standard 45lb / 20kg bar. */
+  barWeightLbs: number | null;
   setUnit: (unit: Unit) => void;
   setThemePref: (pref: ThemePref) => void;
   setEquipmentWeights: (weights: EquipmentWeights) => void;
+  setBarWeight: (lbs: number | null) => void;
   /** "I reviewed it" — stamps today and persists. */
   markProgramReviewed: () => void;
   /** Data-migration backfill (legacy: earliest entry date when unset). Persists. */
@@ -41,6 +46,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   themePref: themePrefFromRaw(getThemeRaw()),
   equipmentWeights: getEquipmentWeights(),
   lastProgramReview: getLastProgramReview(),
+  barWeightLbs: getBarWeight(),
 
   setUnit: (unit) => {
     set({ unit });
@@ -56,6 +62,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setEquipmentWeights: (weights) => {
     set({ equipmentWeights: weights });
     void saveEquipmentWeights(weights);
+  },
+
+  setBarWeight: (lbs) => {
+    set({ barWeightLbs: lbs });
+    void saveBarWeight(lbs);
   },
 
   markProgramReviewed: () => {

@@ -76,8 +76,25 @@ describe('computeTotalDisplayWeightWithMode', () => {
     expect(computeTotalDisplayWeightWithMode('perSide', 'Barbell', 20, KG)).toBe(60);
   });
 
-  it('keeps an empty bar-only entry at 0 rather than reporting just the bar', () => {
-    expect(computeTotalDisplayWeightWithMode('perSide', 'Barbell', 0, LBS)).toBe(0);
+  it('logs the bar itself when 0 is entered on a bar lift (bar-only warm-up)', () => {
+    expect(computeTotalDisplayWeightWithMode('perSide', 'Barbell', 0, LBS)).toBe(45);
+    expect(computeTotalDisplayWeightWithMode('auto', 'Barbell', 0, LBS)).toBe(45);
+    expect(computeTotalDisplayWeightWithMode('total', 'Barbell', 0, LBS)).toBe(45);
+    expect(computeTotalDisplayWeightWithMode('auto', 'Trap Bar', 0, TRAP)).toBe(55);
+    expect(computeTotalDisplayWeightWithMode('perSide', 'Barbell', 0, KG)).toBe(20);
+  });
+
+  it('honours a configured bar weight for bar-only sets', () => {
+    const ctx35: WeightEntryContext = { ...LBS, barWeightLbs: 35 };
+    expect(computeTotalDisplayWeightWithMode('perSide', 'Barbell', 0, ctx35)).toBe(35);
+    expect(computeTotalDisplayWeightWithMode('perSide', 'Barbell', 45, ctx35)).toBe(125);
+  });
+
+  it('does NOT invent a bar weight for non-bar lifts entered as 0', () => {
+    // A 0-weight warm-up on a band/bodyweight custom move must stay 0.
+    expect(computeTotalDisplayWeightWithMode('total', null, 0, LBS)).toBe(0);
+    expect(computeTotalDisplayWeightWithMode('auto', 'Bodyweight', 0, LBS)).toBe(0);
+    expect(computeTotalDisplayWeightWithMode('auto', 'Machine', 0, LBS)).toBe(0);
   });
 });
 

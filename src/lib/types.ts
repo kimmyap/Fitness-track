@@ -157,4 +157,7 @@ export interface BackupPayload {
  * of the legacy schema. Absent = 'auto' (legacy variation-driven math).
  */
 export type StoredWeightInputMode = 'total' | 'perSide';
+
+/** gymlog:exerciseOrder — day name → ordered exercise names. NEW key. */
+export type ExerciseOrderMap = Record<string, string[]>;
 export type WeightInputModeMap = Record<string, StoredWeightInputMode>;

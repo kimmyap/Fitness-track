@@ -1,17 +1,19 @@
 /**
- * Train page: Lower A / Upper / Lower B / Warm-up / Core as segmented tabs.
+ * Train page: one segmented tab per workout day (from gymlog:days, defaulting
+ * to the legacy Lower A / Upper / Lower B) plus fixed Warm-up and Core tabs.
  *
  * Deep-linkable via the `tab` search param (e.g. /train?tab=lower-a) because
  * the router currently maps only the exact `/train` path to this page — see
  * trainTabs.ts. The "Logging for" date is shared across the three workout
  * tabs (legacy logDate behavior).
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import styled from '@emotion/styled';
 import { useSearchParams } from 'react-router';
 import { PageHeader, SegmentedTabs } from '@/components';
 import { isoDate } from '@/lib/domain';
-import { DEFAULT_TRAIN_TAB, TRAIN_TABS, isTrainTabId } from './trainTabs';
+import { useProgramStore } from '@/stores';
+import { isTrainTabId, trainTabsForDays } from './trainTabs';
 import { WorkoutDayView } from './WorkoutDayView';
 import { WarmupTab } from './WarmupTab';
 import { CoreTab } from './CoreTab';
@@ -32,12 +34,16 @@ const TabsScroller = styled.div`
 
 export function TrainPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const days = useProgramStore((s) => s.days);
+  // Raw slice + useMemo (zustand v5: never return a fresh array from a selector)
+  const tabs = useMemo(() => trainTabsForDays(days), [days]);
   const tabParam = searchParams.get('tab');
-  const tab = isTrainTabId(tabParam) ? tabParam : DEFAULT_TRAIN_TAB;
+  const fallbackTab = tabs[0]?.id ?? 'warmup';
+  const tab = isTrainTabId(tabParam, tabs) ? tabParam : fallbackTab;
   const todayIso = isoDate();
   const [logDate, setLogDate] = useState(todayIso);
 
-  const activeDef = TRAIN_TABS.find((t) => t.id === tab);
+  const activeDef = tabs.find((t) => t.id === tab);
 
   return (
     <>
@@ -45,7 +51,7 @@ export function TrainPage() {
       <TabsScroller>
         <SegmentedTabs
           aria-label="Training day"
-          tabs={TRAIN_TABS.map(({ id, label }) => ({ id, label }))}
+          tabs={tabs.map(({ id, label }) => ({ id, label }))}
           value={tab}
           onChange={(id) => setSearchParams({ tab: id })}
         />

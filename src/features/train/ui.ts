@@ -78,7 +78,13 @@ export const Muted = styled.p`
 `;
 
 /** Two-column list row with a hairline top border (legacy gt-set-row). */
-export const SetRow = styled.div<{ noBorder?: boolean; completed?: boolean; editing?: boolean }>`
+export const SetRow = styled.div<{
+  noBorder?: boolean;
+  completed?: boolean;
+  editing?: boolean;
+  /** Warm-up set: greyed back so it can't be mistaken for a working set. */
+  warmup?: boolean;
+}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -89,12 +95,21 @@ export const SetRow = styled.div<{ noBorder?: boolean; completed?: boolean; edit
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
   border-radius: ${({ theme }) => theme.radii.sm};
 
-  /* Logged set: sage-green tint + left rule. Reinforced by the checkmark and
-     the set label, so meaning is never carried by colour alone. */
-  ${({ theme, completed }) =>
-    completed
+  /* Logged working set: sage-green tint + left rule. Reinforced by the
+     checkmark and the set label, so meaning is never carried by colour alone. */
+  ${({ theme, completed, warmup }) =>
+    completed && !warmup
       ? `background: color-mix(in srgb, ${theme.colors.accent} 14%, transparent);
          box-shadow: inset 3px 0 0 ${theme.colors.accent};`
+      : ''}
+
+  /* Warm-up set: no green, greyed text and a neutral left rule, so it reads as
+     "not a working set" at a glance. The "Warm-up" label carries the meaning. */
+  ${({ theme, warmup }) =>
+    warmup
+      ? `background: transparent;
+         color: ${theme.colors.mutedForeground};
+         box-shadow: inset 3px 0 0 ${theme.colors.border};`
       : ''}
 
   /* The set currently being edited gets the orange active border. */

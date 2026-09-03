@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { Button, Confetti, toast } from '@/components';
-import { useEntriesStore, useCustomExercisesStore, useAchievementsStore } from '@/stores';
+import { useEntriesStore, useCustomExercisesStore, useAchievementsStore, useProgramStore } from '@/stores';
 import { exercisesForDay } from '@/lib/domain';
 import { DAYS } from '@/lib/program';
 import { isActivity } from '@/lib/types';
@@ -41,7 +41,12 @@ export function WorkoutDayView({ day, logDate, todayIso, onLogDateChange }: Work
   // Raw subscriptions + pure derivation (zustand v5: no fresh-array selectors)
   const customExercises = useCustomExercisesStore((s) => s.customExercises);
   const excludedBuiltIns = useCustomExercisesStore((s) => s.excludedBuiltIns);
-  const exercises = exercisesForDay(day, DAYS, customExercises, excludedBuiltIns);
+  const days = useProgramStore((s) => s.days);
+  const order = useProgramStore((s) => s.order);
+  const dayOrder = order[day];
+  const exercises = exercisesForDay(day, DAYS, customExercises, excludedBuiltIns, dayOrder);
+  const exerciseNames = exercises.map((ex) => ex.name);
+  const otherDays = days.filter((d) => d !== day);
   const entries = useEntriesStore((s) => s.entries);
   const todayActivities = entries
     .filter((e): e is ActivityEntry => isActivity(e) && e.date === todayIso)
@@ -95,7 +100,7 @@ export function WorkoutDayView({ day, logDate, todayIso, onLogDateChange }: Work
       {exercises.length === 0 ? (
         <Muted>No exercises on this day yet — add one below.</Muted>
       ) : (
-        exercises.map((ex) => (
+        exercises.map((ex, index) => (
           <ExerciseCard
             key={ex.name}
             exercise={ex}
@@ -106,6 +111,21 @@ export function WorkoutDayView({ day, logDate, todayIso, onLogDateChange }: Work
             onToggleExpand={() => setOpenExercise((cur) => (cur === ex.name ? null : ex.name))}
             onSwapRequest={handleSwapRequest}
             onConfetti={confetti.fire}
+            onMoveUp={
+              index > 0
+                ? () => useProgramStore.getState().moveExercise(day, ex.name, -1, exerciseNames)
+                : null
+            }
+            onMoveDown={
+              index < exercises.length - 1
+                ? () => useProgramStore.getState().moveExercise(day, ex.name, 1, exerciseNames)
+                : null
+            }
+            otherDays={otherDays}
+            onAssignDay={(toDay) => {
+              useProgramStore.getState().assignExerciseToDay(day, toDay, ex.name);
+              toast(`${ex.name} moved to ${toDay}`);
+            }}
           />
         ))
       )}

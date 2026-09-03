@@ -6,36 +6,62 @@
  * If the router later gains `train/:tab?` support, these ids double as the
  * path slugs.
  */
-import type { WorkoutDayName } from '@/lib/program';
-
 export interface TrainTabDef {
   id: string;
   label: string;
-  /** Legacy workout-day name for the three lifting tabs. */
-  day?: WorkoutDayName;
+  /** Workout-day name; absent for the Warm-up and Core tabs. */
+  day?: string;
 }
 
-export const TRAIN_TABS: TrainTabDef[] = [
-  { id: 'lower-a', label: 'Lower A', day: 'Lower A' },
-  { id: 'upper', label: 'Upper', day: 'Upper' },
-  { id: 'lower-b', label: 'Lower B', day: 'Lower B' },
+/** "Lower A" → "lower-a". Days are user-editable, so slugs are derived. */
+export function daySlug(day: string): string {
+  return (
+    day
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'day'
+  );
+}
+
+export const FIXED_TRAIN_TABS: TrainTabDef[] = [
   { id: 'warmup', label: 'Warm-up' },
   { id: 'core', label: 'Core' },
 ];
 
+/**
+ * Tabs for the given workout days, plus the fixed Warm-up / Core tabs.
+ * Duplicate slugs get a numeric suffix so two days can't collide.
+ */
+export function trainTabsForDays(days: string[]): TrainTabDef[] {
+  const used = new Set<string>();
+  const dayTabs = days.map((day) => {
+    let id = daySlug(day);
+    let n = 2;
+    while (used.has(id)) id = `${daySlug(day)}-${n++}`;
+    used.add(id);
+    return { id, label: day, day };
+  });
+  return [...dayTabs, ...FIXED_TRAIN_TABS];
+}
+
+/** Legacy default; overridden by the first stored day at runtime. */
 export const DEFAULT_TRAIN_TAB = 'lower-a';
 
-export function isTrainTabId(id: string | null): id is string {
-  return id !== null && TRAIN_TABS.some((t) => t.id === id);
+export function isTrainTabId(id: string | null, tabs: TrainTabDef[]): id is string {
+  return id !== null && tabs.some((t) => t.id === id);
 }
 
-/** Legacy tab name ("Lower A", "Warm-up", …) → train tab id. */
-export function trainTabIdForLegacyTab(tabName: string): string {
-  const match = TRAIN_TABS.find((t) => t.day === tabName || t.label === tabName);
-  return match ? match.id : DEFAULT_TRAIN_TAB;
+/** Day or fixed-tab name → train tab id, within the given tab set. */
+export function trainTabIdForLegacyTab(tabName: string, tabs: TrainTabDef[]): string {
+  const match = tabs.find((t) => t.day === tabName || t.label === tabName);
+  return match ? match.id : (tabs[0]?.id ?? DEFAULT_TRAIN_TAB);
 }
 
-/** Deep link to a train tab, e.g. "/train?tab=lower-a". */
+/**
+ * Deep link to a train tab, e.g. "/train?tab=lower-a".
+ * Slugs are derived from the day name, so this needs no store access.
+ */
 export function trainPathForLegacyTab(tabName: string): string {
-  return `/train?tab=${trainTabIdForLegacyTab(tabName)}`;
+  const fixed = FIXED_TRAIN_TABS.find((t) => t.label === tabName);
+  return `/train?tab=${fixed ? fixed.id : daySlug(tabName)}`;
 }

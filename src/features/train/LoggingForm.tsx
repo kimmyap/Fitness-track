@@ -158,8 +158,9 @@ function computePrefill(
   unit: Unit,
   mode: WeightEntryMode = 'auto',
   equipment: EquipmentWeights = { trapBar: null, legPressSled: null },
+  barWeightLbs: number | null = null,
 ): { variation: string | null; values: FormValues } {
-  const ctx: WeightEntryContext = { unit, equipment };
+  const ctx: WeightEntryContext = { unit, equipment, barWeightLbs };
   const variations = EXERCISE_VARIATIONS[exercise.name];
   let variation: string | null = null;
   if (editingEntry?.variation) {
@@ -241,12 +242,19 @@ export function weightHelperTextForMode(
   rawInput: number | '',
   unit: Unit,
   equipment: EquipmentWeights,
+  barWeightLbs: number | null = null,
 ): string {
+  const barOnly = barForVariation(variation, { unit, equipment, barWeightLbs });
+  const isBarLift = variation === 'Barbell' || variation === 'Trap Bar' || mode === 'perSide';
+  // 0 on a bar lift logs the bar itself — say so before anything else.
+  if (rawInput === 0 && isBarLift) {
+    return `= ${barOnly}${unitLabel(unit)} — just the bar, logged as a bar-only set`;
+  }
   if (mode === 'auto') return weightHelperText(variation, rawInput, unit, equipment);
   const u = unitLabel(unit);
   const w = rawInput === '' ? 0 : rawInput;
   if (mode === 'perSide') {
-    const bar = barForVariation(variation, { unit, equipment });
+    const bar = barForVariation(variation, { unit, equipment, barWeightLbs });
     const barName = variation === 'Trap Bar' ? 'trap bar' : 'bar';
     if (w) return `= ${w * 2 + bar}${u} total (${w} per side x2 + ${bar}${u} ${barName})`;
     return `Enter weight per side, ${barName} (${bar}${u}) added automatically`;
@@ -285,6 +293,7 @@ export interface LoggingFormProps {
 export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinishEdit, onConfetti }: LoggingFormProps) {
   const unit = useSettingsStore((s) => s.unit);
   const equipment = useSettingsStore((s) => s.equipmentWeights);
+  const barWeightLbs = useSettingsStore((s) => s.barWeightLbs);
   const setsToday = useEntriesStore(
     (s) =>
       s.entries.filter((e) => isLiftSet(e) && e.exercise === exercise.name && e.date === logDate && !e.warmupSet)
@@ -297,12 +306,12 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
   const initialMode = modeForExercise(useWeightModesStore.getState().modes, exercise.name);
   const [variation, setVariation] = useState<string | null>(
     () =>
-      computePrefill(exercise, editingEntry, useEntriesStore.getState().entries, unit, initialMode, equipment)
+      computePrefill(exercise, editingEntry, useEntriesStore.getState().entries, unit, initialMode, equipment, barWeightLbs)
         .variation,
   );
   const [values, setValues] = useState<FormValues>(
     () =>
-      computePrefill(exercise, editingEntry, useEntriesStore.getState().entries, unit, initialMode, equipment)
+      computePrefill(exercise, editingEntry, useEntriesStore.getState().entries, unit, initialMode, equipment, barWeightLbs)
         .values,
   );
   const [warmup, setWarmupState] = useState<boolean>(() =>
@@ -328,7 +337,7 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
   // Switching modes converts the typed number so the resulting total is
   // unchanged — the toggle acts as a plate calculator, not a reset.
   const switchMode = (next: 'total' | 'perSide') => {
-    const ctx: WeightEntryContext = { unit, equipment };
+    const ctx: WeightEntryContext = { unit, equipment, barWeightLbs };
     const currentTotal = computeTotalDisplayWeightWithMode(mode, variation, values.weight === '' ? 0 : values.weight, ctx);
     const bar = barForVariation(variation, ctx);
     const converted =
@@ -365,7 +374,7 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
       return;
     }
 
-    const ctx: WeightEntryContext = { unit, equipment };
+    const ctx: WeightEntryContext = { unit, equipment, barWeightLbs };
     const stored = storedWeightFromModeInput(mode, varVal, wRaw, ctx);
     const allEntries = useEntriesStore.getState().entries;
 
@@ -445,7 +454,7 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
 
   const showPlateToggle = isPlateLoaded(variation);
   const visibleMode = effectiveMode(mode, variation);
-  const helper = weightHelperTextForMode(mode, variation, values.weight, unit, equipment);
+  const helper = weightHelperTextForMode(mode, variation, values.weight, unit, equipment, barWeightLbs);
   const numChange =
     (key: keyof FormValues) => (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;

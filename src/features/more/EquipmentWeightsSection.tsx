@@ -22,10 +22,13 @@ const Note = styled.p`
 interface InnerProps {
   unit: Unit;
   equipmentWeights: EquipmentWeights;
+  barWeightLbs: number | null;
   onSave: (weights: EquipmentWeights) => void;
+  onSaveBar: (lbs: number | null) => void;
 }
 
-function EquipmentWeightsInner({ unit, equipmentWeights, onSave }: InnerProps) {
+function EquipmentWeightsInner({ unit, equipmentWeights, barWeightLbs, onSave, onSaveBar }: InnerProps) {
+  const [bar, setBar] = useState(barWeightLbs != null ? String(toDisplayWeight(barWeightLbs, unit)) : '');
   const [trap, setTrap] = useState(
     equipmentWeights.trapBar != null ? String(toDisplayWeight(equipmentWeights.trapBar, unit)) : '',
   );
@@ -34,6 +37,9 @@ function EquipmentWeightsInner({ unit, equipmentWeights, onSave }: InnerProps) {
   );
 
   const save = () => {
+    const barVal = parseFloat(bar);
+    // Blank clears back to the standard bar; a real number overrides it.
+    onSaveBar(Number.isFinite(barVal) && barVal > 0 ? fromDisplayWeight(barVal, unit) : null);
     const trapVal = parseFloat(trap);
     const legVal = parseFloat(sled);
     onSave({
@@ -50,6 +56,15 @@ function EquipmentWeightsInner({ unit, equipmentWeights, onSave }: InnerProps) {
   return (
     <>
       <Note>These vary by machine/gym — set them once so the weight-entry math is accurate. Leave blank if unsure.</Note>
+      <NumberInput
+        label={`Straight bar (${unit})`}
+        placeholder={unit === 'kg' ? '20' : '45'}
+        step="0.5"
+        min="0"
+        value={bar}
+        onChange={(e) => setBar(e.target.value)}
+        helper={`Used for plates-per-side math and bar-only sets. Blank uses the standard ${unit === 'kg' ? '20 kg' : '45 lb'} bar.`}
+      />
       <NumberInput
         label={`Trap bar (${unit})`}
         placeholder={unit === 'kg' ? '25' : '55'}
@@ -78,14 +93,18 @@ function EquipmentWeightsInner({ unit, equipmentWeights, onSave }: InnerProps) {
 export function EquipmentWeightsSection() {
   const unit = useSettingsStore((s) => s.unit);
   const equipmentWeights = useSettingsStore((s) => s.equipmentWeights);
+  const barWeightLbs = useSettingsStore((s) => s.barWeightLbs);
   const setEquipmentWeights = useSettingsStore((s) => s.setEquipmentWeights);
+  const setBarWeight = useSettingsStore((s) => s.setBarWeight);
   // Remount when unit flips so the displayed values re-derive in the new unit.
   return (
     <EquipmentWeightsInner
       key={unit}
       unit={unit}
       equipmentWeights={equipmentWeights}
+      barWeightLbs={barWeightLbs}
       onSave={setEquipmentWeights}
+      onSaveBar={setBarWeight}
     />
   );
 }

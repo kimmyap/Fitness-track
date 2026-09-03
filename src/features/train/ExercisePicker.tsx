@@ -138,10 +138,23 @@ export interface ExercisePickerProps {
   open: boolean;
   onClose: () => void;
   /** Called with the chosen exercise; the picker closes itself afterwards. */
-  onSelect: (exercise: LibraryExercise) => void;
+  onSelect?: (exercise: LibraryExercise) => void;
+  /**
+   * 'select' (default) offers "Use this exercise"; 'browse' is read-only
+   * reference, for looking a movement up outside the add-exercise flow.
+   */
+  mode?: 'select' | 'browse';
+  /** Dialog heading for the results view. */
+  title?: string;
 }
 
-export function ExercisePicker({ open, onClose, onSelect }: ExercisePickerProps) {
+export function ExercisePicker({
+  open,
+  onClose,
+  onSelect,
+  mode = 'select',
+  title = 'Exercise library',
+}: ExercisePickerProps) {
   const [library, setLibrary] = useState<LibraryExercise[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [query, setQuery] = useState('');
@@ -194,7 +207,7 @@ export function ExercisePicker({ open, onClose, onSelect }: ExercisePickerProps)
   };
 
   const choose = (exercise: LibraryExercise) => {
-    onSelect(exercise);
+    onSelect?.(exercise);
     setDetail(null);
     onClose();
   };
@@ -202,7 +215,7 @@ export function ExercisePicker({ open, onClose, onSelect }: ExercisePickerProps)
   const alternatives = detail && library ? alternativesFor(detail) : [];
 
   return (
-    <Modal open={open} onClose={close} title={detail ? detail.name : 'Exercise library'}>
+    <Modal open={open} onClose={close} title={detail ? detail.name : title}>
       {loadFailed ? (
         <EmptyState
           icon={Dumbbell}
@@ -294,7 +307,7 @@ export function ExercisePicker({ open, onClose, onSelect }: ExercisePickerProps)
             </Stack>
           </ScrollArea>
 
-          <Button onClick={() => choose(detail)}>Use {detail.name}</Button>
+          {mode === 'select' ? <Button onClick={() => choose(detail)}>Use {detail.name}</Button> : null}
         </Stack>
       ) : (
         <Stack gap={3}>

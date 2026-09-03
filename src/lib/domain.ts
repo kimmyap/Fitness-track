@@ -38,6 +38,23 @@ export function displayDate(iso: string): string {
   return `${parseInt(m ?? '', 10)}/${parseInt(d ?? '', 10)}`;
 }
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+/**
+ * Date with its weekday, e.g. "Fri 8/28" — a bare "8/28" is easy to misread
+ * when scanning history.
+ *
+ * Built from the string parts rather than `new Date(iso)`: parsing a date-only
+ * string yields UTC midnight, which renders as the PREVIOUS day west of
+ * Greenwich.
+ */
+export function displayDateWithWeekday(iso: string): string {
+  const [y, m, d] = iso.split('-').map((part) => parseInt(part, 10));
+  if (!y || !m || !d) return displayDate(iso);
+  const weekday = WEEKDAYS[new Date(y, m - 1, d).getDay()];
+  return `${weekday} ${m}/${d}`;
+}
+
 /** Legacy number formatting: round to `decimals` (default 1), '--' for non-numbers. */
 export function fmtNum(n: number | null | undefined, decimals = 1): string {
   if (n === null || n === undefined || isNaN(n)) return '--';
@@ -103,6 +120,23 @@ export function legPressSledWeight(equipment: EquipmentWeights): number {
 export interface WeightEntryContext {
   unit: Unit;
   equipment: EquipmentWeights;
+  /**
+   * Straight-bar weight in LBS, from Settings (gymlog:barWeight). Omitted
+   * falls back to the standard 45lb / 20kg bar.
+   */
+  barWeightLbs?: number | null;
+}
+
+/** Default straight-bar weight (lbs), used when Settings has no override. */
+export const DEFAULT_BAR_WEIGHT_LBS = 45;
+
+/**
+ * Straight-bar weight in DISPLAY units, honouring the Settings override.
+ * The stored value is always lbs, so kg display converts it.
+ */
+export function configuredBarWeight(ctx: WeightEntryContext): number {
+  if (ctx.barWeightLbs === undefined || ctx.barWeightLbs === null) return barWeight(ctx.unit);
+  return toDisplayWeight(ctx.barWeightLbs, ctx.unit);
 }
 
 /**
@@ -206,7 +240,7 @@ export function barForVariation(
   variation: string | null | undefined,
   ctx: WeightEntryContext,
 ): number {
-  return variation === 'Trap Bar' ? trapBarWeight(ctx.equipment, ctx.unit) : barWeight(ctx.unit);
+  return variation === 'Trap Bar' ? trapBarWeight(ctx.equipment, ctx.unit) : configuredBarWeight(ctx);
 }
 
 /** Mode-aware total, in display units. */
@@ -216,10 +250,22 @@ export function computeTotalDisplayWeightWithMode(
   rawInput: number,
   ctx: WeightEntryContext,
 ): number {
-  if (mode === 'auto') return computeTotalDisplayWeight(variation, rawInput, ctx);
   const wSafe = rawInput || 0;
+
+  // Bar-only set: 0 (or blank) on a barbell lift means "just the bar", which is
+  // a real warm-up load rather than a zero-weight set.
+  //
+  // Deliberately narrower than isPlateLoaded(), which also covers exercises
+  // with NO variation: a 0-weight warm-up on a custom band or bodyweight move
+  // must not silently become 45lb. Requires either an explicit bar variation or
+  // that the user has put this exercise in per-side (plate) mode.
+  if (!wSafe && (variation === 'Barbell' || variation === 'Trap Bar' || mode === 'perSide')) {
+    return barForVariation(variation, ctx);
+  }
+
+  if (mode === 'auto') return computeTotalDisplayWeight(variation, rawInput, ctx);
   if (mode === 'total') return wSafe;
-  return wSafe ? wSafe * 2 + barForVariation(variation, ctx) : 0;
+  return wSafe * 2 + barForVariation(variation, ctx);
 }
 
 /** Mode-aware entry math: user input → stored lbs. */
@@ -796,11 +842,23 @@ export function exercisesForDay(
   days: Record<string, ProgramExerciseLike[]>,
   customExercises: Record<string, CustomExerciseLike[]>,
   excludedBuiltIns: Record<string, string[]>,
+  /** Saved display order (gymlog:exerciseOrder). Names not listed keep their natural position, after the ordered ones. */
+  order?: string[],
 ): AnyExercise[] {
   const excluded = excludedBuiltIns[day] || [];
   const builtIn = (days[day] || []).filter((ex) => !excluded.includes(ex.name));
   const custom = (customExercises[day] || []).filter((c) => c.archived !== true);
-  return [...builtIn, ...custom] as AnyExercise[];
+  const list = [...builtIn, ...custom] as AnyExercise[];
+  if (!order || order.length === 0) return list;
+  const rank = new Map(order.map((name, i) => [name, i]));
+  return [...list].sort((a, b) => {
+    const ra = rank.get(a.name);
+    const rb = rank.get(b.name);
+    if (ra === undefined && rb === undefined) return 0;
+    if (ra === undefined) return 1;
+    if (rb === undefined) return -1;
+    return ra - rb;
+  });
 }
 type ProgramExerciseLike = AnyExercise;
 type CustomExerciseLike = AnyExercise & { archived?: boolean };

@@ -22,6 +22,7 @@ import type {
   MeasurementEntry,
   NotesMap,
   Unit,
+  ExerciseOrderMap,
   WeightInputModeMap,
 } from './types';
 
@@ -43,6 +44,12 @@ export const STORAGE_KEYS = {
   equipmentWeights: 'gymlog:equipmentWeights',
   /** NEW (not legacy): per-exercise weight input mode — see CLAUDE.md Plate Math. */
   weightInputModes: 'gymlog:weightInputModes',
+  /** NEW: straight-bar weight in lbs (editable in Settings). */
+  barWeight: 'gymlog:barWeight',
+  /** NEW: per-day exercise display order. */
+  exerciseOrder: 'gymlog:exerciseOrder',
+  /** NEW: ordered workout day names (defaults to the legacy three). */
+  days: 'gymlog:days',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
@@ -246,6 +253,31 @@ export function getGoals(): GoalsMap {
 }
 export function saveGoals(goals: GoalsMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.goals, JSON.stringify(goals), 'Goals');
+}
+
+export function getBarWeight(): number | null {
+  const raw = getRaw(STORAGE_KEYS.barWeight);
+  if (raw === null || raw.trim() === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+export function saveBarWeight(lbs: number | null): Promise<boolean> {
+  return setRawWithRetry(STORAGE_KEYS.barWeight, lbs === null ? '' : String(lbs), 'Bar weight');
+}
+
+export function getExerciseOrder(): ExerciseOrderMap {
+  return getJSON<ExerciseOrderMap>(STORAGE_KEYS.exerciseOrder, {});
+}
+export function saveExerciseOrder(order: ExerciseOrderMap): Promise<boolean> {
+  return setRawWithRetry(STORAGE_KEYS.exerciseOrder, JSON.stringify(order), 'Exercise order');
+}
+
+export function getDays(): string[] {
+  const stored = getJSON<string[]>(STORAGE_KEYS.days, []);
+  return Array.isArray(stored) && stored.length ? stored : [];
+}
+export function saveDays(days: string[]): Promise<boolean> {
+  return setRawWithRetry(STORAGE_KEYS.days, JSON.stringify(days), 'Workout days');
 }
 
 export function getWeightInputModes(): WeightInputModeMap {

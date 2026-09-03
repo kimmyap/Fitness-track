@@ -8,9 +8,19 @@
  *   suggestion, est-1RM + mini chart, history, logging form.
  */
 import { useState } from 'react';
+import type { ChangeEvent } from 'react';
 import styled from '@emotion/styled';
-import { CircleAlert, Lightbulb, NotebookPen, PersonStanding, RefreshCw, Video } from 'lucide-react';
-import { Badge, Button, Card, ConfirmTap, ProgressRing, toast } from '@/components';
+import {
+  ChevronDown,
+  ChevronUp,
+  CircleAlert,
+  Lightbulb,
+  NotebookPen,
+  PersonStanding,
+  RefreshCw,
+  Video,
+} from 'lucide-react';
+import { Badge, Button, Card, ConfirmTap, Field, FieldLabel, IconButton, ProgressRing, toast } from '@/components';
 import { useEntriesStore, useGoalsStore, useSettingsStore, useAchievementsStore, useCustomExercisesStore, selectGoalFor } from '@/stores';
 import {
   bestFor,
@@ -30,7 +40,18 @@ import { HistoryList } from './HistoryList';
 import { LoggingForm } from './LoggingForm';
 import { MiniChart } from './MiniChart';
 import type { SwapPrefill } from './AddExerciseSection';
-import { InfoBox, Muted, SetRow, Stack, SuggestBox, TextButton, TextAreaBase, fmtStoredWeight, unitLabel } from './ui';
+import {
+  InfoBox,
+  Muted,
+  SelectBase,
+  SetRow,
+  Stack,
+  SuggestBox,
+  TextButton,
+  TextAreaBase,
+  fmtStoredWeight,
+  unitLabel,
+} from './ui';
 
 const HeadButton = styled.button`
   display: flex;
@@ -106,6 +127,13 @@ const ExternalLink = styled.a`
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
 `;
 
+const ReorderRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: ${({ theme }) => theme.space[1]};
+  margin-bottom: ${({ theme }) => theme.space[1]};
+`;
+
 export interface ExerciseCardProps {
   exercise: AnyExercise;
   day: string;
@@ -115,6 +143,12 @@ export interface ExerciseCardProps {
   onToggleExpand: () => void;
   onSwapRequest: (mode: 'oneoff' | 'recurring', prefill: SwapPrefill) => void;
   onConfetti: () => void;
+  /** Reorder within the day; omitted (or null) hides the arrow. */
+  onMoveUp?: (() => void) | null;
+  onMoveDown?: (() => void) | null;
+  /** Other days this exercise can be reassigned to. */
+  otherDays?: string[];
+  onAssignDay?: (toDay: string) => void;
 }
 
 export function ExerciseCard({
@@ -126,6 +160,10 @@ export function ExerciseCard({
   onToggleExpand,
   onSwapRequest,
   onConfetti,
+  onMoveUp = null,
+  onMoveDown = null,
+  otherDays = [],
+  onAssignDay,
 }: ExerciseCardProps) {
   const entries = useEntriesStore((s) => s.entries);
   const unit = useSettingsStore((s) => s.unit);
@@ -200,6 +238,24 @@ export function ExerciseCard({
 
   return (
     <Card>
+      {onMoveUp || onMoveDown ? (
+        <ReorderRow>
+          <IconButton
+            aria-label={`Move ${exercise.name} up`}
+            disabled={!onMoveUp}
+            onClick={() => onMoveUp?.()}
+          >
+            <ChevronUp size={16} aria-hidden="true" />
+          </IconButton>
+          <IconButton
+            aria-label={`Move ${exercise.name} down`}
+            disabled={!onMoveDown}
+            onClick={() => onMoveDown?.()}
+          >
+            <ChevronDown size={16} aria-hidden="true" />
+          </IconButton>
+        </ReorderRow>
+      ) : null}
       <HeadButton type="button" aria-expanded={expanded} onClick={onToggleExpand}>
         <HeadLeft>
           <RingWrap>
@@ -230,6 +286,25 @@ export function ExerciseCard({
 
       {expanded ? (
         <Stack gap={3}>
+          {otherDays.length && onAssignDay ? (
+            <Field>
+              <FieldLabel htmlFor={`move-day-${exercise.name}`}>Move to another day</FieldLabel>
+              <SelectBase
+                id={`move-day-${exercise.name}`}
+                value=""
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                  if (e.target.value) onAssignDay(e.target.value);
+                }}
+              >
+                <option value="">Keep on {day}</option>
+                {otherDays.map((d) => (
+                  <option key={d} value={d}>
+                    Move to {d}
+                  </option>
+                ))}
+              </SelectBase>
+            </Field>
+          ) : null}
           {info ? (
             <InfoBox>
               {cueText ? (

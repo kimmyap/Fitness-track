@@ -57,6 +57,14 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
+  // Callers commonly pass an inline arrow for onClose, so its identity changes
+  // on every parent render. Reading it through a ref keeps the focus effect
+  // below keyed on `open` alone — otherwise each keystroke inside the dialog
+  // re-ran the trap, blurring the focused input and dismissing the mobile
+  // keyboard.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -67,7 +75,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab' || !panel) return;
@@ -88,7 +96,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       document.removeEventListener('keydown', onKeyDown, true);
       previouslyFocused?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
