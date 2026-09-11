@@ -39,8 +39,8 @@ and UX-rule sections are still good.
 - **Four storage keys are live in code but absent from the "source of truth" spec.**
   `gymlog:weightInputModes`, `gymlog:barWeight`, `gymlog:exerciseOrder` and `gymlog:days` all
   exist in `src/lib/storage.ts` and are read/written by the app. `migration-spec.md` documents
-  none of them; `CLAUDE.md` mentions only `weightInputModes`. Read the `KEYS` map in
-  `src/lib/storage.ts:32` for the real list, and note the double-prefix quirk (logical key
+  none of them; `CLAUDE.md` mentions only `weightInputModes`. Read the `STORAGE_KEYS` map in
+  `src/lib/storage.ts:31` for the real list, and note the double-prefix quirk (logical key
   `gymlog:entries` → actual localStorage key `gymlog_gymlog:entries`).
 - ~~`deploy-pipeline.md` lags the workflow on action versions and step commands.~~ **Fixed
   2026-09-11**: its YAML snippet is now byte-identical to `.github/workflows/ci-deploy.yml`.
