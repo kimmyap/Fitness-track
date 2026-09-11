@@ -99,8 +99,9 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-11:
-typecheck clean, lint clean, **228 tests across 15 files**, build succeeds.
-(It was 213 across 14 at `dc48617`, before the legacy seed fixture added one file.)
+typecheck clean, lint clean, **232 tests across 16 files**, build succeeds.
+(It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
+added a file.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
@@ -179,10 +180,20 @@ otherwise discover the hard way.
 
 ### Product and technical gaps
 
-6. **Installable but not offline-capable.** There is a web manifest and an icon set, so the app
-   installs standalone on a phone — but there is **no service worker**. Open it without a
-   connection and you get nothing. For a gym tracker used in basements with no signal, this is
-   the most user-visible gap in the project.
+6. ~~**Installable but not offline-capable.**~~ **Fixed 2026-09-11.** `public/sw.js` is a
+   hand-rolled offline shell, registered from `src/lib/registerServiceWorker.ts` in production
+   only (a worker in front of the dev server serves stale modules). Install fetches the built
+   `index.html` and precaches only the assets it references, which is exactly the first-paint
+   set — the lazy exercise library is reached by dynamic import, never appears in the HTML, and
+   so stays lazy without a config exclusion. Navigations are network-first (deploys land
+   immediately when online, deep links work offline); hashed assets are cache-first. Bump
+   `VERSION` in `public/sw.js` to evict every cache; `activate` deletes any that do not match.
+   Two things cost real debugging time and will again if they are forgotten: a worker does not
+   control the page that registered it until it activates, so runtime caching alone leaves the
+   app broken offline until its *second* visit — hence precaching; and the asset responses carry
+   `Vary: Origin` while Vite's module script tag carries `crossorigin`, so cache lookups must
+   pass `ignoreVary: true` or every precached asset is invisible to the request that needs it
+   and the app 503s offline. Both were caught only by driving a real browser.
 7. **Fonts are a runtime CDN dependency.** Space Grotesk and DM Sans load from
    `fonts.googleapis.com` in `index.html`. Flaky gym Wi-Fi means a font swap on every cold load,
    and offline means fallback fonts. Self-hosting them would fix this and help with #6.
@@ -192,7 +203,7 @@ otherwise discover the hard way.
    history loss, and nothing prompts a periodic export.
 9. **No route-level code splitting.** `docs/plan.md` called it "optional"; it was not done. The
    870 kB main bundle ships all five routes on first paint.
-10. **Test coverage is logic-only.** 15 test files, all unit/component level. No end-to-end
+10. **Test coverage is logic-only.** 16 test files, all unit/component level. No end-to-end
     test, no visual regression, no automated accessibility check (no axe in CI). Route wiring,
     the responsive shell, theme switching and the rest-timer audio path are verified by eye only.
 11. **Accepted contrast failures with no tracking.** `CLAUDE.md` documents ratios below AA
@@ -238,7 +249,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 228 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 232 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -254,6 +265,7 @@ output into the devtools console (it clears every `gymlog_` key first, so use a 
 profile). Dates in the seed are fixed, not relative to today, so history, calendar, charts, PRs
 and goals populate while streaks read cold.
 
-If you have budget for one improvement before feature work, make it gap **#6** (a service
-worker). It is the most user-visible gap left now that #3 is closed — a gym tracker that shows
-nothing without signal.
+If you have budget for one improvement before feature work, make it gap **#7** (self-host the
+fonts). It is what finishes #6: the app now loads offline, but Space Grotesk and DM Sans still
+come from the Google CDN, so an offline or flaky-Wi-Fi load falls back to system fonts. Self-
+hosting puts them in the precache with everything else.

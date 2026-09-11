@@ -6,8 +6,10 @@ import { router } from './app/router';
 import { globalStyles } from './app/globalStyles';
 import { resolveTheme, themeFor, useSystemPrefersDark } from './theme';
 import { runStartupMigrations, useSettingsStore } from './stores';
+import { registerServiceWorker } from './lib/registerServiceWorker';
 
 runStartupMigrations();
+registerServiceWorker();
 
 function App() {
   const themePref = useSettingsStore((s) => s.themePref);
