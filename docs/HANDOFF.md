@@ -98,8 +98,9 @@ history (the one PR, #1, was Dependabot's). See §8 for why that is a gap.
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-All four must pass before a commit. Verified green at `dc48617` on 2026-09-11:
-typecheck clean, lint clean, **213 tests across 14 files**, build succeeds.
+All four must pass before a commit. Verified green on 2026-09-11:
+typecheck clean, lint clean, **228 tests across 15 files**, build succeeds.
+(It was 213 across 14 at `dc48617`, before the legacy seed fixture added one file.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
@@ -162,11 +163,14 @@ otherwise discover the hard way.
    the top-10 UX rules. Individual commits claim browser verification of *their* changes, but
    nothing records the full sweep being run, and nothing triggers re-running it. It has almost
    certainly gone stale across the last four commits.
-3. **The "seeded legacy-shaped data" fixture is not in the repo.** Three commit messages say
-   changes were "verified in the browser against seeded legacy-shaped data," but there is no
-   committed seed script or fixture. The next person cannot reproduce that verification without
-   rebuilding the seed from `migration-spec.md` by hand. This is the single highest-value gap
-   to close — it is the only way to test the app's core promise (legacy data survives).
+3. ~~**The "seeded legacy-shaped data" fixture is not in the repo.**~~ **Fixed 2026-09-11.**
+   The seed is `src/lib/fixtures/legacySeed.ts`: the 13 legacy keys with their exact
+   double-prefixed names and raw-vs-JSON encoding, and deliberately none of the four keys the
+   rebuild added, so it reproduces a genuine pre-v2 profile. `npm run seed:legacy` prints a
+   devtools snippet for browser verification; `legacySeed.test.ts` runs the same fixture through
+   the real storage accessors, so what you click through is what CI asserts. The fixture spells
+   its keys literally rather than deriving them from `STORAGE_KEYS` — deriving would make the
+   test circular — and a parity assertion keeps the two in step.
 4. **No changelog and no "current state" section in the plan.** `docs/plan.md` still reads as a
    forward-looking build plan for work that is finished. To learn what actually exists you must
    read `git log`. Fine for one owner with continuous context; hostile to a handoff.
@@ -188,7 +192,7 @@ otherwise discover the hard way.
    history loss, and nothing prompts a periodic export.
 9. **No route-level code splitting.** `docs/plan.md` called it "optional"; it was not done. The
    870 kB main bundle ships all five routes on first paint.
-10. **Test coverage is logic-only.** 14 test files, all unit/component level. No end-to-end
+10. **Test coverage is logic-only.** 15 test files, all unit/component level. No end-to-end
     test, no visual regression, no automated accessibility check (no axe in CI). Route wiring,
     the responsive shell, theme switching and the rest-timer audio path are verified by eye only.
 11. **Accepted contrast failures with no tracking.** `CLAUDE.md` documents ratios below AA
@@ -234,8 +238,8 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 213 passing, build with a chunk-size warning. If tests are red, find out
-what changed before writing code — the suite was green at `dc48617`.
+Expect: clean, clean, 228 passing, build with a chunk-size warning. If tests are red, find out
+what changed before writing code — the suite was green when this was written.
 
 Then:
 
@@ -245,5 +249,11 @@ Then:
 3. Read the last four commit messages in full. They are the real design record.
 4. Skim `src/lib/domain.ts` — ported verbatim from legacy, so its oddities are intentional.
 
-If you have budget for one improvement before feature work, make it gap **#3** (commit a
-legacy-shaped localStorage seed fixture). It unblocks honest verification of everything else.
+To verify against legacy data rather than an empty app, run `npm run seed:legacy` and paste its
+output into the devtools console (it clears every `gymlog_` key first, so use a throwaway
+profile). Dates in the seed are fixed, not relative to today, so history, calendar, charts, PRs
+and goals populate while streaks read cold.
+
+If you have budget for one improvement before feature work, make it gap **#6** (a service
+worker). It is the most user-visible gap left now that #3 is closed — a gym tracker that shows
+nothing without signal.

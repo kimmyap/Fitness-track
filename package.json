@@ -14,7 +14,8 @@
     "lint": "eslint src",
     "test": "vitest",
     "test:run": "vitest run",
-    "import-exercises": "node scripts/importFreeExerciseDB.ts"
+    "import-exercises": "node scripts/importFreeExerciseDB.ts",
+    "seed:legacy": "node scripts/seedLegacyData.ts"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
