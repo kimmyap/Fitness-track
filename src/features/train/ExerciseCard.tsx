@@ -8,11 +8,9 @@
  *   suggestion, est-1RM + mini chart, history, logging form.
  */
 import { useState } from 'react';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import styled from '@emotion/styled';
 import {
-  ChevronDown,
-  ChevronUp,
   CircleAlert,
   Lightbulb,
   NotebookPen,
@@ -20,7 +18,7 @@ import {
   RefreshCw,
   Video,
 } from 'lucide-react';
-import { Badge, Button, Card, ConfirmTap, Field, FieldLabel, IconButton, ProgressRing, toast } from '@/components';
+import { Badge, Button, Card, ConfirmTap, Field, FieldLabel, ProgressRing, toast } from '@/components';
 import { useEntriesStore, useGoalsStore, useSettingsStore, useAchievementsStore, useCustomExercisesStore, selectGoalFor } from '@/stores';
 import {
   bestFor,
@@ -127,11 +125,28 @@ const ExternalLink = styled.a`
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
 `;
 
-const ReorderRow = styled.div`
+/**
+ * The drag handle sits beside the head button rather than inside it: nesting a
+ * button in a button is invalid HTML and breaks the expand control.
+ */
+const HeadRow = styled.div`
   display: flex;
-  justify-content: flex-end;
-  gap: ${({ theme }) => theme.space[1]};
-  margin-bottom: ${({ theme }) => theme.space[1]};
+  align-items: center;
+  gap: ${({ theme }) => theme.space[2]};
+`;
+
+/**
+ * Active card gets an accent rule AND the "Logging" badge in the head — colour
+ * alone must never carry meaning (CLAUDE.md accessibility rules).
+ */
+const CardShell = styled(Card)<{ active?: boolean; dragging?: boolean }>`
+  border-color: ${({ theme, active }) => (active ? theme.colors.primary : theme.colors.border)};
+  box-shadow: ${({ theme, active }) => (active ? `inset 3px 0 0 0 ${theme.colors.primary}` : 'none')};
+  opacity: ${({ dragging }) => (dragging ? 0.6 : 1)};
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
 `;
 
 export interface ExerciseCardProps {
@@ -143,9 +158,10 @@ export interface ExerciseCardProps {
   onToggleExpand: () => void;
   onSwapRequest: (mode: 'oneoff' | 'recurring', prefill: SwapPrefill) => void;
   onConfetti: () => void;
-  /** Reorder within the day; omitted (or null) hides the arrow. */
-  onMoveUp?: (() => void) | null;
-  onMoveDown?: (() => void) | null;
+  /** Drag handle supplied by SortableExerciseCard; omitted when not sortable. */
+  dragHandle?: ReactNode;
+  /** True while this card is the one being dragged. */
+  dragging?: boolean;
   /** Other days this exercise can be reassigned to. */
   otherDays?: string[];
   onAssignDay?: (toDay: string) => void;
@@ -160,8 +176,8 @@ export function ExerciseCard({
   onToggleExpand,
   onSwapRequest,
   onConfetti,
-  onMoveUp = null,
-  onMoveDown = null,
+  dragHandle = null,
+  dragging = false,
   otherDays = [],
   onAssignDay,
 }: ExerciseCardProps) {
@@ -237,26 +253,10 @@ export function ExerciseCard({
   const mwQuery = encodeURIComponent(`site:musclewiki.com ${exercise.name}`);
 
   return (
-    <Card>
-      {onMoveUp || onMoveDown ? (
-        <ReorderRow>
-          <IconButton
-            aria-label={`Move ${exercise.name} up`}
-            disabled={!onMoveUp}
-            onClick={() => onMoveUp?.()}
-          >
-            <ChevronUp size={16} aria-hidden="true" />
-          </IconButton>
-          <IconButton
-            aria-label={`Move ${exercise.name} down`}
-            disabled={!onMoveDown}
-            onClick={() => onMoveDown?.()}
-          >
-            <ChevronDown size={16} aria-hidden="true" />
-          </IconButton>
-        </ReorderRow>
-      ) : null}
-      <HeadButton type="button" aria-expanded={expanded} onClick={onToggleExpand}>
+    <CardShell active={expanded} dragging={dragging}>
+      <HeadRow>
+        {dragHandle}
+        <HeadButton type="button" aria-expanded={expanded} onClick={onToggleExpand}>
         <HeadLeft>
           <RingWrap>
             <ProgressRing pct={pct} label={`Best weight is ${pct}% of your ${toDisplayWeight(goal, unit)}${unitLabel(unit)} goal`} />
@@ -278,11 +278,19 @@ export function ExerciseCard({
             {best ? `PB ${fmtStoredWeight(best.weight, unit)}` : 'No log yet'}
             {trend === 'up' ? ' ↑' : trend === 'down' ? ' ↓' : ''}
           </Badge>
-          <Badge tone={sessionDone ? 'success' : 'neutral'}>
-            {sessionSets}/{exercise.targetSets} sets {sessionDone ? '✓' : 'today'}
-          </Badge>
+          {/* Expanded: the sticky ActiveSetBar already carries "Set n of N",
+              so swap the count for the active marker instead of stacking a
+              fourth badge into a 375px-wide head. */}
+          {expanded ? (
+            <Badge tone="primary">● Logging</Badge>
+          ) : (
+            <Badge tone={sessionDone ? 'success' : 'neutral'}>
+              {sessionSets}/{exercise.targetSets} sets {sessionDone ? '✓' : 'today'}
+            </Badge>
+          )}
         </HeadRight>
-      </HeadButton>
+        </HeadButton>
+      </HeadRow>
 
       {expanded ? (
         <Stack gap={3}>
@@ -459,6 +467,6 @@ export function ExerciseCard({
           />
         </Stack>
       ) : null}
-    </Card>
+    </CardShell>
   );
 }

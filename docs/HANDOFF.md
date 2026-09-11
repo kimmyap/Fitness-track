@@ -99,13 +99,13 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-11:
-typecheck clean, lint clean, **232 tests across 16 files**, build succeeds.
+typecheck clean, lint clean, **236 tests across 17 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~870 kB (263 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~918 kB (279 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,205 kB (188 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -202,8 +202,8 @@ otherwise discover the hard way.
    emergency backup download on failure — but cleared site data or a lost phone is total
    history loss, and nothing prompts a periodic export.
 9. **No route-level code splitting.** `docs/plan.md` called it "optional"; it was not done. The
-   870 kB main bundle ships all five routes on first paint.
-10. **Test coverage is logic-only.** 16 test files, all unit/component level. No end-to-end
+   918 kB main bundle ships all five routes on first paint.
+10. **Test coverage is logic-only.** 17 test files, all unit/component level. No end-to-end
     test, no visual regression, no automated accessibility check (no axe in CI). Route wiring,
     the responsive shell, theme switching and the rest-timer audio path are verified by eye only.
 11. **Accepted contrast failures with no tracking.** `CLAUDE.md` documents ratios below AA
@@ -249,7 +249,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 232 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 236 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:

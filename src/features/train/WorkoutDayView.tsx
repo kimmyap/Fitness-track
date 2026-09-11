@@ -6,11 +6,26 @@
  */
 import { useState } from 'react';
 import { Check } from 'lucide-react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { Button, Confetti, toast } from '@/components';
 import { useEntriesStore, useCustomExercisesStore, useAchievementsStore, useProgramStore } from '@/stores';
 import { exercisesForDay } from '@/lib/domain';
 import { DAYS } from '@/lib/program';
-import { isActivity } from '@/lib/types';
+import { isActivity, isLiftSet } from '@/lib/types';
 import type { ActivityEntry, ActivityName } from '@/lib/types';
 import { celebrateAchievements, useConfetti } from '@/features/today/celebrate';
 import { TodayStatsStrip } from '@/features/today/StatsStrip';
@@ -19,7 +34,8 @@ import { WeeklyRecapCard } from './WeeklyRecapCard';
 import { DatePickerBar } from './DatePickerBar';
 import { RestTimerBar } from './RestTimerBar';
 import { FinishWorkoutModal } from './FinishWorkoutModal';
-import { ExerciseCard } from './ExerciseCard';
+import { SortableExerciseCard } from './SortableExerciseCard';
+import { ActiveSetBar } from './ActiveSetBar';
 import { AddExerciseSection } from './AddExerciseSection';
 import type { AddExerciseMode, SwapPrefill } from './AddExerciseSection';
 
@@ -68,6 +84,27 @@ export function WorkoutDayView({ day, logDate, todayIso, onLogDateChange }: Work
     setAddState({ open: true, mode, prefill });
   };
 
+  // Pointer drags need a small threshold or a tap on the handle starts a drag.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const from = exerciseNames.indexOf(String(active.id));
+    const to = exerciseNames.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    useProgramStore.getState().setDayOrder(day, arrayMove(exerciseNames, from, to));
+  };
+
+  const activeExercise = exercises.find((ex) => ex.name === openExercise);
+  const activeSetsLogged = activeExercise
+    ? entries.filter(
+        (e) => isLiftSet(e) && e.exercise === activeExercise.name && e.date === logDate && !e.warmupSet,
+      ).length
+    : 0;
+
   return (
     <Stack gap={3}>
       <TodayStatsStrip />
@@ -97,37 +134,43 @@ export function WorkoutDayView({ day, logDate, todayIso, onLogDateChange }: Work
         <Check size={18} aria-hidden="true" /> Finish Workout
       </Button>
 
+      {activeExercise ? (
+        <ActiveSetBar
+          exerciseName={activeExercise.name}
+          setsLogged={activeSetsLogged}
+          targetSets={activeExercise.targetSets}
+          targetReps={activeExercise.targetReps}
+        />
+      ) : null}
+
       {exercises.length === 0 ? (
         <Muted>No exercises on this day yet — add one below.</Muted>
       ) : (
-        exercises.map((ex, index) => (
-          <ExerciseCard
-            key={ex.name}
-            exercise={ex}
-            day={day}
-            logDate={logDate}
-            todayIso={todayIso}
-            expanded={openExercise === ex.name}
-            onToggleExpand={() => setOpenExercise((cur) => (cur === ex.name ? null : ex.name))}
-            onSwapRequest={handleSwapRequest}
-            onConfetti={confetti.fire}
-            onMoveUp={
-              index > 0
-                ? () => useProgramStore.getState().moveExercise(day, ex.name, -1, exerciseNames)
-                : null
-            }
-            onMoveDown={
-              index < exercises.length - 1
-                ? () => useProgramStore.getState().moveExercise(day, ex.name, 1, exerciseNames)
-                : null
-            }
-            otherDays={otherDays}
-            onAssignDay={(toDay) => {
-              useProgramStore.getState().assignExerciseToDay(day, toDay, ex.name);
-              toast(`${ex.name} moved to ${toDay}`);
-            }}
-          />
-        ))
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={exerciseNames} strategy={verticalListSortingStrategy}>
+            <Stack gap={3}>
+              {exercises.map((ex) => (
+                <SortableExerciseCard
+                  key={ex.name}
+                  id={ex.name}
+                  exercise={ex}
+                  day={day}
+                  logDate={logDate}
+                  todayIso={todayIso}
+                  expanded={openExercise === ex.name}
+                  onToggleExpand={() => setOpenExercise((cur) => (cur === ex.name ? null : ex.name))}
+                  onSwapRequest={handleSwapRequest}
+                  onConfetti={confetti.fire}
+                  otherDays={otherDays}
+                  onAssignDay={(toDay) => {
+                    useProgramStore.getState().assignExerciseToDay(day, toDay, ex.name);
+                    toast(`${ex.name} moved to ${toDay}`);
+                  }}
+                />
+              ))}
+            </Stack>
+          </SortableContext>
+        </DndContext>
       )}
 
       <AddExerciseSection
