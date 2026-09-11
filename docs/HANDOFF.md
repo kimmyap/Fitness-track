@@ -42,9 +42,9 @@ and UX-rule sections are still good.
   none of them; `CLAUDE.md` mentions only `weightInputModes`. Read the `KEYS` map in
   `src/lib/storage.ts:32` for the real list, and note the double-prefix quirk (logical key
   `gymlog:entries` → actual localStorage key `gymlog_gymlog:entries`).
-- `docs/research/deploy-pipeline.md` documents `actions/upload-pages-artifact@v4`; the
-  workflow is on `@v5` (Dependabot bumped it, the doc was never updated). It also shows
-  `npx tsc -b --noEmit` / `npm test -- --run` where the workflow now uses the npm scripts.
+- ~~`deploy-pipeline.md` lags the workflow on action versions and step commands.~~ **Fixed
+  2026-09-11**: its YAML snippet is now byte-identical to `.github/workflows/ci-deploy.yml`.
+  If you change the workflow, re-sync the snippet or replace it with a link — it drifted twice.
 - **Node version is stated three different ways**: `package.json` engines `>=22.12`,
   `README.md` "22.12+ (24 recommended)", `deploy-pipeline.md` "pin `>=24`", and CI runs
   Node 24. Local dev is on v24.19.0. Nothing enforces the floor, so this has never bitten —

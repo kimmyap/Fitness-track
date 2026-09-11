@@ -15,7 +15,12 @@ Research date: 2026-08-28. Repo: https://github.com/kimmyap/Fitness-track (GitHu
 
 ## 2. GitHub Actions workflow (CI + deploy)
 
-Verified action versions (2026-08-28): `actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-pages-artifact@v4`, `actions/deploy-pages@v4`.
+Verified action versions (2026-09-11): `actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-pages-artifact@v5`, `actions/deploy-pages@v5`.
+
+> `deploy-pages` was bumped v4 → v5 on 2026-09-11: v4 targets Node.js 20, which GitHub has
+> deprecated, so runners were force-running it on Node 24 and annotating every deploy. v5.0.0's
+> headline change is exactly that Node 24 update — no input or output changes.
+> `.github/workflows/ci-deploy.yml` is the authority if this doc ever lags again.
 
 Required repo setting: **Settings → Pages → Source → "GitHub Actions"**.
 
@@ -52,13 +57,13 @@ jobs:
         run: npm ci
 
       - name: Typecheck
-        run: npx tsc -b --noEmit
+        run: npm run typecheck
 
       - name: Lint
         run: npm run lint
 
       - name: Test
-        run: npm test -- --run
+        run: npm run test:run
 
       - name: Build
         run: npm run build
@@ -68,7 +73,7 @@ jobs:
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -85,10 +90,10 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 ```
 
-Notes: full CI gate on every push/PR; only main-branch pushes deploy. OIDC-based deploy-pages@v4 — no PAT, no gh-pages branch. `npm ci` + setup-node npm cache. Node 24 pinned to match local dev.
+Notes: full CI gate on every push/PR; only main-branch pushes deploy. OIDC-based deploy-pages@v5 — no PAT, no gh-pages branch. `npm ci` + setup-node npm cache. Node 24 pinned to match local dev.
 
 ## 3. Vite config for GitHub Pages
 
