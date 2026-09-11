@@ -6,6 +6,35 @@ React 19 + TypeScript + Emotion rebuild of a personal gym tracker (legacy single
 - `npm run dev` — Vite dev server
 - `npm run typecheck` / `npm run lint` / `npm run test:run` / `npm run build` — the CI gate (all must pass)
 
+## How to work in this repo (authoritative)
+
+These rules travel with the repo on purpose — do not assume an equivalent exists in a global
+or parent-directory `CLAUDE.md`. They apply on every account and every machine.
+
+### Usage efficiency
+- Before making changes, propose a short plan naming the exact files you'll touch. **Wait for
+  approval before writing code.**
+- Only read files directly relevant to the task. Ask before exploring beyond them.
+- Fix only what was requested. No drive-by refactors, renames, or style cleanup unless asked.
+- Run only the test file(s) affected by the change, never the full suite unless asked. Exception:
+  run the whole gate before a commit.
+- Keep summaries short: one line per file changed.
+
+### Sub-agents
+- Only spawn a sub-agent when there are 2+ genuinely independent tasks that benefit from running
+  in parallel.
+- Never spawn a sub-agent for sequential work, small fixes, or single-file changes. Do those in
+  the main thread.
+- Sub-agents should return a concise summary, not full file contents.
+- `docs/plan.md` describes a finished three-parallel-agent build phase. It is history — do not
+  spin up parallel agents because that plan mentions them.
+
+### Commits
+- Straight to `main`; `main` auto-deploys. Run the full gate first.
+- Match the existing `git log` style: imperative subject, numbered body explaining root causes,
+  an explicit data-safety statement when storage keys are touched, and verification evidence
+  (test count, gate status, what was checked in the browser). See `docs/HANDOFF.md` §4.
+
 ## Design System (authoritative)
 
 Dark-first, "Vibrant & Block-based". Components consume **theme tokens only — never raw hex**.
@@ -46,6 +75,7 @@ Everything else clears 4.5:1. Dark-mode fills (`onAccent` on `accent` 7.83:1, `o
 - TypeScript is pinned to 6.0.x until typescript-eslint supports TS 7.
 
 ## Key documents
+- `docs/HANDOFF.md` — **read first if you are new to this repo**: doc precedence and known drift, working loop, commit convention, CI/deploy facts, and the current gap list
 - `docs/plan.md` — build plan, IA, module ownership
 - `docs/research/migration-spec.md` — legacy feature inventory + exact localStorage schema (source of truth for data)
 - `docs/research/product-design-spec.md` — original researched design spec (superseded on palette by the Design System table above)
