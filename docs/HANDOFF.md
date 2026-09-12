@@ -98,8 +98,8 @@ history (the one PR, #1, was Dependabot's). See §8 for why that is a gap.
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-All four must pass before a commit. Verified green on 2026-09-11:
-typecheck clean, lint clean, **262 tests across 18 files**, build succeeds.
+All four must pass before a commit. Verified green on 2026-09-12:
+typecheck clean, lint clean, **278 tests across 20 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file.)
 
@@ -203,9 +203,10 @@ otherwise discover the hard way.
    history loss, and nothing prompts a periodic export.
 9. **No route-level code splitting.** `docs/plan.md` called it "optional"; it was not done. The
    950 kB main bundle ships all five routes on first paint.
-10. **Partly fixed 2026-09-12.** 17 vitest files plus a Playwright suite in `e2e/`, run by
+10. **Partly fixed 2026-09-12.** 20 vitest files plus a Playwright suite in `e2e/`, run by
     `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
-    it builds the app and drives a browser. `npm run test:e2e` locally. It exists because three
+    it builds the app and drives a browser. `npm run test:e2e` locally — but see the Chromium
+    note below before you conclude the suite is broken. It exists because three
     bugs shipped past a green unit suite (blank page offline, `Vary: Origin` 503s, a sticky bar
     covering the card it describes); it covers the offline shell, reordering by pointer AND
     keyboard, and the active-set bar in both themes at 375px. Two traps if you extend it:
@@ -214,6 +215,24 @@ otherwise discover the hard way.
     `scrollIntoViewIfNeeded()` before dragging anything below the fold. Still missing: visual
     regression and an automated accessibility check (no axe). The rest-timer audio path is
     still verified by eye only.
+
+    **If all 8 specs fail at once, read the error before debugging the app.** In a sandbox with
+    a pre-installed Chromium — Claude Code on the web, for one — Playwright asks for a
+    `chrome-headless-shell` build matching its own version, finds only the image's Chromium,
+    and every spec dies at `browserType.launch` before a single test body runs. The message
+    tells you to run `npx playwright install`; **do not** — the environment notes say not to,
+    and it is not the fix. `playwright.config.ts` already carries the escape hatch: set
+    `PW_CHROMIUM_PATH` to the browser that IS there and `launchOptions.executablePath` picks
+    it up.
+
+    ```bash
+    ls /opt/pw-browsers/                      # find the build this image actually ships
+    PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e
+    ```
+
+    The version suffix moves with the image, so read it rather than pasting the path above.
+    CI needs none of this — `playwright install` there puts the matching build in place, and
+    the variable is unset, which is why this only ever bites locally.
 11. **Accepted contrast failures with no tracking.** `CLAUDE.md` documents ratios below AA
     (light `primary` 3.56:1, light `accent` 3.30:1, dark `primary`-as-text 4.27:1) as deliberate.
     That is a legitimate call, but there is no issue, no `@todo`, and no condition that would
@@ -239,6 +258,9 @@ What you still have to supply yourself:
 - **Python is not installed and is not needed.** The design skill ships
   `scripts/search.py`; do not try to run it. Query the skill's CSV data files directly with
   Grep/Read instead. This is the one setup detail most likely to waste a session.
+- **A matching Playwright browser.** A sandbox's pre-installed Chromium generally is not the
+  build Playwright wants, and every e2e spec then fails at launch. Set `PW_CHROMIUM_PATH`
+  rather than running `playwright install` — see §8 #10 for the command.
 - **Session memory does not transfer.** The original account kept notes under
   `~/.claude/projects/<project>/memory/`. That is account-local; this file plus `git log` is the
   replacement. If you take the project over long-term, start your own.
