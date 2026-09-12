@@ -105,14 +105,14 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-12:
-typecheck clean, lint clean, **319 tests across 22 files**, build succeeds.
+typecheck clean, lint clean, **323 tests across 23 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
 The build emits a chunk-size warning: main bundle ~972 kB (295 kB gzip) plus a lazy
-`exerciseLibrary` chunk of ~1,205 kB (188 kB gzip). **The warning is expected, not a
+`exerciseLibrary` chunk of ~1,202 kB (194 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
 will add 1.2 MB to first load — don't.
@@ -147,6 +147,16 @@ invisible until something breaks.
   The importer trims empty instruction strings so every entry has at least one cue; that fix
   lives in the importer, not the consumer, so re-running it is safe. Demo images are **hotlinked**
   to `raw.githubusercontent.com`, lazy-loaded, and hidden on error.
+  Its `linkAlternatives` picks each entry's four `alternative_ids`, and the rules there are load-
+  bearing enough to state: same movement pattern, same category GROUP (strength, powerlifting,
+  strongman and olympic weightlifting count as one bucket; stretching, cardio and plyometrics
+  stand alone), at least one shared primary muscle, **same equipment first**, then alphabetical
+  for a stable diff. Both non-obvious rules were bugs once — without the category filter a Goblet
+  Squat was answered with "All Fours Quad Stretch", and with different-equipment-first the near
+  equivalents were pushed out of the top four so Pullups suggested "Cable Incline Pushdown".
+  The re-fetch is live, so after running it **diff before assuming**: the last run changed
+  `alternative_ids` on 843 entries and nothing else, which is how you tell your logic change from
+  upstream drift.
 - `node scripts/generate-icons.mjs` → `public/icons/*` (PWA icons drawn in code, no image deps).
   There is **no npm script for this one** — it is invoked by path.
 
@@ -290,7 +300,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 319 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 323 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -330,6 +340,18 @@ Feature surface that the sections above predate:
 - **Four tier colour tokens** (`tierBronze/Silver/Gold/Platinum`) are in `src/theme.ts` and the
   `CLAUDE.md` Design System table. They are used as border AND text, so each was measured to
   clear 4.5:1 on `card` in its own theme.
+- **"Suggest an alternative" now has two sources.** The curated `ALTERNATIVES` table in
+  `program.ts` covers exactly the nine built-in program exercises and always wins — its reasons
+  and cues are hand-written. Everything else (custom exercises, mainly) falls back to the
+  library's `alternative_ids` via `libraryAlternativesFor`, which previously showed no button at
+  all. Two things about that fallback are deliberate: the library entry carries no sets or reps,
+  so a suggestion **inherits the prescription of the exercise it replaces**; and the fetch is
+  gated on the card being EXPANDED, not on mount, because a day holds several cards and loading
+  the 1.2 MB chunk for each collapsed one would pull it at first paint. If you touch that effect,
+  re-check it: 0 requests for the chunk on the Train page, 1 after opening a card.
+- **20 library exercises now have no alternatives at all** (it was 8). Category grouping
+  legitimately narrows the candidate pool, and all 20 are edge cases in the small categories. An
+  exercise with no suggest button is this, not a bug.
 
 Two invariants worth not breaking:
 
