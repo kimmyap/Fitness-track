@@ -6,6 +6,7 @@ import {
   achievementCategory,
   achievementProgress,
   achievementTier,
+  achievementUnlockDates,
   achievementProgressHint,
   achievementStatsSnapshot,
   barWeight,
@@ -770,6 +771,56 @@ describe('achievement categories and tiers', () => {
     families.forEach((group) => {
       const easiest = [...group].sort((x, y) => x.threshold - y.threshold)[0]!;
       expect(achievementTier(easiest)).toBe('bronze');
+    });
+  });
+});
+
+describe('achievementUnlockDates', () => {
+  /** The date a thing was earned, not the date we happened to look. */
+  it('recovers the day each achievement was first earned', () => {
+    const entries: Entry[] = [
+      lift({ exercise: 'Bench Press', weight: 100, reps: 8, date: '2026-01-05' }),
+      lift({ exercise: 'Bench Press', weight: 105, reps: 8, date: '2026-01-07' }),
+      lift({ exercise: 'Bench Press', weight: 110, reps: 8, date: '2026-01-09' }),
+    ];
+
+    const dates = achievementUnlockDates(entries, [], []);
+    // First logged set earns "First Rep" on the first day, not the last.
+    expect(dates['first-set']).toBe('2026-01-05');
+    // Three sessions in a row earns the 3-day streak on the third.
+    expect(dates['streak-3']).toBe('2026-01-09');
+  });
+
+  it('leaves unearned achievements out entirely', () => {
+    const entries: Entry[] = [lift({ exercise: 'Rows', weight: 50, reps: 10, date: '2026-01-05' })];
+    const dates = achievementUnlockDates(entries, [], []);
+
+    expect(dates['first-set']).toBe('2026-01-05');
+    expect(dates['streak-30']).toBeUndefined();
+    expect(dates['volume-100k']).toBeUndefined();
+  });
+
+  it('dates a bodyweight achievement from the weigh-in, not from lifting', () => {
+    const entries: Entry[] = [lift({ exercise: 'Rows', weight: 50, reps: 10, date: '2026-01-05' })];
+    const bw = [{ id: 'b1', date: '2026-02-11', weight: 130 }];
+
+    expect(achievementUnlockDates(entries, bw, [])['bodyweight-log']).toBe('2026-02-11');
+  });
+
+  it('returns nothing for an empty history rather than throwing', () => {
+    expect(achievementUnlockDates([], [], [])).toEqual({});
+  });
+
+  /** Every date it reports must be one where something was actually logged. */
+  it('never reports a date with no data behind it', () => {
+    const entries: Entry[] = [
+      lift({ exercise: 'Rows', weight: 50, reps: 10, date: '2026-01-05' }),
+      lift({ exercise: 'Rows', weight: 55, reps: 10, date: '2026-03-20' }),
+    ];
+    const logged = new Set(['2026-01-05', '2026-03-20']);
+
+    Object.values(achievementUnlockDates(entries, [], [])).forEach((d) => {
+      expect(logged.has(d)).toBe(true);
     });
   });
 });

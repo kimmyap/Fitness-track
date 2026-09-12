@@ -898,6 +898,57 @@ export const ACHIEVEMENT_METRIC_NOUN: Record<AchievementMetric, string> = {
   rpeLoggedCount: 'sets',
 };
 
+/**
+ * The date each achievement was FIRST earned, recovered by replaying history.
+ *
+ * Nothing has ever recorded when an achievement unlocked — `check` is a pure
+ * function of a snapshot, and the snapshot is a pure function of the data, so
+ * the date is derivable rather than lost: rebuild the snapshot as it stood at
+ * the end of each day that has any data, and the first day a check passes is
+ * the day it was earned. That beats stamping "unlocked today" on a history
+ * that is years old, and it needs no new storage key to keep in sync.
+ *
+ * Only dates that HAVE data are evaluated — a check cannot change on a day
+ * nothing was logged — so this is one pass per logged day, not per calendar
+ * day. Ids with no date are achievements not yet earned.
+ */
+export function achievementUnlockDates(
+  entries: Entry[],
+  bwEntries: BodyweightEntry[],
+  measurements: MeasurementEntry[],
+): Record<string, string> {
+  const days = [
+    ...new Set([
+      ...entries.map((e) => e.date),
+      ...bwEntries.map((e) => e.date),
+      ...measurements.map((e) => e.date),
+    ]),
+  ].sort();
+
+  const found: Record<string, string> = {};
+  let remaining = ACHIEVEMENTS;
+
+  for (const day of days) {
+    if (!remaining.length) break;
+    // `now` is that day, so streaks are measured as they stood then.
+    const asOf = new Date(`${day}T00:00:00`);
+    const snap = achievementStatsSnapshot(
+      entries.filter((e) => e.date <= day),
+      bwEntries.filter((e) => e.date <= day),
+      measurements.filter((e) => e.date <= day),
+      asOf,
+    );
+    const stillLocked: AchievementDef[] = [];
+    for (const a of remaining) {
+      if (a.check(snap)) found[a.id] = day;
+      else stillLocked.push(a);
+    }
+    remaining = stillLocked;
+  }
+
+  return found;
+}
+
 /** Definitions that pass their check but aren't in `seen` yet. */
 export function newlyUnlockedAchievements(snap: AchievementSnapshot, seen: string[]): AchievementDef[] {
   return ACHIEVEMENTS.filter((a) => a.check(snap) && !seen.includes(a.id));

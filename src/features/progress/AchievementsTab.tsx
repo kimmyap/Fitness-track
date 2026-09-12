@@ -8,7 +8,7 @@
 import { useMemo, useState } from 'react';
 import styled from '@emotion/styled';
 import { Award, Lock } from 'lucide-react';
-import { Card } from '@/components';
+import { Card, Modal } from '@/components';
 import {
   ACHIEVEMENTS,
   ACHIEVEMENT_CATEGORY_LABEL,
@@ -17,12 +17,17 @@ import {
   achievementCategory,
   achievementProgress,
   achievementStatsSnapshot,
+  achievementProgressHint,
   achievementTier,
+  achievementUnlockDates,
   toDisplayWeight,
   type AchievementCategory,
+  type AchievementDef,
+  type AchievementSnapshot,
   type AchievementTier,
 } from '@/lib/domain';
 import { ACHIEVEMENT_ICONS } from '@/lib/program';
+import type { Unit } from '@/lib/types';
 import { useBodyweightStore, useEntriesStore, useMeasurementsStore, useSettingsStore } from '@/stores';
 
 const Stack = styled.div`
@@ -85,6 +90,43 @@ const BadgeCard = styled.li<{ unlocked: boolean; tier: AchievementTier }>`
     ${({ theme, unlocked, tier }) => (unlocked ? theme.colors[TIER_TOKEN[tier]] : theme.colors.border)};
   border-radius: ${({ theme }) => theme.radii.md};
   padding: ${({ theme }) => `${theme.space[3]} ${theme.space[2]}`};
+`;
+
+/**
+ * The whole card is the tap target that opens its detail. A bare button so the
+ * li keeps the border and background — a <button> inside <ul><li> is valid,
+ * whereas making the li itself a button is not.
+ */
+const CardButton = styled.button`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${({ theme }) => theme.space[1]};
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.ring};
+    outline-offset: 4px;
+  }
+`;
+
+const DetailRow = styled.p`
+  margin: 0 0 ${({ theme }) => theme.space[2]};
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  color: ${({ theme }) => theme.colors.mutedForeground};
+`;
+
+const DetailStrong = styled.span`
+  color: ${({ theme }) => theme.colors.cardForeground};
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 `;
 
 /** The tier spelled out, so the border colour is never the only signal. */
@@ -196,6 +238,16 @@ export function AchievementsTab() {
     [entries, bwEntries, measurements],
   );
   const [filter, setFilter] = useState<AchievementCategory | 'all'>('all');
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  /*
+   * Replays the whole history, so memoise on the data rather than recomputing
+   * per render. It walks only days that have data, not every calendar day.
+   */
+  const unlockDates = useMemo(
+    () => achievementUnlockDates(entries, bwEntries, measurements),
+    [entries, bwEntries, measurements],
+  );
 
   // The hero counts EVERY achievement, not the filtered subset — a filter
   // narrows what you are looking at, it does not change how complete you are.
@@ -260,31 +312,115 @@ export function AchievementsTab() {
           const noun = a.metric === 'totalVolume' ? unit : ACHIEVEMENT_METRIC_NOUN[a.metric];
           return (
             <BadgeCard key={a.id} unlocked={unlocked} tier={tier}>
-              <BadgeIcon unlocked={unlocked}>
-                <Icon size={22} aria-hidden="true" />
-              </BadgeIcon>
-              <BadgeLabel>{a.label}</BadgeLabel>
-              <BadgeDesc>{a.desc}</BadgeDesc>
-              {unlocked ? (
-                <TierWord tier={tier}>{ACHIEVEMENT_TIER_LABEL[tier]}</TierWord>
-              ) : (
-                <>
-                  <Track aria-hidden="true">
-                    <Fill pct={progress.pct} tone="primary" />
-                  </Track>
-                  {/* The count IS the hint — the prose version said the same
-                      thing again and wrapped to three lines in a 105px card. */}
-                  <TrackLabel>
-                    {asCount(progress.current)} / {asCount(progress.threshold)}
-                    {noun ? ` ${noun}` : ''}
-                  </TrackLabel>
-                  <BadgeDesc>Locked</BadgeDesc>
-                </>
-              )}
+              <CardButton
+                type="button"
+                aria-label={`${a.label}, ${unlocked ? 'unlocked' : 'locked'}. Show details.`}
+                onClick={() => setOpenId(a.id)}
+              >
+                <BadgeIcon unlocked={unlocked}>
+                  <Icon size={22} aria-hidden="true" />
+                </BadgeIcon>
+                <BadgeLabel>{a.label}</BadgeLabel>
+                <BadgeDesc>{a.desc}</BadgeDesc>
+                {unlocked ? (
+                  <TierWord tier={tier}>{ACHIEVEMENT_TIER_LABEL[tier]}</TierWord>
+                ) : (
+                  <>
+                    <Track aria-hidden="true">
+                      <Fill pct={progress.pct} tone="primary" />
+                    </Track>
+                    {/* The count IS the hint — the prose version said the same
+                        thing again and wrapped to three lines in a 105px card. */}
+                    <TrackLabel>
+                      {asCount(progress.current)} / {asCount(progress.threshold)}
+                      {noun ? ` ${noun}` : ''}
+                    </TrackLabel>
+                    <BadgeDesc>Locked</BadgeDesc>
+                  </>
+                )}
+              </CardButton>
             </BadgeCard>
           );
         })}
       </Grid>
+
+      <AchievementDetail
+        achievement={ACHIEVEMENTS.find((a) => a.id === openId) ?? null}
+        snap={snap}
+        unit={unit}
+        unlockedOn={openId ? unlockDates[openId] : undefined}
+        onClose={() => setOpenId(null)}
+      />
     </Stack>
+  );
+}
+
+/** Full date including the year — "1/5" is ambiguous for something years old. */
+function formatUnlockDate(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function AchievementDetail({
+  achievement,
+  snap,
+  unit,
+  unlockedOn,
+  onClose,
+}: {
+  achievement: AchievementDef | null;
+  snap: AchievementSnapshot;
+  unit: Unit;
+  unlockedOn: string | undefined;
+  onClose: () => void;
+}) {
+  if (!achievement) return null;
+  const unlocked = achievement.check(snap);
+  const tier = achievementTier(achievement);
+  const progress = achievementProgress(achievement, snap);
+  const asCount = (n: number) =>
+    achievement.metric === 'totalVolume'
+      ? Math.round(toDisplayWeight(n, unit)).toLocaleString()
+      : n.toLocaleString();
+  const noun = achievement.metric === 'totalVolume' ? unit : ACHIEVEMENT_METRIC_NOUN[achievement.metric];
+
+  return (
+    <Modal open onClose={onClose} title={achievement.label}>
+      <DetailRow>{achievement.desc}</DetailRow>
+
+      <DetailRow>
+        Category <DetailStrong>{ACHIEVEMENT_CATEGORY_LABEL[achievementCategory(achievement)]}</DetailStrong>
+        {' · '}Tier <TierWord tier={tier}>{ACHIEVEMENT_TIER_LABEL[tier]}</TierWord>
+      </DetailRow>
+
+      <DetailRow>
+        Progress{' '}
+        <DetailStrong>
+          {asCount(progress.current)} / {asCount(progress.threshold)}
+          {noun ? ` ${noun}` : ''}
+        </DetailStrong>
+      </DetailRow>
+      <Track aria-hidden="true">
+        <Fill pct={progress.pct} tone={unlocked ? 'accent' : 'primary'} />
+      </Track>
+
+      <DetailRow style={{ marginTop: 12 }}>
+        {unlocked ? (
+          unlockedOn ? (
+            <>
+              Earned <DetailStrong>{formatUnlockDate(unlockedOn)}</DetailStrong>
+            </>
+          ) : (
+            /* Only reachable if a check passes with no dated data behind it. */
+            <>Earned — no dated history to pin it to</>
+          )
+        ) : (
+          <>{achievementProgressHint(achievement, snap, unit)} to go</>
+        )}
+      </DetailRow>
+    </Modal>
   );
 }
