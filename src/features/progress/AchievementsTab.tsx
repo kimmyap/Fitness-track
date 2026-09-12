@@ -11,8 +11,10 @@ import { Award, Lock } from 'lucide-react';
 import { Card } from '@/components';
 import {
   ACHIEVEMENTS,
-  achievementProgressHint,
+  ACHIEVEMENT_METRIC_NOUN,
+  achievementProgress,
   achievementStatsSnapshot,
+  toDisplayWeight,
 } from '@/lib/domain';
 import { ACHIEVEMENT_ICONS } from '@/lib/program';
 import { useBodyweightStore, useEntriesStore, useMeasurementsStore, useSettingsStore } from '@/stores';
@@ -47,14 +49,22 @@ const Grid = styled.ul`
   }
 `;
 
+/**
+ * Locked cards are dashed and unfilled; unlocked ones are solid and carry the
+ * primary border. The distinction is deliberately in the BORDER and the icon,
+ * never in the text opacity — dimming label text would drop it below the 4.5:1
+ * the palette is held to. Icon + "Locked" wording still carry the meaning, so
+ * none of it rests on colour.
+ */
 const BadgeCard = styled.li<{ unlocked: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: ${({ theme }) => theme.space[1]};
   text-align: center;
-  background: ${({ theme }) => theme.colors.card};
-  border: 1px solid ${({ theme, unlocked }) => (unlocked ? theme.colors.primary : theme.colors.border)};
+  background: ${({ theme, unlocked }) => (unlocked ? theme.colors.card : 'transparent')};
+  border: 1px ${({ unlocked }) => (unlocked ? 'solid' : 'dashed')}
+    ${({ theme, unlocked }) => (unlocked ? theme.colors.primary : theme.colors.border)};
   border-radius: ${({ theme }) => theme.radii.md};
   padding: ${({ theme }) => `${theme.space[3]} ${theme.space[2]}`};
 `;
@@ -62,6 +72,46 @@ const BadgeCard = styled.li<{ unlocked: boolean }>`
 const BadgeIcon = styled.span<{ unlocked: boolean }>`
   display: inline-flex;
   color: ${({ theme, unlocked }) => (unlocked ? theme.colors.primary : theme.colors.mutedForeground)};
+`;
+
+/** Thin fill bar. Decorative — the "39 / 60" beside it carries the value. */
+const Track = styled.span`
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: ${({ theme }) => theme.radii.full};
+  background: ${({ theme }) => theme.colors.muted};
+  overflow: hidden;
+`;
+
+const Fill = styled.span<{ pct: number; tone: 'primary' | 'accent' }>`
+  display: block;
+  height: 100%;
+  width: ${({ pct }) => pct}%;
+  border-radius: inherit;
+  background: ${({ theme, tone }) => (tone === 'accent' ? theme.colors.accent : theme.colors.primary)};
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: width 240ms ease;
+  }
+`;
+
+const HeroLine = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.space[2]};
+  margin-top: ${({ theme }) => theme.space[2]};
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  color: ${({ theme }) => theme.colors.mutedForeground};
+  font-variant-numeric: tabular-nums;
+`;
+
+/** Counts inside a locked card, e.g. "39 / 60 sessions". */
+const TrackLabel = styled.span`
+  font-size: ${({ theme }) => theme.typography.fontSizes.xs};
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.colors.mutedForeground};
 `;
 
 const BadgeLabel = styled.span`
@@ -92,6 +142,7 @@ export function AchievementsTab() {
     [entries, bwEntries, measurements],
   );
   const unlockedCount = ACHIEVEMENTS.filter((a) => a.check(snap)).length;
+  const completionPct = Math.round((unlockedCount / ACHIEVEMENTS.length) * 100);
 
   return (
     <Stack>
@@ -100,13 +151,27 @@ export function AchievementsTab() {
           <Award size={20} aria-hidden="true" />
           {unlockedCount} / {ACHIEVEMENTS.length} unlocked
         </Summary>
+        <Track aria-hidden="true">
+          <Fill pct={completionPct} tone="accent" />
+        </Track>
+        <HeroLine>
+          <span>{completionPct}% complete</span>
+          <span>{ACHIEVEMENTS.length - unlockedCount} to go</span>
+        </HeroLine>
       </Card>
 
       <Grid aria-label="Achievements">
         {ACHIEVEMENTS.map((a) => {
           const unlocked = a.check(snap);
           const Icon = unlocked ? (ACHIEVEMENT_ICONS[a.id] ?? Award) : Lock;
-          const hint = unlocked ? '' : achievementProgressHint(a, snap, unit);
+          const progress = achievementProgress(a, snap);
+          // Volume thresholds are five figures — convert and abbreviate so the
+          // count still fits a third of a 375px row.
+          const asCount = (n: number) =>
+            a.metric === 'totalVolume'
+              ? Math.round(toDisplayWeight(n, unit)).toLocaleString()
+              : n.toLocaleString();
+          const noun = a.metric === 'totalVolume' ? unit : ACHIEVEMENT_METRIC_NOUN[a.metric];
           return (
             <BadgeCard key={a.id} unlocked={unlocked}>
               <BadgeIcon unlocked={unlocked}>
@@ -117,7 +182,18 @@ export function AchievementsTab() {
               {unlocked ? (
                 <BadgeHint>Unlocked</BadgeHint>
               ) : (
-                <BadgeDesc>Locked{hint ? ` · ${hint}` : ''}</BadgeDesc>
+                <>
+                  <Track aria-hidden="true">
+                    <Fill pct={progress.pct} tone="primary" />
+                  </Track>
+                  {/* The count IS the hint — the prose version said the same
+                      thing again and wrapped to three lines in a 105px card. */}
+                  <TrackLabel>
+                    {asCount(progress.current)} / {asCount(progress.threshold)}
+                    {noun ? ` ${noun}` : ''}
+                  </TrackLabel>
+                  <BadgeDesc>Locked</BadgeDesc>
+                </>
               )}
             </BadgeCard>
           );

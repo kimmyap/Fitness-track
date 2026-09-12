@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   ACHIEVEMENTS,
+  ACHIEVEMENT_METRIC_NOUN,
+  achievementProgress,
   achievementProgressHint,
   achievementStatsSnapshot,
   barWeight,
@@ -542,6 +544,36 @@ describe('achievements', () => {
     const pr = ACHIEVEMENTS.find((a) => a.id === 'pr-5')!;
     expect(achievementProgressHint(pr, { ...base, prCount: 4 }, 'lbs')).toBe('1 more PR');
     expect(achievementProgressHint(pr, { ...base, prCount: 5 }, 'lbs')).toBe('');
+  });
+
+  it('progress reports current, threshold and a percentage for the track', () => {
+    const base = achievementStatsSnapshot([], [], []);
+    const streak60 = ACHIEVEMENTS.find((a) => a.id === 'streak-60')!;
+
+    expect(achievementProgress(streak60, { ...base, streak: 39 })).toEqual({
+      current: 39,
+      threshold: 60,
+      pct: 65,
+    });
+    expect(achievementProgress(streak60, base)).toEqual({ current: 0, threshold: 60, pct: 0 });
+  });
+
+  /** An overshoot must not render a bar past its own track. */
+  it('caps progress at the threshold once passed', () => {
+    const base = achievementStatsSnapshot([], [], []);
+    const prFive = ACHIEVEMENTS.find((a) => a.id === 'pr-5')!;
+
+    expect(achievementProgress(prFive, { ...base, prCount: 99 })).toEqual({
+      current: 5,
+      threshold: 5,
+      pct: 100,
+    });
+  });
+
+  it('gives every achievement metric a noun for its track label', () => {
+    new Set(ACHIEVEMENTS.map((a) => a.metric)).forEach((m) => {
+      expect(ACHIEVEMENT_METRIC_NOUN[m]).toBeDefined();
+    });
   });
 });
 

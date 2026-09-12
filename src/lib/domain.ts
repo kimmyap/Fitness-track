@@ -783,6 +783,45 @@ export function achievementProgressHint(a: AchievementDef, snap: AchievementSnap
   return `${displayRemaining} ${unitMap[a.metric] || 'to go'}`;
 }
 
+export interface AchievementProgress {
+  /** Capped at the threshold — a locked card never shows more than its target. */
+  current: number;
+  threshold: number;
+  /** 0-100, for the track fill. */
+  pct: number;
+}
+
+/**
+ * How far along an achievement is, as numbers rather than the prose hint.
+ *
+ * Every definition already carries the metric it counts and the threshold it
+ * needs, and the snapshot holds the live value, so "39 / 60" needs no data the
+ * app was not already computing.
+ */
+export function achievementProgress(a: AchievementDef, snap: AchievementSnapshot): AchievementProgress {
+  const threshold = a.threshold;
+  const raw = snap[a.metric] || 0;
+  const current = Math.max(0, Math.min(raw, threshold));
+  return {
+    current,
+    threshold,
+    pct: threshold > 0 ? Math.round((current / threshold) * 100) : 0,
+  };
+}
+
+/** Short noun for a progress track, e.g. "39 / 60 sessions". */
+export const ACHIEVEMENT_METRIC_NOUN: Record<AchievementMetric, string> = {
+  streak: 'sessions',
+  totalWorkouts: 'sessions',
+  totalSets: 'sets',
+  prCount: 'PRs',
+  crossTraining: 'days',
+  totalVolume: '',
+  bwCount: 'weigh-ins',
+  measureCount: 'measurements',
+  rpeLoggedCount: 'sets',
+};
+
 /** Definitions that pass their check but aren't in `seen` yet. */
 export function newlyUnlockedAchievements(snap: AchievementSnapshot, seen: string[]): AchievementDef[] {
   return ACHIEVEMENTS.filter((a) => a.check(snap) && !seen.includes(a.id));
