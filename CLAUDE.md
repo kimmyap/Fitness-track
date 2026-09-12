@@ -29,6 +29,16 @@ or parent-directory `CLAUDE.md`. They apply on every account and every machine.
 - `docs/plan.md` describes a finished three-parallel-agent build phase. It is history — do not
   spin up parallel agents because that plan mentions them.
 
+### When to ask, when to just ship
+- **Bugs: fix and push.** No approval needed, including for regressions from your own
+  deploys. A live bug is worth more than a round trip.
+- **Ask first for**: new features, design choices with more than one defensible answer, and
+  any new dependency (it costs bundle size — quote the delta when proposing).
+- **`git fetch origin main` before you start.** Work has already been duplicated in this repo
+  by branching off a stale clone and rebuilding something the remote already had.
+- Redundant work is the expensive failure here, not an extra question. Check what exists
+  before writing it.
+
 ### Commits
 - Straight to `main`; `main` auto-deploys. Run the full gate first.
 - Match the existing `git log` style: imperative subject, numbered body explaining root causes,
