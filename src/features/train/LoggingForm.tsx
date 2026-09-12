@@ -1,5 +1,7 @@
 /**
- * Set-logging form (legacy per-exercise form):
+ * Set-logging form (legacy per-exercise form). Field order runs variation →
+ * plate controls → set type → weight/reps/RPE, so the set-type picker sits in
+ * the same glance as the numbers whose meaning it decides.
  * - variation select (defaults to last-used variation)
  * - warm-up checkbox (remembered per exercise for the session)
  * - weight/reps/RPE prefilled from the last working set
@@ -371,6 +373,13 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
   const typoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const varSelectId = useId();
+  /*
+   * Generated, not `set-type-${exercise.name}`. aria-labelledby is a
+   * whitespace-separated ID LIST, so an exercise name with a space in it
+   * ("Sumo Squats") parsed as two references, neither of which resolved — the
+   * group had no accessible name at all for most of the program.
+   */
+  const setTypeLabelId = useId();
 
   const setSetKind = (kind: SetKind) => {
     setSetKindState(kind);
@@ -525,26 +534,6 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
         </Field>
       ) : null}
 
-      <Field>
-        <FieldLabel as="span" id={`set-type-${exercise.name}`}>
-          Set type
-        </FieldLabel>
-        <SetTypeRow role="group" aria-labelledby={`set-type-${exercise.name}`}>
-          {SET_KINDS.map(({ kind, label }) => (
-            <SetTypeButton
-              key={kind}
-              type="button"
-              active={setKind === kind}
-              aria-pressed={setKind === kind}
-              onClick={() => setSetKind(kind)}
-            >
-              {label}
-            </SetTypeButton>
-          ))}
-        </SetTypeRow>
-        <Muted as="span">{SET_KIND_HINTS[setKind]}</Muted>
-      </Field>
-
       {showPlateToggle ? (
         <Row wrap>
           <ModeToggle role="group" aria-label="Weight entry mode">
@@ -582,6 +571,32 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
           ))}
         </Row>
       ) : null}
+
+      {/*
+        Directly above the inputs on purpose: the type decides what the numbers
+        you are about to type will COUNT toward, so it belongs in the same
+        glance as them. It used to sit above the plate controls, far enough up
+        that a mis-set type was only visible after scrolling back.
+      */}
+      <Field>
+        <FieldLabel as="span" id={setTypeLabelId}>
+          Set type
+        </FieldLabel>
+        <SetTypeRow role="group" aria-labelledby={setTypeLabelId}>
+          {SET_KINDS.map(({ kind, label }) => (
+            <SetTypeButton
+              key={kind}
+              type="button"
+              active={setKind === kind}
+              aria-pressed={setKind === kind}
+              onClick={() => setSetKind(kind)}
+            >
+              {label}
+            </SetTypeButton>
+          ))}
+        </SetTypeRow>
+        <Muted as="span">{SET_KIND_HINTS[setKind]}</Muted>
+      </Field>
 
       <InputRow>
         <NumberInput

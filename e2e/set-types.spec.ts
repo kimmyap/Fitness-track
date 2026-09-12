@@ -11,7 +11,8 @@ test('a drop set is stored as one and never becomes the PB', async ({ page }) =>
   await page.getByRole('link', { name: /train/i }).first().click();
   await page.locator('[aria-expanded]').first().click();
 
-  const picker = page.locator('[aria-labelledby^="set-type-"]');
+  // By accessible name, not by the label's id — that id is generated now.
+  const picker = page.getByRole('group', { name: 'Set type' });
   await expect(picker).toBeVisible();
 
   // Explicit choice, not a cycle: one press selects exactly that type.

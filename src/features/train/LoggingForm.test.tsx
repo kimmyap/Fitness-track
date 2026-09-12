@@ -161,3 +161,24 @@ describe('LoggingForm log lock (800ms) + Saving state', () => {
     }
   });
 });
+
+describe('LoggingForm field order', () => {
+  /**
+   * The set type decides what the numbers count toward, so it has to be in the
+   * same glance as them. Pinned in the DOM rather than by eye: it previously
+   * sat above the plate controls, far enough up that a mis-set type was only
+   * visible after scrolling back.
+   */
+  it('puts the set-type picker directly above the weight input', () => {
+    renderForm();
+    const picker = screen.getByRole('group', { name: 'Set type' });
+    const weight = screen.getByLabelText(/weight per side/i);
+
+    const order = picker.compareDocumentPosition(weight);
+    expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // …and below the plate-mode toggle, which belongs with the weight label.
+    const modes = screen.getByRole('group', { name: 'Weight entry mode' });
+    expect(modes.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
