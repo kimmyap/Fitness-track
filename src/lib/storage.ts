@@ -11,6 +11,23 @@
  * - Every save retries with backoff (300/800/1800 ms); on final failure it
  *   auto-downloads a JSON backup (1-minute cooldown) and flags sync-failed.
  */
+import {
+  achievementsSchema,
+  bodyweightSchema,
+  coreOverridesMapSchema,
+  customExercisesMapSchema,
+  daysSchema,
+  entrySchema,
+  equipmentWeightsSchema,
+  excludedBuiltInsMapSchema,
+  exerciseOrderSchema,
+  goalsMapSchema,
+  keepValid,
+  measurementSchema,
+  notesMapSchema,
+  validOr,
+  weightInputModesSchema,
+} from './schemas';
 import type {
   BodyweightEntry,
   CoreOverridesMap,
@@ -110,6 +127,27 @@ function getJSON<T>(key: StorageKey, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+/** Parsed JSON with no shape assumption yet. */
+function getParsed(key: StorageKey): unknown {
+  const raw = getRaw(key);
+  if (raw === null) return undefined;
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Whole-value read that falls back when the stored shape is wrong, rather than
+ * casting and letting the mismatch surface as a crash somewhere else.
+ */
+function getChecked<T>(key: StorageKey, schema: Parameters<typeof validOr>[1], fallback: T): T {
+  const parsed = getParsed(key);
+  if (parsed === undefined) return fallback;
+  return validOr<T>(parsed, schema, fallback, key);
 }
 
 const delay = (ms: number): Promise<void> => new Promise((res) => setTimeout(res, ms));
@@ -226,7 +264,10 @@ function generateIdInternal(): string {
  * matching legacy loadData migration.
  */
 export function getEntries(): Entry[] {
-  const entries = getJSON<Entry[]>(STORAGE_KEYS.entries, []);
+  const parsed = getParsed(STORAGE_KEYS.entries);
+  if (parsed === undefined) return [];
+  const { rows: entries, dropped } = keepValid<Entry>(parsed, entrySchema, STORAGE_KEYS.entries);
+
   let needsSave = false;
   entries.forEach((e) => {
     if (!e.id) {
@@ -234,7 +275,12 @@ export function getEntries(): Entry[] {
       needsSave = true;
     }
   });
-  if (needsSave) void saveEntries(entries);
+  /*
+   * Only re-save when nothing was dropped. The backfill would otherwise write
+   * the FILTERED array back over the user's log, turning a read-time warning
+   * about one bad row into permanent data loss.
+   */
+  if (needsSave && dropped === 0) void saveEntries(entries);
   return entries;
 }
 export function saveEntries(entries: Entry[]): Promise<boolean> {
@@ -242,14 +288,14 @@ export function saveEntries(entries: Entry[]): Promise<boolean> {
 }
 
 export function getNotes(): NotesMap {
-  return getJSON<NotesMap>(STORAGE_KEYS.notes, {});
+  return getChecked<NotesMap>(STORAGE_KEYS.notes, notesMapSchema, {});
 }
 export function saveNotes(notes: NotesMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.notes, JSON.stringify(notes), 'Notes');
 }
 
 export function getGoals(): GoalsMap {
-  return getJSON<GoalsMap>(STORAGE_KEYS.goals, {});
+  return getChecked<GoalsMap>(STORAGE_KEYS.goals, goalsMapSchema, {});
 }
 export function saveGoals(goals: GoalsMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.goals, JSON.stringify(goals), 'Goals');
@@ -266,14 +312,14 @@ export function saveBarWeight(lbs: number | null): Promise<boolean> {
 }
 
 export function getExerciseOrder(): ExerciseOrderMap {
-  return getJSON<ExerciseOrderMap>(STORAGE_KEYS.exerciseOrder, {});
+  return getChecked<ExerciseOrderMap>(STORAGE_KEYS.exerciseOrder, exerciseOrderSchema, {});
 }
 export function saveExerciseOrder(order: ExerciseOrderMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.exerciseOrder, JSON.stringify(order), 'Exercise order');
 }
 
 export function getDays(): string[] {
-  const stored = getJSON<string[]>(STORAGE_KEYS.days, []);
+  const stored = getChecked<string[]>(STORAGE_KEYS.days, daysSchema, []);
   return Array.isArray(stored) && stored.length ? stored : [];
 }
 export function saveDays(days: string[]): Promise<boolean> {
@@ -281,21 +327,21 @@ export function saveDays(days: string[]): Promise<boolean> {
 }
 
 export function getWeightInputModes(): WeightInputModeMap {
-  return getJSON<WeightInputModeMap>(STORAGE_KEYS.weightInputModes, {});
+  return getChecked<WeightInputModeMap>(STORAGE_KEYS.weightInputModes, weightInputModesSchema, {});
 }
 export function saveWeightInputModes(modes: WeightInputModeMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.weightInputModes, JSON.stringify(modes), 'Weight input mode');
 }
 
 export function getBodyweight(): BodyweightEntry[] {
-  return getJSON<BodyweightEntry[]>(STORAGE_KEYS.bodyweight, []);
+  return keepValid<BodyweightEntry>(getParsed(STORAGE_KEYS.bodyweight) ?? [], bodyweightSchema, STORAGE_KEYS.bodyweight).rows;
 }
 export function saveBodyweight(entries: BodyweightEntry[]): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.bodyweight, JSON.stringify(entries), 'Bodyweight');
 }
 
 export function getSeenAchievements(): string[] {
-  return getJSON<string[]>(STORAGE_KEYS.achievements, []);
+  return getChecked<string[]>(STORAGE_KEYS.achievements, achievementsSchema, []);
 }
 export function saveSeenAchievements(ids: string[]): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.achievements, JSON.stringify(ids), 'Achievements');
@@ -311,14 +357,14 @@ export function saveUnit(unit: Unit): Promise<boolean> {
 }
 
 export function getCustomExercises(): CustomExercisesMap {
-  return getJSON<CustomExercisesMap>(STORAGE_KEYS.customExercises, {});
+  return getChecked<CustomExercisesMap>(STORAGE_KEYS.customExercises, customExercisesMapSchema, {});
 }
 export function saveCustomExercises(map: CustomExercisesMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.customExercises, JSON.stringify(map), 'Custom exercises');
 }
 
 export function getExcludedBuiltIns(): ExcludedBuiltInsMap {
-  return getJSON<ExcludedBuiltInsMap>(STORAGE_KEYS.excludedBuiltIns, {});
+  return getChecked<ExcludedBuiltInsMap>(STORAGE_KEYS.excludedBuiltIns, excludedBuiltInsMapSchema, {});
 }
 export function saveExcludedBuiltIns(map: ExcludedBuiltInsMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.excludedBuiltIns, JSON.stringify(map), 'Replaced exercises');
@@ -333,7 +379,7 @@ export function saveLastProgramReview(isoDate: string): Promise<boolean> {
 }
 
 export function getCoreOverrides(): CoreOverridesMap {
-  return getJSON<CoreOverridesMap>(STORAGE_KEYS.coreOverrides, {});
+  return getChecked<CoreOverridesMap>(STORAGE_KEYS.coreOverrides, coreOverridesMapSchema, {});
 }
 export function saveCoreOverrides(map: CoreOverridesMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.coreOverrides, JSON.stringify(map), 'Core exercises');
@@ -355,14 +401,14 @@ export function clearTheme(): Promise<void> {
 }
 
 export function getMeasurements(): MeasurementEntry[] {
-  return getJSON<MeasurementEntry[]>(STORAGE_KEYS.measurements, []);
+  return keepValid<MeasurementEntry>(getParsed(STORAGE_KEYS.measurements) ?? [], measurementSchema, STORAGE_KEYS.measurements).rows;
 }
 export function saveMeasurements(entries: MeasurementEntry[]): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.measurements, JSON.stringify(entries), 'Measurements');
 }
 
 export function getEquipmentWeights(): EquipmentWeights {
-  return getJSON<EquipmentWeights>(STORAGE_KEYS.equipmentWeights, { trapBar: null, legPressSled: null });
+  return getChecked<EquipmentWeights>(STORAGE_KEYS.equipmentWeights, equipmentWeightsSchema, { trapBar: null, legPressSled: null });
 }
 export function saveEquipmentWeights(w: EquipmentWeights): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.equipmentWeights, JSON.stringify(w), 'Equipment weights');

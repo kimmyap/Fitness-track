@@ -29,7 +29,7 @@ import {
   toDisplayWeight,
 } from '@/lib/domain';
 import { useBodyweightStore, useMeasurementsStore, useSettingsStore } from '@/stores';
-import { bodyweightSeries } from './chartData';
+import { bodyweightSeries, movingAverageSeries } from './chartData';
 import { ChartFrame, useChartTokens } from './ChartKit';
 import { useAchievementCelebration } from './useAchievementCelebration';
 
@@ -133,12 +133,22 @@ function BodyweightSection({ celebrate }: { celebrate: () => void }) {
   const [input, setInput] = useState(() => (latest ? String(toDisplayWeight(latest.weight, unit)) : ''));
 
   const series = useMemo(() => bodyweightSeries(bwEntries), [bwEntries]);
-  const data = series.map((p) => ({ label: displayDate(p.date), value: toDisplayWeight(p.value, unit) }));
+  /*
+   * Daily weight swings several lbs on water alone, which buries the actual
+   * trend. The 7-day trailing mean is the line worth reading; raw readings stay
+   * as dots so nothing is hidden.
+   */
+  const smoothed = useMemo(() => movingAverageSeries(series, 7), [series]);
+  const data = series.map((p, i) => ({
+    label: displayDate(p.date),
+    value: toDisplayWeight(p.value, unit),
+    trend: toDisplayWeight(smoothed[i]?.value ?? p.value, unit),
+  }));
   const goalDisplay = toDisplayWeight(BODYWEIGHT_GOAL_LBS, unit);
   const table = {
-    caption: 'Bodyweight over time',
-    columns: ['Date', `Weight (${unit})`] as [string, string],
-    rows: data.map((d) => [d.label, String(d.value)] as [string, string]),
+    caption: 'Bodyweight over time, with its 7-day average',
+    columns: ['Date', `Weight (${unit})`, `7-day avg (${unit})`] as [string, string, string],
+    rows: data.map((d) => [d.label, String(d.value), String(d.trend)] as [string, string, string]),
   };
 
   const log = () => {
@@ -190,12 +200,24 @@ function BodyweightSection({ celebrate }: { celebrate: () => void }) {
               <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke={tokens.grid.stroke} strokeOpacity={tokens.grid.strokeOpacity} />
                 <XAxis dataKey="label" tick={tokens.tick} tickLine={false} axisLine={tokens.axisLine} minTickGap={24} />
-                <YAxis tick={tokens.tick} width={42} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                <YAxis
+                  tick={tokens.tick}
+                  width={48}
+                  tickLine={false}
+                  axisLine={false}
+                  domain={['auto', 'auto']}
+                  /* Auto ticks land on values like 130.15, which overflow the
+                     axis and render clipped. Weigh-ins carry one decimal. */
+                  tickFormatter={(v: number) => String(Math.round(v * 10) / 10)}
+                />
                 <Tooltip
                   contentStyle={tokens.tooltipContentStyle}
                   labelStyle={tokens.tooltipLabelStyle}
                   itemStyle={tokens.tooltipItemStyle}
-                  formatter={(value) => [`${String(value)}${unit}`, 'Weight']}
+                  formatter={(value, name) => [
+                    `${String(value)}${unit}`,
+                    name === 'trend' ? '7-day avg' : 'Weight',
+                  ]}
                 />
                 <Area
                   type="monotone"
@@ -206,6 +228,17 @@ function BodyweightSection({ celebrate }: { celebrate: () => void }) {
                   fillOpacity={0.2}
                   dot={{ r: 2.5, fill: tokens.colors.primary, strokeWidth: 0 }}
                   activeDot={{ r: 4 }}
+                  isAnimationActive={!reduced}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="trend"
+                  stroke={tokens.colors.accentText}
+                  strokeWidth={2}
+                  strokeDasharray="4 3"
+                  fill="none"
+                  dot={false}
+                  activeDot={false}
                   isAnimationActive={!reduced}
                 />
               </AreaChart>

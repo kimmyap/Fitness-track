@@ -367,7 +367,8 @@ export function entryVolume(e: LiftSetEntry): number {
   return e.weight * e.sets * e.reps;
 }
 
-function isVolumeSet(e: Entry): e is LiftSetEntry {
+/** Sets that count toward volume: warm-ups and assisted are out, drops are IN. */
+export function isVolumeSet(e: Entry): e is LiftSetEntry {
   return isLiftSet(e) && Boolean(e.weight) && Boolean(e.sets) && Boolean(e.reps) && !e.warmupSet && !e.assistedPullup;
 }
 

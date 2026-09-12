@@ -3,7 +3,7 @@
  * units (lbs) — components convert for display via domain helpers.
  */
 import { DAYS } from '@/lib/program';
-import { epley1RM, isoDate, weekRange, volumeInRange, displayDate } from '@/lib/domain';
+import { entryVolume, epley1RM, isoDate, isVolumeSet, weekRange, volumeInRange, displayDate } from '@/lib/domain';
 import { isLiftSet, type BodyweightEntry, type Entry, type LiftSetEntry } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -35,10 +35,20 @@ export interface SeriesPoint {
   value: number;
 }
 
-/** Working sets that count toward 1RM/top-set (legacy filters). */
+/**
+ * Working sets that count toward 1RM/top-set. Drops are excluded here for the
+ * same reason `estimated1RM` excludes them — a fatigued back-off set is not a
+ * top set, and Epley on it reports a 1RM that never happened.
+ */
 function workingSets(entries: Entry[], exName: string): LiftSetEntry[] {
   return entries.filter(
-    (e): e is LiftSetEntry => isLiftSet(e) && e.exercise === exName && Boolean(e.weight) && !e.warmupSet && !e.assistedPullup,
+    (e): e is LiftSetEntry =>
+      isLiftSet(e) &&
+      e.exercise === exName &&
+      Boolean(e.weight) &&
+      !e.warmupSet &&
+      !e.assistedPullup &&
+      !e.dropSet,
   );
 }
 
@@ -134,6 +144,83 @@ export function bodyweightSeries(bwEntries: BodyweightEntry[]): SeriesPoint[] {
     .map((e, i) => ({ e, i }))
     .sort((a, b) => a.e.date.localeCompare(b.e.date) || a.i - b.i)
     .map(({ e }) => ({ date: e.date, value: e.weight }));
+}
+
+// ---------------------------------------------------------------------------
+// Smoothing
+// ---------------------------------------------------------------------------
+
+const dayMs = 86400000;
+/** Local midnight, so a "YYYY-MM-DD" never slips a day via UTC parsing. */
+const atLocalMidnight = (iso: string): number => new Date(`${iso}T00:00:00`).getTime();
+
+/**
+ * Trailing N-calendar-day mean, for reading a bodyweight trend through daily
+ * noise. The window is by DATE, not by point count: weigh-ins are irregular, so
+ * "the last 7 readings" could silently span two months and average away the
+ * very trend it is meant to show.
+ *
+ * Each output point is the mean of every reading in the N days ending on it,
+ * so the series starts immediately rather than after a warm-up period.
+ */
+export function movingAverageSeries(series: SeriesPoint[], windowDays = 7): SeriesPoint[] {
+  const sorted = [...series].sort((a, b) => a.date.localeCompare(b.date));
+  return sorted.map((point, i) => {
+    const cutoff = atLocalMidnight(point.date) - (windowDays - 1) * dayMs;
+    let sum = 0;
+    let n = 0;
+    for (let j = i; j >= 0; j--) {
+      const row = sorted[j] as SeriesPoint;
+      if (atLocalMidnight(row.date) < cutoff) break;
+      sum += row.value;
+      n++;
+    }
+    return { date: point.date, value: Math.round((sum / n) * 10) / 10 };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Muscle volume
+// ---------------------------------------------------------------------------
+
+export interface MuscleVolumeSummary {
+  muscle: string;
+  /** lbs, primary at 100% and secondary at 50%. */
+  volume: number;
+  /** Sets where this muscle is the PRIMARY mover — secondary work adds volume
+   *  but does not inflate the set count, which is how lifters read it. */
+  workingSets: number;
+}
+
+/** What a logged exercise name targets. Supplied by the caller so this stays
+ *  pure, and so the 1.2 MB exercise library is only loaded when actually shown. */
+export type MuscleLookup = (exerciseName: string) => { primary: string[]; secondary: string[] } | undefined;
+
+/**
+ * Volume per muscle group over the given entries, highest first. Uses the same
+ * set filter as every other volume number in the app, so drops count and
+ * warm-ups do not.
+ */
+export function muscleVolumeSummary(entries: Entry[], lookup: MuscleLookup): MuscleVolumeSummary[] {
+  const totals = new Map<string, MuscleVolumeSummary>();
+  const bump = (muscle: string, volume: number, isPrimary: boolean) => {
+    const row = totals.get(muscle) ?? { muscle, volume: 0, workingSets: 0 };
+    row.volume += volume;
+    if (isPrimary) row.workingSets += 1;
+    totals.set(muscle, row);
+  };
+
+  entries.filter(isVolumeSet).forEach((e) => {
+    const target = lookup(e.exercise);
+    if (!target) return;
+    const volume = entryVolume(e);
+    target.primary.forEach((m) => bump(m, volume, true));
+    target.secondary.forEach((m) => bump(m, volume * 0.5, false));
+  });
+
+  return [...totals.values()]
+    .map((r) => ({ ...r, volume: Math.round(r.volume) }))
+    .sort((a, b) => b.volume - a.volume || a.muscle.localeCompare(b.muscle));
 }
 
 // ---------------------------------------------------------------------------

@@ -36,6 +36,7 @@ import {
   type SeriesPoint,
 } from './chartData';
 import { ChartDataTable, ChartFrame, RangeSwitcher, useChartTokens } from './ChartKit';
+import { MuscleVolumeSection } from './MuscleVolumeSection';
 
 const VOLUME_WEEKS = 8;
 /** Design-spec rule: fewer than 4 data points → stat card instead of a chart. */
@@ -302,6 +303,7 @@ export function ChartsTab() {
       ) : null}
 
       <WeeklyVolumeSection unit={unit} />
+      <MuscleVolumeSection unit={unit} />
     </Stack>
   );
 }

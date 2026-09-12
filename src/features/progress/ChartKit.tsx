@@ -36,8 +36,9 @@ const SectionTitle = styled.h3`
 
 export interface DataTableSpec {
   caption: string;
-  columns: [string, string];
-  rows: [string, string][];
+  /** Any width — a chart with a second series needs a third column. */
+  columns: readonly string[];
+  rows: readonly (readonly string[])[];
 }
 
 /** Accessible alternative to the SVG chart (visually hidden). */
@@ -48,15 +49,19 @@ export function ChartDataTable({ caption, columns, rows }: DataTableSpec) {
         <caption>{caption}</caption>
         <thead>
           <tr>
-            <th scope="col">{columns[0]}</th>
-            <th scope="col">{columns[1]}</th>
+            {columns.map((col) => (
+              <th key={col} scope="col">
+                {col}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map(([a, b], i) => (
+          {rows.map((row, i) => (
             <tr key={i}>
-              <td>{a}</td>
-              <td>{b}</td>
+              {row.map((cell, j) => (
+                <td key={j}>{cell}</td>
+              ))}
             </tr>
           ))}
         </tbody>
