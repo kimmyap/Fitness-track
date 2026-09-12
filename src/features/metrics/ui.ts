@@ -71,6 +71,17 @@ export const ChoiceButton = styled.button<{ active: boolean }>`
   }
 `;
 
+/** Unit marker inside a field label, e.g. Calories [kcal]. */
+export const UnitBadge = styled.span`
+  margin-left: ${({ theme }) => theme.space[1]};
+  padding: 0 ${({ theme }) => theme.space[1]};
+  border-radius: ${({ theme }) => theme.radii.sm};
+  background: ${({ theme }) => theme.colors.muted};
+  color: ${({ theme }) => theme.colors.mutedForeground};
+  font-size: ${({ theme }) => theme.typography.fontSizes.xs};
+  font-weight: 600;
+`;
+
 export const DateInput = styled.input`
   min-height: ${({ theme }) => theme.touchTarget};
   padding: ${({ theme }) => `${theme.space[2]} ${theme.space[3]}`};

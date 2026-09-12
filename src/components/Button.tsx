@@ -65,8 +65,17 @@ export const Button = styled.button<{ variant?: ButtonVariant; fullWidth?: boole
   &:active:not(:disabled) {
     transform: scale(0.97);
   }
+  /*
+   * Disabled switches to the muted surface rather than fading the button.
+   * Opacity dims the background and the label by the same amount, so the
+   * contrast between them collapses — measured 2.09:1 in dark and 1.49:1 in
+   * light on a disabled primary button, which is illegible rather than merely
+   * inactive. Muted-on-muted still reads as inert, and stays legible.
+   */
   &:disabled {
-    opacity: 0.55;
+    background: ${({ theme }) => theme.colors.muted};
+    color: ${({ theme }) => theme.colors.mutedForeground};
+    border-color: ${({ theme }) => theme.colors.border};
     cursor: not-allowed;
   }
 `;

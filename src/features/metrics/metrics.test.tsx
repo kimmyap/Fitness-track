@@ -4,6 +4,7 @@ import { renderWithTheme } from '@/test/renderWithTheme';
 import { useBodyweightStore, useMetricsStore } from '@/stores';
 import { STORAGE_KEYS, fullKey, getCardioSessions, getDailyMetrics } from '@/lib/storage';
 import { MetricsTab } from './MetricsTab';
+import { recentAverage } from './metricsMath';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -138,5 +139,49 @@ describe('MetricsTab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Confirm delete of Jog session/i }));
     expect(useMetricsStore.getState().cardio).toHaveLength(0);
+  });
+});
+
+describe('recentAverage', () => {
+  const map = {
+    '2026-09-10': { calories: 2000, sleepHours: 7 },
+    '2026-09-11': { calories: 2200 },
+    '2026-09-12': { calories: 2100, sleepHours: 8 },
+    // Outside a 7-day window ending 2026-09-12.
+    '2026-08-01': { calories: 9999 },
+  };
+
+  it('averages only the days inside the window', () => {
+    expect(recentAverage(map, 'calories', 7, '2026-09-12')).toBe(2100);
+  });
+
+  /** Blank days must not drag the mean toward zero. */
+  it('skips days with no value for that field rather than counting them as 0', () => {
+    // Only two of the seven days recorded sleep: 7 and 8.
+    expect(recentAverage(map, 'sleepHours', 7, '2026-09-12')).toBe(7.5);
+  });
+
+  it('returns undefined when the window holds nothing, so no hint is shown', () => {
+    expect(recentAverage(map, 'protein', 7, '2026-09-12')).toBeUndefined();
+    expect(recentAverage({}, 'calories', 7, '2026-09-12')).toBeUndefined();
+  });
+
+  it('rounds calories to whole numbers and sleep to one decimal', () => {
+    const odd = { '2026-09-12': { calories: 2001, sleepHours: 7.26 } };
+    expect(recentAverage(odd, 'calories', 7, '2026-09-12')).toBe(2001);
+    expect(recentAverage(odd, 'sleepHours', 7, '2026-09-12')).toBe(7.3);
+  });
+});
+
+describe('DailyMetricsForm hints', () => {
+  it('shows an average hint once there is history, and none before', () => {
+    useMetricsStore.setState({ dailyMetrics: {}, cardio: [] });
+    const { unmount } = renderWithTheme(<MetricsTab />);
+    expect(screen.queryByText(/7-day avg/)).not.toBeInTheDocument();
+    unmount();
+
+    useMetricsStore.setState({ dailyMetrics: { [TODAY]: { calories: 2100 } }, cardio: [] });
+    renderWithTheme(<MetricsTab />);
+    expect(screen.getByText('7-day avg 2,100')).toBeInTheDocument();
   });
 });

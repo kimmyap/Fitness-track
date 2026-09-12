@@ -15,7 +15,20 @@ import { Card, NumberInput } from '@/components';
 import { fromDisplayWeight, toDisplayWeight } from '@/lib/domain';
 import type { EnergyRating, Unit } from '@/lib/types';
 import { useBodyweightStore, useMetricsStore } from '@/stores';
-import { ChoiceButton, ChoiceRow, FieldGrid, Hint, SectionTitle, Stack } from './ui';
+import { recentAverage, type AveragedField } from './metricsMath';
+import { ChoiceButton, ChoiceRow, FieldGrid, Hint, SectionTitle, Stack, UnitBadge } from './ui';
+
+/** Days behind the selected date that the hint averages over. */
+const AVERAGE_WINDOW_DAYS = 7;
+
+function Label({ text, unit }: { text: string; unit: string }) {
+  return (
+    <>
+      {text}
+      <UnitBadge>{unit}</UnitBadge>
+    </>
+  );
+}
 
 const ENERGY: { value: EnergyRating; label: string }[] = [
   { value: 1, label: '1' },
@@ -75,6 +88,17 @@ export function DailyMetricsForm({ date, unit }: DailyMetricsFormProps) {
 
   const energy = stored.energy;
 
+  /**
+   * Hints are averages of what has actually been logged, not targets — this app
+   * stores no calorie, protein or sleep goal, and an invented one would be
+   * health advice rather than tracking. Absent until there is something to
+   * average, so an empty history shows no hint rather than "0".
+   */
+  const avgHint = (field: AveragedField, suffix: string): string | undefined => {
+    const avg = recentAverage(dailyMetrics, field, AVERAGE_WINDOW_DAYS, date);
+    return avg === undefined ? undefined : `${AVERAGE_WINDOW_DAYS}-day avg ${avg.toLocaleString()}${suffix}`;
+  };
+
   return (
     <Card as="section">
       <Stack gap={3}>
@@ -82,37 +106,40 @@ export function DailyMetricsForm({ date, unit }: DailyMetricsFormProps) {
 
         <FieldGrid>
           <NumberInput
-            label="Calories"
+            label={<Label text="Calories" unit="kcal" />}
             value={draft.calories}
             min={0}
             step="any"
             inputMode="numeric"
+            helper={avgHint('calories', '')}
             onChange={(e) => setDraft((d) => ({ ...d, calories: e.target.value === '' ? '' : Number(e.target.value) }))}
             onBlur={commit('calories')}
           />
           <NumberInput
-            label="Protein (g)"
+            label={<Label text="Protein" unit="g" />}
             value={draft.protein}
             min={0}
             step="any"
             inputMode="numeric"
+            helper={avgHint('protein', 'g')}
             onChange={(e) => setDraft((d) => ({ ...d, protein: e.target.value === '' ? '' : Number(e.target.value) }))}
             onBlur={commit('protein')}
           />
           <NumberInput
-            label="Sleep (hours)"
+            label={<Label text="Sleep" unit="hrs" />}
             value={draft.sleepHours}
             min={0}
             max={24}
             step="any"
             inputMode="decimal"
+            helper={avgHint('sleepHours', 'h')}
             onChange={(e) =>
               setDraft((d) => ({ ...d, sleepHours: e.target.value === '' ? '' : Number(e.target.value) }))
             }
             onBlur={commit('sleepHours')}
           />
           <NumberInput
-            label={`Body weight (${unit})`}
+            label={<Label text="Body weight" unit={unit} />}
             value={draft.weight}
             min={0}
             step="any"
