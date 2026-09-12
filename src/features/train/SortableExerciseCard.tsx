@@ -56,6 +56,7 @@ export function SortableExerciseCard({ id, ...cardProps }: SortableExerciseCardP
   return (
     <Wrap
       ref={setNodeRef}
+      data-exercise={id}
       style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 1 : undefined }}
     >
       <ExerciseCard

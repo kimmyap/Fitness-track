@@ -5,6 +5,7 @@
  * add-or-log-once section.
  */
 import { useState } from 'react';
+import styled from '@emotion/styled';
 import { Check } from 'lucide-react';
 import {
   DndContext,
@@ -38,6 +39,19 @@ import { SortableExerciseCard } from './SortableExerciseCard';
 import { ActiveSetBar } from './ActiveSetBar';
 import { AddExerciseSection } from './AddExerciseSection';
 import type { AddExerciseMode, SwapPrefill } from './AddExerciseSection';
+
+const StickyStack = styled.div`
+  position: sticky;
+  top: ${({ theme }) => theme.space[2]};
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.space[2]};
+  /* Page-coloured, or list content scrolls visibly through the gap between the
+     two bars and reads as a rendering glitch. */
+  background: ${({ theme }) => theme.colors.background};
+  padding-block: ${({ theme }) => theme.space[1]};
+`;
 
 export interface WorkoutDayViewProps {
   day: string;
@@ -98,6 +112,25 @@ export function WorkoutDayView({ day, logDate, todayIso, onLogDateChange }: Work
     useProgramStore.getState().setDayOrder(day, arrayMove(exerciseNames, from, to));
   };
 
+  /**
+   * Attribute selector rather than an id: exercise names contain spaces, which
+   * are not valid in an HTML id. CSS.escape keeps a quote or bracket in a
+   * custom exercise name from breaking the selector.
+   */
+  const jumpToCard = (name: string) => {
+    const card = document.querySelector(`[data-exercise="${CSS.escape(name)}"]`);
+    if (!(card instanceof HTMLElement)) return;
+    // Measured, not a CSS guess: the stack's height changes with whether the
+    // timer and the active bar are both showing.
+    const stack = document.querySelector('[data-sticky-stack]');
+    const offset = (stack instanceof HTMLElement ? stack.offsetHeight : 0) + 16;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({
+      top: card.getBoundingClientRect().top + window.scrollY - offset,
+      behavior: reduced ? 'auto' : 'smooth',
+    });
+  };
+
   const activeExercise = exercises.find((ex) => ex.name === openExercise);
   const activeSetsLogged = activeExercise
     ? entries.filter(
@@ -128,20 +161,25 @@ export function WorkoutDayView({ day, logDate, todayIso, onLogDateChange }: Work
 
       <WeeklyRecapCard />
       <DatePickerBar logDate={logDate} todayIso={todayIso} onChange={onLogDateChange} />
-      <RestTimerBar />
+
+      {/* One sticky stack: two independently-sticky bars with the same `top`
+          pin to the same spot and overlap each other. */}
+      <StickyStack data-sticky-stack>
+        <RestTimerBar />
+        {activeExercise ? (
+          <ActiveSetBar
+            exerciseName={activeExercise.name}
+            setsLogged={activeSetsLogged}
+            targetSets={activeExercise.targetSets}
+            targetReps={activeExercise.targetReps}
+            onJumpToCard={() => jumpToCard(activeExercise.name)}
+          />
+        ) : null}
+      </StickyStack>
 
       <Button fullWidth onClick={() => setFinishOpen(true)}>
         <Check size={18} aria-hidden="true" /> Finish Workout
       </Button>
-
-      {activeExercise ? (
-        <ActiveSetBar
-          exerciseName={activeExercise.name}
-          setsLogged={activeSetsLogged}
-          targetSets={activeExercise.targetSets}
-          targetReps={activeExercise.targetReps}
-        />
-      ) : null}
 
       {exercises.length === 0 ? (
         <Muted>No exercises on this day yet — add one below.</Muted>

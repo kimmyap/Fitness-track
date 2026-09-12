@@ -11,10 +11,12 @@ import { REST_TIMER_PRESETS } from '@/lib/domain';
 import { fmtTime } from './ui';
 import { unlockAudio, useRestTimerStore } from './restTimer';
 
+/*
+ * Not sticky itself: WorkoutDayView pins it and the ActiveSetBar together in
+ * one sticky stack. Two separately-sticky bars with the same `top` pin to the
+ * same spot and overlap — the timer covered the open card's header.
+ */
 const Bar = styled.div`
-  position: sticky;
-  top: ${({ theme }) => theme.space[2]};
-  z-index: 40;
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.space[2]};

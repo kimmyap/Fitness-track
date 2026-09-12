@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@emotion/react';
 import { themeFor } from '@/theme';
 import { ActiveSetBar } from './ActiveSetBar';
@@ -32,5 +33,17 @@ describe('ActiveSetBar', () => {
   it('is a labelled live region, so the name is announced with the count', () => {
     renderBar({ exerciseName: 'Rows', setsLogged: 0, targetSets: 3, targetReps: '10-12' });
     expect(screen.getByRole('status', { name: 'Currently logging' })).toBeInTheDocument();
+  });
+
+  it('offers a way back to the inputs once the card has scrolled away', async () => {
+    const onJumpToCard = vi.fn();
+    renderBar({ exerciseName: 'Rows', setsLogged: 0, targetSets: 3, targetReps: '10-12', onJumpToCard });
+    await userEvent.click(screen.getByRole('button', { name: /jump to card/i }));
+    expect(onJumpToCard).toHaveBeenCalledOnce();
+  });
+
+  it('hides the jump control when no handler is wired', () => {
+    renderBar({ exerciseName: 'Rows', setsLogged: 0, targetSets: 3, targetReps: '10-12' });
+    expect(screen.queryByRole('button', { name: /jump to card/i })).not.toBeInTheDocument();
   });
 });
