@@ -2,11 +2,14 @@
  * Day detail card (legacy renderCalendar detail): exercise count + day
  * volume, every entry that day (deletable with undo), Pilates/Volleyball/
  * Core backfill buttons, and the per-day note with debounced 600ms autosave.
+ *
+ * Deleting is gated by ConfirmDeleteAction, same as the Train page's history
+ * list — one armed id for the whole day, so arming a row disarms any other.
  */
 import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
-import { CalendarX, X } from 'lucide-react';
-import { Badge, Button, Card, EmptyState, FieldLabel, IconButton, toast } from '@/components';
+import { CalendarX } from 'lucide-react';
+import { Badge, Button, Card, ConfirmDeleteAction, EmptyState, FieldLabel, toast } from '@/components';
 import { displayDate, generateId, setNumberInDay, toDisplayWeight } from '@/lib/domain';
 import { isLiftSet, type Entry, type LiftSetEntry } from '@/lib/types';
 import { useEntriesStore, useNotesStore, useSettingsStore } from '@/stores';
@@ -130,7 +133,11 @@ export function DayDetail({ date, todayIso, onMutate }: DayDetailProps) {
   const dayEntries = entries.filter((e) => e.date === date);
   const { exerciseCount, volumeLbs } = daySummary(dayEntries);
 
+  /** Row armed for deletion. Session-only — a pending delete must not outlive the view. */
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   const handleDelete = (id: string) => {
+    setPendingDeleteId(null);
     const removed = deleteEntry(id);
     if (!removed) return;
     toast('Set deleted', { undo: () => restoreEntry(removed) });
@@ -180,9 +187,14 @@ export function DayDetail({ date, todayIso, onMutate }: DayDetailProps) {
                   </RowMeta>
                 </RowMain>
                 <RowWeight>{weightDisplay(e)}</RowWeight>
-                <IconButton aria-label={`Delete ${e.exercise} set`} tone="destructive" onClick={() => handleDelete(e.id)}>
-                  <X size={18} aria-hidden="true" />
-                </IconButton>
+                <ConfirmDeleteAction
+                  target={`${e.exercise} set`}
+                  iconSize={18}
+                  armed={pendingDeleteId === e.id}
+                  onArm={() => setPendingDeleteId(e.id)}
+                  onCancel={() => setPendingDeleteId(null)}
+                  onConfirm={() => handleDelete(e.id)}
+                />
               </Row>
             ) : (
               <Row key={e.id}>
@@ -190,13 +202,14 @@ export function DayDetail({ date, todayIso, onMutate }: DayDetailProps) {
                   <RowName>{completionLabel(e)}</RowName>
                   <RowMeta>✓ done</RowMeta>
                 </RowMain>
-                <IconButton
-                  aria-label={`Delete ${completionLabel(e)} entry`}
-                  tone="destructive"
-                  onClick={() => handleDelete(e.id)}
-                >
-                  <X size={18} aria-hidden="true" />
-                </IconButton>
+                <ConfirmDeleteAction
+                  target={`${completionLabel(e)} entry`}
+                  iconSize={18}
+                  armed={pendingDeleteId === e.id}
+                  onArm={() => setPendingDeleteId(e.id)}
+                  onCancel={() => setPendingDeleteId(null)}
+                  onConfirm={() => handleDelete(e.id)}
+                />
               </Row>
             ),
           )}

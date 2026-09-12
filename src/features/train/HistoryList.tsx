@@ -5,15 +5,13 @@
  * repeat / edit / delete actions. Warm-up rows are greyed so they can't be
  * mistaken for working sets.
  *
- * Delete is a two-tap gate. The first tap only arms the row; the confirm and
- * cancel controls then replace the X in place. Cancel sits where the X was, so
- * a double-tap — the mis-tap this guards against — lands on cancel and never on
- * delete. The undo toast downstream is the second net, not the first.
+ * Delete is gated by ConfirmDeleteAction: the first tap only arms the row. The
+ * undo toast downstream is the second net, not the first.
  */
 import { useState } from 'react';
 import styled from '@emotion/styled';
-import { Check, ChevronDown, ChevronRight, ClipboardList, Pencil, RotateCw, Trash2, Undo2, X } from 'lucide-react';
-import { Badge, EmptyState, IconButton } from '@/components';
+import { Check, ChevronDown, ChevronRight, ClipboardList, Pencil, RotateCw } from 'lucide-react';
+import { Badge, ConfirmDeleteAction, EmptyState, IconButton } from '@/components';
 import { useEntriesStore, useSettingsStore } from '@/stores';
 import { displayDateWithWeekday, entryVolume, historyFor } from '@/lib/domain';
 import type { LiftSetEntry } from '@/lib/types';
@@ -73,13 +71,6 @@ const Actions = styled.span`
   display: inline-flex;
   align-items: center;
   margin-left: auto;
-`;
-
-/** Confirm reads as a word, not just a red icon — colour never carries meaning alone. */
-const ConfirmText = styled.span`
-  margin-left: ${({ theme }) => theme.space[1]};
-  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
-  font-weight: 700;
 `;
 
 /**
@@ -227,35 +218,16 @@ export function HistoryList({
                     <IconButton aria-label={`Edit this set (${weightDisplay} x ${r.reps})`} onClick={() => onEdit(r)}>
                       <Pencil size={16} aria-hidden="true" />
                     </IconButton>
-                    {pendingDeleteId === r.id ? (
-                      <>
-                        <IconButton
-                          aria-label={`Confirm delete of this set (${weightDisplay} x ${r.reps})`}
-                          tone="destructive"
-                          onClick={() => {
-                            setPendingDeleteId(null);
-                            onDelete(r);
-                          }}
-                        >
-                          <Trash2 size={16} aria-hidden="true" />
-                          <ConfirmText>Delete?</ConfirmText>
-                        </IconButton>
-                        <IconButton
-                          aria-label={`Keep this set (${weightDisplay} x ${r.reps})`}
-                          onClick={() => setPendingDeleteId(null)}
-                        >
-                          <Undo2 size={16} aria-hidden="true" />
-                        </IconButton>
-                      </>
-                    ) : (
-                      <IconButton
-                        aria-label={`Delete this set (${weightDisplay} x ${r.reps})`}
-                        tone="destructive"
-                        onClick={() => setPendingDeleteId(r.id)}
-                      >
-                        <X size={16} aria-hidden="true" />
-                      </IconButton>
-                    )}
+                    <ConfirmDeleteAction
+                      target={`this set (${weightDisplay} x ${r.reps})`}
+                      armed={pendingDeleteId === r.id}
+                      onArm={() => setPendingDeleteId(r.id)}
+                      onCancel={() => setPendingDeleteId(null)}
+                      onConfirm={() => {
+                        setPendingDeleteId(null);
+                        onDelete(r);
+                      }}
+                    />
                   </Actions>
                 </SetRow>
               );

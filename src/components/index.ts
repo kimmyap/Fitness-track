@@ -7,6 +7,7 @@ export { SegmentedTabs, type SegmentedTabsProps, type SegmentedTab } from './Seg
 export { Modal, type ModalProps } from './Modal';
 export { Toaster, toast, useToastStore, TOAST_DURATION_MS, type ToastItem } from './Toast';
 export { ConfirmTap, type ConfirmTapProps } from './ConfirmTap';
+export { ConfirmDeleteAction, type ConfirmDeleteActionProps } from './ConfirmDeleteAction';
 export { TextInput, NumberInput, Field, FieldLabel, InputBase, type TextInputProps } from './TextInput';
 export { NumberStepper, type NumberStepperProps } from './NumberStepper';
 export { Badge, type BadgeTone } from './Badge';
