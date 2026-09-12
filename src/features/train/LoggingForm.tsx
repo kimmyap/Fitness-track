@@ -18,7 +18,7 @@
 import { useId, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import styled from '@emotion/styled';
-import { Badge, Button, Field, FieldLabel, NumberInput, toast } from '@/components';
+import { Button, Field, FieldLabel, NumberInput, toast } from '@/components';
 import {
   modeForExercise,
   useAchievementsStore,
@@ -648,8 +648,8 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
 
       {!isEditing ? (
         <Muted>
-          {setsToday} of {exercise.targetSets} sets logged for this session{' '}
-          <Badge>target {exercise.targetSets} x {exercise.targetReps}</Badge>
+          {setsToday} of {exercise.targetSets} sets logged for this session · target{' '}
+          {exercise.targetSets} x {exercise.targetReps}
         </Muted>
       ) : (
         <TextButton onClick={onFinishEdit}>Cancel edit</TextButton>
