@@ -203,9 +203,17 @@ otherwise discover the hard way.
    history loss, and nothing prompts a periodic export.
 9. **No route-level code splitting.** `docs/plan.md` called it "optional"; it was not done. The
    920 kB main bundle ships all five routes on first paint.
-10. **Test coverage is logic-only.** 17 test files, all unit/component level. No end-to-end
-    test, no visual regression, no automated accessibility check (no axe in CI). Route wiring,
-    the responsive shell, theme switching and the rest-timer audio path are verified by eye only.
+10. **Partly fixed 2026-09-12.** 17 vitest files plus a Playwright suite in `e2e/`, run by
+    `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
+    it builds the app and drives a browser. `npm run test:e2e` locally. It exists because three
+    bugs shipped past a green unit suite (blank page offline, `Vary: Origin` 503s, a sticky bar
+    covering the card it describes); it covers the offline shell, reordering by pointer AND
+    keyboard, and the active-set bar in both themes at 375px. Two traps if you extend it:
+    `devices['Pixel 7']` sets `isMobile: true`, which stops dnd-kit seeing synthetic input at
+    all — use an explicit viewport; and `page.mouse` does not auto-scroll, so call
+    `scrollIntoViewIfNeeded()` before dragging anything below the fold. Still missing: visual
+    regression and an automated accessibility check (no axe). The rest-timer audio path is
+    still verified by eye only.
 11. **Accepted contrast failures with no tracking.** `CLAUDE.md` documents ratios below AA
     (light `primary` 3.56:1, light `accent` 3.30:1, dark `primary`-as-text 4.27:1) as deliberate.
     That is a legitimate call, but there is no issue, no `@todo`, and no condition that would
