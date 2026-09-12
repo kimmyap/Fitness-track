@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import { CalendarX } from 'lucide-react';
-import { Badge, Button, Card, ConfirmDeleteAction, EmptyState, FieldLabel, RowMenu, toast } from '@/components';
+import { Button, Card, ConfirmDeleteAction, EmptyState, FieldLabel, RowMenu, toast } from '@/components';
 import { displayDate, generateId, setNumberInDay, toDisplayWeight } from '@/lib/domain';
 import { isLiftSet, type Entry, type LiftSetEntry } from '@/lib/types';
 import { useEntriesStore, useNotesStore, useSettingsStore } from '@/stores';
@@ -224,13 +224,12 @@ export function DayDetail({ date, todayIso, onMutate }: DayDetailProps) {
                     {isLiftSet(e) ? (
                       <>
                         <RowMain>
-                          <RowName>
-                            {e.exercise}
-                            {e.variation ? <Badge>{e.variation}</Badge> : null}
-                          </RowName>
+                          <RowName>{e.exercise}</RowName>
+                          {/* Variation and RPE are plain text — pills are for set types. */}
                           <RowMeta>
                             {liftSetLabel(entries, e)}
-                            {e.rpe ? <Badge>RPE {e.rpe}</Badge> : null}
+                            {e.variation ? ` · ${e.variation}` : ''}
+                            {e.rpe ? ` · RPE ${e.rpe}` : ''}
                           </RowMeta>
                         </RowMain>
                         <RowWeight>{weightDisplay(e)}</RowWeight>

@@ -42,6 +42,22 @@ describe('HistoryList row layout', () => {
     expect(row).toHaveTextContent('135lbs × 8 @8');
   });
 
+  it('shows the variation beside the load rather than as its own tag', () => {
+    useEntriesStore.setState({ entries: [{ ...setA, variation: 'Barbell' }] });
+    renderList();
+
+    expect(rowButtons()[0]).toHaveTextContent('135lbs × 8 @8 · Barbell');
+  });
+
+  it('labels a warm-up as a set type instead of numbering it', () => {
+    useEntriesStore.setState({ entries: [{ ...setA, warmupSet: true }] });
+    renderList();
+
+    const row = rowButtons()[0] as HTMLElement;
+    expect(row).toHaveTextContent('Warm-up');
+    expect(row).not.toHaveTextContent(/Set \d/);
+  });
+
   it('carries no inline action buttons on the row itself', () => {
     renderList();
     expect(screen.queryByRole('button', { name: /^Repeat/i })).not.toBeInTheDocument();

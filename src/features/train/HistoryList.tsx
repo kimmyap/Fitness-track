@@ -64,6 +64,12 @@ const DayLabel = styled.span`
   gap: ${({ theme }) => theme.space[1]};
 `;
 
+/** Variation reads as an aside to the load, not as its own tagged field. */
+const Meta = styled.span`
+  font-weight: 500;
+  color: ${({ theme }) => theme.colors.mutedForeground};
+`;
+
 /** PB star: colour plus a glyph plus announced text, never colour alone. */
 const PbStar = styled.span`
   color: ${({ theme }) => theme.colors.secondary};
@@ -257,10 +263,15 @@ export function HistoryList({
                       editing={r.id === editingId}
                       expanded={isOpen}
                     >
-                      <SetLabelCell>{setLabel}</SetLabelCell>
-                      <LoadCell>{loadText}</LoadCell>
+                      <SetLabelCell>
+                        {/* Pills are reserved for set types; a set number is plain text. */}
+                        {r.warmupSet ? <Badge>Warm-up</Badge> : setLabel}
+                      </SetLabelCell>
+                      <LoadCell>
+                        {loadText}
+                        {r.variation ? <Meta> · {r.variation}</Meta> : null}
+                      </LoadCell>
                       <StatusCell>
-                        {r.variation ? <Badge>{r.variation}</Badge> : null}
                         {r.dropSet ? <Badge>Drop</Badge> : null}
                         {r.toFailure ? <Badge>Failure</Badge> : null}
                         {isPB ? (

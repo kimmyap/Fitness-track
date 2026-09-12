@@ -211,24 +211,30 @@ export const StatusCell = styled.span`
   justify-self: end;
 `;
 
-/** Info box (form cues / notes; legacy gt-info-box). */
+/**
+ * Info box (form cues / notes; legacy gt-info-box).
+ *
+ * A left rule rather than a filled panel. These sit inside a card that already
+ * has its own surface colour, so a `muted` fill stacked another background on
+ * top of it — three tones deep by the time you reach the text, and padding on
+ * every layer. The rule marks the aside just as clearly and costs no nesting.
+ */
 export const InfoBox = styled.div`
-  background: ${({ theme }) => theme.colors.muted};
+  background: transparent;
   color: ${({ theme }) => theme.colors.foreground};
-  border-radius: ${({ theme }) => theme.radii.md};
-  padding: ${({ theme }) => theme.space[3]};
+  border-left: 3px solid ${({ theme }) => theme.colors.border};
+  padding: ${({ theme }) => `${theme.space[1]} 0 ${theme.space[1]} ${theme.space[3]}`};
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.space[2]};
 `;
 
-/** Suggestion box (progression ladder; legacy gt-suggest-box). */
+/** Suggestion box (progression ladder; legacy gt-suggest-box). Accent left rule, no fill. */
 export const SuggestBox = styled.div`
-  background: ${({ theme }) => theme.colors.muted};
-  border: 1px solid ${({ theme }) => theme.colors.accent};
-  border-radius: ${({ theme }) => theme.radii.md};
-  padding: ${({ theme }) => theme.space[3]};
+  background: transparent;
+  border-left: 3px solid ${({ theme }) => theme.colors.accent};
+  padding: ${({ theme }) => `${theme.space[1]} 0 ${theme.space[1]} ${theme.space[3]}`};
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
   display: flex;
   gap: ${({ theme }) => theme.space[2]};
