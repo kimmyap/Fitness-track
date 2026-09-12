@@ -33,6 +33,20 @@ export interface LiftSetEntry {
   warmupSet?: true;
   /** Only present when true. Excluded from PB/1RM/volume. */
   assistedPullup?: true;
+  /**
+   * NEW (not legacy). Only present when true. A back-off drop performed
+   * pre-fatigued at reduced load: it IS real work, so it counts toward volume
+   * and the n/N session target, but it is excluded from best-weight, est-1RM,
+   * the progression suggestion and the prefill — Epley on a fatigued high-rep
+   * drop produces a 1RM that never happened.
+   */
+  dropSet?: true;
+  /**
+   * NEW (not legacy). Only present when true. A set taken to failure counts
+   * exactly like a normal working set everywhere, PBs included; it is a label
+   * for history, not a modifier, so no domain logic reads it.
+   */
+  toFailure?: true;
 }
 
 export type ActivityName = 'Pilates' | 'Volleyball';

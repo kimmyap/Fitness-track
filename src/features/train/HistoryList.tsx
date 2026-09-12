@@ -175,7 +175,8 @@ export function HistoryList({
                 r.weight === best?.weight &&
                 r.date === best.date &&
                 !r.warmupSet &&
-                !r.assistedPullup;
+                !r.assistedPullup &&
+                !r.dropSet;
               const setLabel = r.warmupSet
                 ? `Warm-up · ${r.reps} reps`
                 : r.sets && r.sets > 1
@@ -190,6 +191,8 @@ export function HistoryList({
                 <SetRow key={r.id} completed warmup={Boolean(r.warmupSet)} editing={r.id === editingId}>
                   <RowInfo>
                     {r.variation ? <Badge>{r.variation}</Badge> : null}
+                    {r.dropSet ? <Badge>Drop</Badge> : null}
+                    {r.toFailure ? <Badge>Failure</Badge> : null}
                     <span>{setLabel}</span>
                     {r.rpe ? <Badge>RPE {r.rpe}</Badge> : null}
                     <WeightNum pb={isPB} warmup={Boolean(r.warmupSet)}>

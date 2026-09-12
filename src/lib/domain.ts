@@ -315,12 +315,17 @@ export function isBigJump(newWeightLbs: number, lastWeightLbs: number): boolean 
   return pctChange > TYPO_GUARD_THRESHOLD;
 }
 
-/** Most recent working (non-warmup, non-assisted, weighted) set for an exercise. */
+/** Most recent top working (non-warmup, non-assisted, non-drop, weighted) set. */
 export function lastLoggedWorkingSet(entries: Entry[], exName: string): LiftSetEntry | undefined {
   return entries
     .filter(
       (e): e is LiftSetEntry =>
-        isLiftSet(e) && e.exercise === exName && Boolean(e.weight) && !e.warmupSet && !e.assistedPullup,
+        isLiftSet(e) &&
+        e.exercise === exName &&
+        Boolean(e.weight) &&
+        !e.warmupSet &&
+        !e.assistedPullup &&
+        !e.dropSet,
     )
     .sort(
       (a, b) =>
@@ -341,7 +346,13 @@ export function epley1RM(weight: number, reps: number): number {
 export function estimated1RM(entries: Entry[], exName: string): number | null {
   const rows = entries.filter(
     (e): e is LiftSetEntry =>
-      isLiftSet(e) && e.exercise === exName && Boolean(e.weight) && Boolean(e.reps) && !e.warmupSet && !e.assistedPullup,
+      isLiftSet(e) &&
+      e.exercise === exName &&
+      Boolean(e.weight) &&
+      Boolean(e.reps) &&
+      !e.warmupSet &&
+      !e.assistedPullup &&
+      !e.dropSet,
   );
   if (!rows.length) return null;
   const best = rows.reduce((max, r) => {
@@ -511,7 +522,9 @@ export function fireTier(streak: number): FireTier {
  * instead prevented from triggering PR toasts at log time).
  */
 export function bestFor(entries: Entry[], exName: string): LiftSetEntry | null {
-  const rows = entries.filter((e): e is LiftSetEntry => isLiftSet(e) && e.exercise === exName && !e.warmupSet);
+  const rows = entries.filter(
+    (e): e is LiftSetEntry => isLiftSet(e) && e.exercise === exName && !e.warmupSet && !e.dropSet,
+  );
   if (!rows.length) return null;
   return rows.reduce((a, b) => (b.weight > a.weight ? b : a));
 }
@@ -524,10 +537,10 @@ export function bestFor(entries: Entry[], exName: string): LiftSetEntry | null {
 export function isPR(
   newWeightLbs: number,
   prevBestLbs: number,
-  opts: { warmupSet?: boolean; assistedPullup?: boolean; variation?: string | null },
+  opts: { warmupSet?: boolean; assistedPullup?: boolean; dropSet?: boolean; variation?: string | null },
 ): boolean {
   const isBodyweightVar = opts.variation === 'Bodyweight' || opts.variation === 'Bodyweight Lunges';
-  if (opts.warmupSet || opts.assistedPullup || isBodyweightVar) return false;
+  if (opts.warmupSet || opts.assistedPullup || opts.dropSet || isBodyweightVar) return false;
   return newWeightLbs > prevBestLbs;
 }
 
@@ -536,7 +549,10 @@ export function prCountAllTime(entries: Entry[]): number {
   const seen: Record<string, number> = {};
   let count = 0;
   const sorted = entries
-    .filter((e): e is LiftSetEntry => isLiftSet(e) && Boolean(e.weight) && !e.warmupSet && !e.assistedPullup)
+    .filter(
+      (e): e is LiftSetEntry =>
+        isLiftSet(e) && Boolean(e.weight) && !e.warmupSet && !e.assistedPullup && !e.dropSet,
+    )
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   sorted.forEach((e) => {
     const prevMax = seen[e.exercise];
@@ -593,7 +609,12 @@ export function suggestedNextWeight(
 ): ProgressionSuggestion | null {
   const working = entries.filter(
     (e): e is LiftSetEntry =>
-      isLiftSet(e) && e.exercise === ex.name && Boolean(e.weight) && !e.warmupSet && !e.assistedPullup,
+      isLiftSet(e) &&
+      e.exercise === ex.name &&
+      Boolean(e.weight) &&
+      !e.warmupSet &&
+      !e.assistedPullup &&
+      !e.dropSet,
   );
   if (!working.length) return null;
   const lastDate = [...new Set(working.map((e) => e.date))].sort(

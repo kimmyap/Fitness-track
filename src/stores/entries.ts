@@ -29,6 +29,10 @@ export interface NewLiftSetInput {
   variation?: string;
   warmupSet?: boolean;
   assistedPullup?: boolean;
+  /** NEW: back-off drop — counts for volume, never for PB/1RM. */
+  dropSet?: boolean;
+  /** NEW: taken to failure — a label only; counts exactly like a normal set. */
+  toFailure?: boolean;
   /** When false, omit createdAt (legacy one-off logs). Default true. */
   withCreatedAt?: boolean;
 }
@@ -47,6 +51,8 @@ export function buildLiftSetEntry(input: NewLiftSetInput): LiftSetEntry {
   if (input.variation) entry.variation = input.variation;
   if (input.warmupSet) entry.warmupSet = true;
   if (input.assistedPullup) entry.assistedPullup = true;
+  if (input.dropSet) entry.dropSet = true;
+  if (input.toFailure) entry.toFailure = true;
   return entry;
 }
 
@@ -71,7 +77,16 @@ export interface EntriesState {
    */
   updateSet: (
     id: string,
-    patch: { weight: number; reps: number; rpe?: number; variation?: string; warmupSet?: boolean; assistedPullup?: boolean },
+    patch: {
+      weight: number;
+      reps: number;
+      rpe?: number;
+      variation?: string;
+      warmupSet?: boolean;
+      assistedPullup?: boolean;
+      dropSet?: boolean;
+      toFailure?: boolean;
+    },
   ) => void;
   /** Remove an entry. Returns the removed entry so callers can offer Undo. */
   deleteEntry: (id: string) => Entry | undefined;
@@ -128,6 +143,10 @@ export const useEntriesStore = create<EntriesState>((set, get) => {
         else delete next.warmupSet;
         if (patch.assistedPullup) next.assistedPullup = true;
         else delete next.assistedPullup;
+        if (patch.dropSet) next.dropSet = true;
+        else delete next.dropSet;
+        if (patch.toFailure) next.toFailure = true;
+        else delete next.toFailure;
         return next;
       });
       persist(entries);

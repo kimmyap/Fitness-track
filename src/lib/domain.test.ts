@@ -611,3 +611,63 @@ describe('exercisesForDay / goalFor', () => {
     expect(goalFor(ex, { 'Sumo Squats': 145 })).toBe(145);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Set types: dropSet and toFailure (NEW fields, not in the legacy schema)
+// ---------------------------------------------------------------------------
+
+describe('dropSet counts as work but never as a best', () => {
+  const withDrop = [
+    lift({ exercise: 'Bench Press', weight: 100, reps: 5, date: '2026-09-01' }),
+    lift({ exercise: 'Bench Press', weight: 140, reps: 12, date: '2026-09-02', dropSet: true }),
+  ];
+
+  it('is excluded from bestFor, so a drop cannot masquerade as a PB', () => {
+    expect(bestFor(withDrop, 'Bench Press')?.weight).toBe(100);
+  });
+
+  it('is excluded from estimated1RM, where a fatigued high-rep drop inflates Epley', () => {
+    // Including the drop would give 140 * (1 + 12/30) = 196.
+    expect(estimated1RM(withDrop, 'Bench Press')).toBe(Math.round(100 * (1 + 5 / 30)));
+  });
+
+  it('still counts toward volume — it is real work', () => {
+    const start = new Date('2026-09-01T00:00:00');
+    const end = new Date('2026-09-30T23:59:59');
+    expect(volumeInRange(withDrop, start, end)).toBe(100 * 1 * 5 + 140 * 1 * 12);
+  });
+
+  it('is excluded from the prefill, which should follow the top set', () => {
+    expect(lastLoggedWorkingSet(withDrop, 'Bench Press')?.weight).toBe(100);
+  });
+
+  it('never fires a PR', () => {
+    expect(isPR(200, 100, { dropSet: true })).toBe(false);
+    expect(isPR(200, 100, {})).toBe(true);
+  });
+
+  it('is excluded from the all-time PR count', () => {
+    expect(prCountAllTime(withDrop)).toBe(1);
+  });
+});
+
+describe('toFailure is a label, not a modifier', () => {
+  const withFailure = [
+    lift({ exercise: 'Rows', weight: 90, reps: 8, date: '2026-09-01' }),
+    lift({ exercise: 'Rows', weight: 110, reps: 6, date: '2026-09-02', toFailure: true }),
+  ];
+
+  it('can set a PB like any working set', () => {
+    expect(bestFor(withFailure, 'Rows')?.weight).toBe(110);
+    // `toFailure` is deliberately not an isPR input: nothing about it changes
+    // the outcome, so a failure set is judged exactly like a normal one.
+    expect(isPR(110, 90, {})).toBe(true);
+  });
+
+  it('feeds estimated1RM and volume unchanged', () => {
+    expect(estimated1RM(withFailure, 'Rows')).toBe(Math.round(110 * (1 + 6 / 30)));
+    const start = new Date('2026-09-01T00:00:00');
+    const end = new Date('2026-09-30T23:59:59');
+    expect(volumeInRange(withFailure, start, end)).toBe(90 * 8 + 110 * 6);
+  });
+});

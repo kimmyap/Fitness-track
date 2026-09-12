@@ -137,6 +137,17 @@ A shim (lines 1045–1070) maps `window.storage` onto `localStorage` with prefix
 - `variation`: string, only present if the exercise has variations (e.g. `"Barbell"`, `"Dumbbell"`, `"Trap Bar"`, `"Kettlebell"`, `"Machine"`, `"Cable"`, `"Two-Hand"`, `"Single-Arm"`, `"Leg Press"`, `"Walking Lunges"`, `"Bodyweight"`, `"Bodyweight Lunges"`, `"Assisted Pull-up"`).
 - `warmupSet`: boolean `true`, **only present when true** (key absent otherwise).
 - `assistedPullup`: boolean `true`, only present when true; excluded from PB/1RM/volume.
+- `dropSet`: **NEW (not legacy)**, boolean `true`, only present when true. A back-off drop
+  performed pre-fatigued at reduced load. Counts toward volume and the n/N session target, but
+  excluded from `bestFor`, `estimated1RM`, `isPR`, `prCountAllTime`, `suggestedNextWeight` and
+  the prefill — Epley on a fatigued high-rep drop yields a 1RM that never happened.
+- `toFailure`: **NEW (not legacy)**, boolean `true`, only present when true. A label only: a
+  failure set counts exactly like a normal working set everywhere, PBs included, and no domain
+  function reads it.
+
+Both new fields follow the legacy convention: **absent, not `false`**. The legacy app ignores
+unknown fields, so data written with either still loads in `legacy/index.html` — it simply
+treats those sets as ordinary ones.
 
 **Activity entry** (Pilates/Volleyball):
 ```json

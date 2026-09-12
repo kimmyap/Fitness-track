@@ -49,8 +49,33 @@ import { celebrateAchievements } from '@/features/today/celebrate';
 import { autoStartRestTimer } from './restTimer';
 import { Muted, Row, SelectBase, Stack, TextButton, unitLabel } from './ui';
 
-/** Warm-up checkbox state remembered per exercise per app session (legacy lastWarmupChecked). */
-const sessionWarmupChecked: Record<string, boolean> = {};
+/**
+ * The four set types. Chosen explicitly rather than cycled on tap: a mis-tap
+ * during data entry would otherwise silently relabel a set, and the label
+ * decides whether that set can set a PB.
+ */
+type SetKind = 'normal' | 'warmup' | 'drop' | 'failure';
+
+const SET_KINDS: { kind: SetKind; label: string }[] = [
+  { kind: 'normal', label: 'Working' },
+  { kind: 'warmup', label: 'Warm-up' },
+  { kind: 'drop', label: 'Drop' },
+  { kind: 'failure', label: 'Failure' },
+];
+
+/** Spelled out, because which stats a type affects is not guessable. */
+const SET_KIND_HINTS: Record<SetKind, string> = {
+  normal: 'Counts toward everything.',
+  warmup: "Won't count toward PB, 1RM or volume.",
+  drop: "Counts toward volume and today's set count, but never PB or 1RM.",
+  failure: 'Counts toward everything, PBs included.',
+};
+
+/**
+ * Set type remembered per exercise per app session (generalises the legacy
+ * lastWarmupChecked). Not persisted — legacy kept this in memory only.
+ */
+const sessionSetType: Record<string, SetKind> = {};
 
 const ModeToggle = styled.div`
   display: inline-flex;
@@ -70,6 +95,32 @@ const ModeButton = styled.button<{ active: boolean }>`
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
   font-weight: ${({ active }) => (active ? 700 : 500)};
   cursor: pointer;
+`;
+
+const SetTypeRow = styled.div`
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radii.sm};
+  overflow: hidden;
+`;
+
+const SetTypeButton = styled.button<{ active: boolean }>`
+  min-height: ${({ theme }) => theme.touchTarget};
+  padding: ${({ theme }) => `${theme.space[1]} ${theme.space[3]}`};
+  border: none;
+  background: ${({ theme, active }) => (active ? theme.colors.primary : 'transparent')};
+  color: ${({ theme, active }) => (active ? theme.colors.onPrimary : theme.colors.mutedForeground)};
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  font-weight: ${({ active }) => (active ? 700 : 500)};
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.primary};
+    outline-offset: -2px;
+  }
 `;
 
 const PlateChip = styled.button`
@@ -109,20 +160,6 @@ const InputRow = styled.div`
   }
 `;
 
-const CheckboxRow = styled.label`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space[2]};
-  min-height: ${({ theme }) => theme.touchTarget};
-  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
-  cursor: pointer;
-
-  input {
-    width: 20px;
-    height: 20px;
-    accent-color: ${({ theme }) => theme.colors.primary};
-  }
-`;
 
 const RpePill = styled.button<{ active: boolean }>`
   min-height: ${({ theme }) => theme.touchTarget};
@@ -314,9 +351,15 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
       computePrefill(exercise, editingEntry, useEntriesStore.getState().entries, unit, initialMode, equipment, barWeightLbs)
         .values,
   );
-  const [warmup, setWarmupState] = useState<boolean>(() =>
-    editingEntry ? Boolean(editingEntry.warmupSet) : Boolean(sessionWarmupChecked[exercise.name]),
-  );
+  const [setKind, setSetKindState] = useState<SetKind>(() => {
+    if (editingEntry) {
+      if (editingEntry.warmupSet) return 'warmup';
+      if (editingEntry.dropSet) return 'drop';
+      if (editingEntry.toFailure) return 'failure';
+      return 'normal';
+    }
+    return sessionSetType[exercise.name] ?? 'normal';
+  });
   const setStoredMode = useWeightModesStore((s) => s.setMode);
   const [mode, setMode] = useState<WeightEntryMode>(() =>
     modeForExercise(useWeightModesStore.getState().modes, exercise.name),
@@ -329,9 +372,9 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
 
   const varSelectId = useId();
 
-  const setWarmup = (checked: boolean) => {
-    setWarmupState(checked);
-    sessionWarmupChecked[exercise.name] = checked;
+  const setSetKind = (kind: SetKind) => {
+    setSetKindState(kind);
+    sessionSetType[exercise.name] = kind;
   };
 
   // Switching modes converts the typed number so the resulting total is
@@ -365,7 +408,9 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
     const r = values.reps === '' ? 0 : Math.trunc(values.reps);
     const rpeVal = values.rpe === '' ? 0 : Math.trunc(values.rpe);
     const varVal = variation;
-    const isWarmup = warmup;
+    const isWarmup = setKind === 'warmup';
+    const isDrop = setKind === 'drop';
+    const isFailure = setKind === 'failure';
     const isBodyweightVar = varVal === 'Bodyweight' || varVal === 'Bodyweight Lunges';
     const isAssisted = varVal === 'Assisted Pull-up';
 
@@ -405,6 +450,8 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
         ...(varVal ? { variation: varVal } : {}),
         warmupSet: isWarmup,
         assistedPullup: isAssisted,
+        dropSet: isDrop,
+        toFailure: isFailure,
       });
       onFinishEdit();
       return;
@@ -420,11 +467,13 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
       ...(varVal ? { variation: varVal } : {}),
       warmupSet: isWarmup,
       assistedPullup: isAssisted,
+      dropSet: isDrop,
+      toFailure: isFailure,
     });
 
     if (logDate === todayIso) autoStartRestTimer();
 
-    if (!isWarmup && !isAssisted && !isBodyweightVar && stored > prevBest) {
+    if (!isWarmup && !isAssisted && !isDrop && !isBodyweightVar && stored > prevBest) {
       onConfetti?.();
       const totalDisplay = computeTotalDisplayWeightWithMode(mode, varVal, wRaw, ctx);
       const perNote =
@@ -476,12 +525,25 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
         </Field>
       ) : null}
 
-      <CheckboxRow>
-        <input type="checkbox" checked={warmup} onChange={(e) => setWarmup(e.target.checked)} />
-        <span>
-          Warm-up set <Muted as="span">(won&apos;t count toward PB or 1RM)</Muted>
-        </span>
-      </CheckboxRow>
+      <Field>
+        <FieldLabel as="span" id={`set-type-${exercise.name}`}>
+          Set type
+        </FieldLabel>
+        <SetTypeRow role="group" aria-labelledby={`set-type-${exercise.name}`}>
+          {SET_KINDS.map(({ kind, label }) => (
+            <SetTypeButton
+              key={kind}
+              type="button"
+              active={setKind === kind}
+              aria-pressed={setKind === kind}
+              onClick={() => setSetKind(kind)}
+            >
+              {label}
+            </SetTypeButton>
+          ))}
+        </SetTypeRow>
+        <Muted as="span">{SET_KIND_HINTS[setKind]}</Muted>
+      </Field>
 
       {showPlateToggle ? (
         <Row wrap>
