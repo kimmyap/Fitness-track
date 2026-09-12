@@ -46,14 +46,25 @@ test('reorders by keyboard and persists to the legacy storage key', async ({ pag
    */
   const announcer = page.locator('[id^="DndLiveRegion"]');
 
-  await page.locator('[aria-label^="Reorder"]').first().focus();
+  const handle = page.locator('[aria-label^="Reorder"]').first();
+  await handle.scrollIntoViewIfNeeded();
+  await handle.focus();
   await page.keyboard.press('Space');
   await expect(announcer).toContainText(/moved over/i);
   const afterLift = await announcer.textContent();
 
-  // Wait for the move to actually land before dropping, rather than for the
-  // announcer merely to be non-empty — it is already non-empty from the lift.
-  await page.keyboard.press('ArrowDown');
+  /*
+   * Press until the move actually lands, then stop. dnd-kit can swallow an
+   * ArrowDown sent before its keyboard sensor has finished attaching — the lift
+   * announcement renders a frame earlier — and a fast runner loses that race
+   * where a slow one does not (this passed locally and failed twice in CI).
+   * Breaking on the first effective move keeps it to exactly one swap.
+   */
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if ((await announcer.textContent()) !== afterLift) break;
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(200);
+  }
   await expect.poll(() => announcer.textContent()).not.toBe(afterLift);
 
   await page.keyboard.press('Space');
