@@ -4,7 +4,10 @@ import {
   clearTheme,
   fullKey,
   getEntries,
+  getCustomExercises,
   getEquipmentWeights,
+  getGoals,
+  getNotes,
   getLastProgramReview,
   getSaveStatus,
   getThemeRaw,
@@ -149,5 +152,69 @@ describe('save retry + auto-backup', () => {
     await expect(third).resolves.toBe(false);
     expect(URL.createObjectURL).toHaveBeenCalledTimes(2);
     unsubscribe();
+  });
+});
+
+/**
+ * Maps of the user's OWN content must lose only the bad row, never the lot.
+ *
+ * These read through `validOr`, which discards the whole map on any mismatch.
+ * That is fine for config, but it made one unreadable custom exercise take out
+ * every custom exercise on every day — and with them the Settings section that
+ * restores an archived one, which only renders when the list is non-empty. The
+ * archived exercises looked deleted.
+ */
+describe('user-content maps survive a bad row', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('keeps the custom exercises that validate', () => {
+    localStorage.setItem(
+      fullKey(STORAGE_KEYS.customExercises),
+      JSON.stringify({
+        'Lower A': [
+          { name: 'Good', goal: 60, targetSets: 3, targetReps: '12', prefillReps: 12, custom: true, notes: null },
+          { name: 'Broken', custom: true },
+        ],
+        'Upper A': [
+          { name: 'Archived One', goal: 40, targetSets: 3, targetReps: '10', prefillReps: 10, custom: true, notes: null, archived: true },
+        ],
+      }),
+    );
+
+    const map = getCustomExercises();
+    expect(map['Lower A']?.map((e) => e.name)).toEqual(['Good']);
+    // The archived one on another day must be untouched — that is the bug.
+    expect(map['Upper A']?.[0]?.archived).toBe(true);
+  });
+
+  /** Exercises predating the notes feature have no `notes` key at all. */
+  it('accepts a custom exercise with no notes key', () => {
+    localStorage.setItem(
+      fullKey(STORAGE_KEYS.customExercises),
+      JSON.stringify({
+        'Lower A': [{ name: 'Old One', goal: 60, targetSets: 3, targetReps: '12', prefillReps: 12, custom: true }],
+      }),
+    );
+
+    expect(getCustomExercises()['Lower A']).toHaveLength(1);
+  });
+
+  it('keeps the notes and goals that validate', () => {
+    localStorage.setItem(
+      fullKey(STORAGE_KEYS.notes),
+      JSON.stringify({ '2026-08-24': 'felt strong', 'not-a-date': 'junk', '2026-08-25': 7 }),
+    );
+    localStorage.setItem(fullKey(STORAGE_KEYS.goals), JSON.stringify({ 'Sumo Squats': 185, Deadlifts: 'heavy' }));
+
+    expect(getNotes()).toEqual({ '2026-08-24': 'felt strong' });
+    expect(getGoals()).toEqual({ 'Sumo Squats': 185 });
+  });
+
+  it('does not rewrite storage as a result of reading', () => {
+    const raw = JSON.stringify({ 'Lower A': [{ name: 'Broken', custom: true }] });
+    localStorage.setItem(fullKey(STORAGE_KEYS.customExercises), raw);
+
+    getCustomExercises();
+    expect(localStorage.getItem(fullKey(STORAGE_KEYS.customExercises))).toBe(raw);
   });
 });

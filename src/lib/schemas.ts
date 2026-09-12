@@ -89,7 +89,12 @@ export const customExerciseSchema = z.looseObject({
   targetReps: z.string(),
   prefillReps: z.number(),
   custom: z.literal(true),
-  notes: z.nullable(z.string()),
+  /**
+   * Optional as well as nullable. Current code always writes it (null when
+   * empty), but an exercise created before the notes feature has no such key,
+   * and requiring it made every one of those rows fail validation.
+   */
+  notes: z.optional(z.nullable(z.string())),
   archived: z.optional(z.boolean()),
 });
 
@@ -123,9 +128,11 @@ export const cardioSessionSchema = z.looseObject({
   miles: z.optional(z.number()),
 });
 
-export const notesMapSchema = z.record(z.string(), z.string());
-export const goalsMapSchema = z.record(z.string(), z.number());
-export const customExercisesMapSchema = z.record(z.string(), z.array(customExerciseSchema));
+/** Value schemas for the maps read row-by-row via keepValidEntries. */
+export const stringValueSchema = z.string();
+export const numberValueSchema = z.number();
+/** A non-empty map key that is not a date (goals are keyed by exercise name). */
+export const nameKeySchema = z.string().check(z.minLength(1));
 export const excludedBuiltInsMapSchema = z.record(z.string(), z.array(z.string()));
 export const coreOverridesMapSchema = z.record(z.string(), coreOverrideSchema);
 export const weightInputModesSchema = z.record(z.string(), z.enum(['total', 'perSide']));

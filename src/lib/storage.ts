@@ -16,7 +16,7 @@ import {
   bodyweightSchema,
   cardioSessionSchema,
   coreOverridesMapSchema,
-  customExercisesMapSchema,
+  customExerciseSchema,
   dailyMetricSchema,
   dateKeySchema,
   daysSchema,
@@ -24,11 +24,12 @@ import {
   equipmentWeightsSchema,
   excludedBuiltInsMapSchema,
   exerciseOrderSchema,
-  goalsMapSchema,
+  nameKeySchema,
+  numberValueSchema,
   keepValid,
   keepValidEntries,
   measurementSchema,
-  notesMapSchema,
+  stringValueSchema,
   validOr,
   weightInputModesSchema,
 } from './schemas';
@@ -36,6 +37,7 @@ import type {
   BodyweightEntry,
   CardioSession,
   CoreOverridesMap,
+  CustomExercise,
   CustomExercisesMap,
   DailyMetric,
   DailyMetricsMap,
@@ -301,15 +303,27 @@ export function saveEntries(entries: Entry[]): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.entries, JSON.stringify(entries), 'Workout log');
 }
 
+/** Per-date notes are the user's own writing — drop a bad row, never the lot. */
 export function getNotes(): NotesMap {
-  return getChecked<NotesMap>(STORAGE_KEYS.notes, notesMapSchema, {});
+  return keepValidEntries<string>(
+    getParsed(STORAGE_KEYS.notes) ?? {},
+    dateKeySchema,
+    stringValueSchema,
+    STORAGE_KEYS.notes,
+  );
 }
 export function saveNotes(notes: NotesMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.notes, JSON.stringify(notes), 'Notes');
 }
 
+/** Keyed by exercise name, not date. One bad goal must not clear the rest. */
 export function getGoals(): GoalsMap {
-  return getChecked<GoalsMap>(STORAGE_KEYS.goals, goalsMapSchema, {});
+  return keepValidEntries<number>(
+    getParsed(STORAGE_KEYS.goals) ?? {},
+    nameKeySchema,
+    numberValueSchema,
+    STORAGE_KEYS.goals,
+  );
 }
 export function saveGoals(goals: GoalsMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.goals, JSON.stringify(goals), 'Goals');
@@ -396,8 +410,32 @@ export function saveUnit(unit: Unit): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.unit, unit, 'Unit preference');
 }
 
+/**
+ * Drops only the exercises that fail, per day — never the whole library.
+ *
+ * This used to be a whole-map `getChecked`, so a single unreadable exercise
+ * anywhere made every custom exercise on every day vanish, and the Settings
+ * section that would let you restore one disappeared with them (it only
+ * renders when non-empty). Config-shaped maps can fall back to their default;
+ * a map of the user's own content cannot.
+ */
 export function getCustomExercises(): CustomExercisesMap {
-  return getChecked<CustomExercisesMap>(STORAGE_KEYS.customExercises, customExercisesMapSchema, {});
+  const parsed = getParsed(STORAGE_KEYS.customExercises);
+  if (parsed === undefined) return {};
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    console.warn(`${STORAGE_KEYS.customExercises}: expected an object — ignoring it.`);
+    return {};
+  }
+  const out: CustomExercisesMap = {};
+  for (const [day, list] of Object.entries(parsed)) {
+    const { rows } = keepValid<CustomExercise>(
+      list,
+      customExerciseSchema,
+      `${STORAGE_KEYS.customExercises}[${day}]`,
+    );
+    if (rows.length) out[day] = rows;
+  }
+  return out;
 }
 export function saveCustomExercises(map: CustomExercisesMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.customExercises, JSON.stringify(map), 'Custom exercises');
