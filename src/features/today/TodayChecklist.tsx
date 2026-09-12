@@ -1,6 +1,15 @@
 /**
- * Today's Checklist: warm-up / lifting / Pilates-Volleyball / core rows with
- * quick-log buttons for Pilates, Volleyball and the Core Finisher.
+ * Today's Checklist: one row per item, each with its own log trigger.
+ *
+ * The triggers used to sit in a block under the list, so the button and the
+ * row it affected were separated by everything in between and Pilates and
+ * Volleyball shared a single row while having two separate buttons. Each item
+ * now owns its control.
+ *
+ * Logging is one-way here. `toggleCompletion` does remove on a second call,
+ * but a stray tap silently deleting a logged session is exactly what the
+ * delete confirmations elsewhere exist to prevent — so a done row disables its
+ * button, and removing a completion stays a Calendar action.
  */
 import styled from '@emotion/styled';
 import { Badge, Button, Card, toast } from '@/components';
@@ -40,10 +49,10 @@ export function TodayChecklist({ todayIso, onConfetti }: { todayIso: string; onC
     celebrate();
   };
 
-  const quickLogCore = () => {
-    if (doneCore) return;
-    toggleCompletion('core', todayIso);
-    toast('Core Finisher logged for today');
+  const quickLogCompletion = (type: 'warmup' | 'core', label: string, done: boolean) => () => {
+    if (done) return;
+    toggleCompletion(type, todayIso);
+    toast(`${label} logged for today`);
     celebrate();
   };
 
@@ -51,46 +60,66 @@ export function TodayChecklist({ todayIso, onConfetti }: { todayIso: string; onC
     <Card>
       <Stack gap={1}>
         <CardTitle>Today&apos;s Checklist</CardTitle>
-        <SetRow noBorder>
-          <span>Warm-up</span>
-          <StatusText done={doneWarmup} />
-        </SetRow>
-        <SetRow>
-          <span>Lifting logged</span>
-          <StatusText done={doneLift} />
-        </SetRow>
-        <SetRow>
-          <span>
-            Pilates / Volleyball <Badge>optional</Badge>
-          </span>
-          <StatusText done={doneActivity.length > 0} doneLabel={`✓ ${doneActivity.join(', ')}`} />
-        </SetRow>
-        <SetRow>
-          <span>
-            Core Finisher <Badge>optional</Badge>
-          </span>
-          <StatusText done={doneCore} />
-        </SetRow>
-        <Row wrap>
-          <Button
-            variant="secondary"
-            disabled={doneActivity.includes('Pilates')}
-            onClick={() => quickLogActivity('Pilates')}
-          >
-            {doneActivity.includes('Pilates') ? '✓ Pilates logged' : '+ Log Pilates'}
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={doneActivity.includes('Volleyball')}
-            onClick={() => quickLogActivity('Volleyball')}
-          >
-            {doneActivity.includes('Volleyball') ? '✓ Volleyball logged' : '+ Log Volleyball'}
-          </Button>
-          <Button variant="secondary" disabled={doneCore} onClick={quickLogCore}>
-            {doneCore ? '✓ Core logged' : '+ Log Core Finisher'}
-          </Button>
-        </Row>
+
+        <ChecklistRow
+          noBorder
+          label="Warm-up"
+          done={doneWarmup}
+          action={{ label: 'Warm-up', onLog: quickLogCompletion('warmup', 'Warm-up', doneWarmup) }}
+        />
+        {/* No trigger: sets are logged on the Train screen, not from here. */}
+        <ChecklistRow label="Lifting logged" done={doneLift} />
+        <ChecklistRow
+          label="Pilates"
+          optional
+          done={doneActivity.includes('Pilates')}
+          action={{ label: 'Pilates', onLog: () => quickLogActivity('Pilates') }}
+        />
+        <ChecklistRow
+          label="Volleyball"
+          optional
+          done={doneActivity.includes('Volleyball')}
+          action={{ label: 'Volleyball', onLog: () => quickLogActivity('Volleyball') }}
+        />
+        <ChecklistRow
+          label="Core Finisher"
+          optional
+          done={doneCore}
+          action={{ label: 'Core Finisher', onLog: quickLogCompletion('core', 'Core Finisher', doneCore) }}
+        />
       </Stack>
     </Card>
+  );
+}
+
+interface ChecklistRowProps {
+  label: string;
+  done: boolean;
+  optional?: boolean;
+  noBorder?: boolean;
+  /** Omitted for rows that are status-only, like lifting. */
+  action?: { label: string; onLog: () => void };
+}
+
+function ChecklistRow({ label, done, optional, noBorder, action }: ChecklistRowProps) {
+  return (
+    <SetRow noBorder={noBorder}>
+      <span>
+        {label} {optional ? <Badge>optional</Badge> : null}
+      </span>
+      <Row>
+        <StatusText done={done} />
+        {action ? (
+          <Button
+            variant="secondary"
+            disabled={done}
+            aria-label={done ? `${action.label} already logged today` : `Log ${action.label} for today`}
+            onClick={action.onLog}
+          >
+            {done ? '✓ Logged' : '+ Log'}
+          </Button>
+        ) : null}
+      </Row>
+    </SetRow>
   );
 }

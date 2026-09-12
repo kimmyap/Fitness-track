@@ -783,6 +783,22 @@ export function achievementProgressHint(a: AchievementDef, snap: AchievementSnap
   return `${displayRemaining} ${unitMap[a.metric] || 'to go'}`;
 }
 
+export type DayPlanKind = 'training' | 'recovery' | 'rest';
+
+/**
+ * What kind of day the plan describes, for the Today hero.
+ *
+ * Derived rather than stored: a day that points at a real lifting tab is a
+ * training day, a day with nothing scheduled is rest, and everything else
+ * (volleyball, Pilates) is active recovery. Typed structurally so this stays
+ * in domain.ts without importing the program data it describes.
+ */
+export function dayPlanKind(plan: { label: string; tab: string | null }, liftingTabs: string[]): DayPlanKind {
+  if (plan.tab && liftingTabs.includes(plan.tab)) return 'training';
+  if (/rest/i.test(plan.label)) return 'rest';
+  return 'recovery';
+}
+
 export interface AchievementProgress {
   /** Capped at the threshold — a locked card never shows more than its target. */
   current: number;

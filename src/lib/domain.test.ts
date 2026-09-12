@@ -10,6 +10,7 @@ import {
   computeStats,
   computeTotalDisplayWeight,
   crossTrainingCount,
+  dayPlanKind,
   displayDate,
   entryVolume,
   epley1RM,
@@ -701,5 +702,24 @@ describe('toFailure is a label, not a modifier', () => {
     const start = new Date('2026-09-01T00:00:00');
     const end = new Date('2026-09-30T23:59:59');
     expect(volumeInRange(withFailure, start, end)).toBe(90 * 8 + 110 * 6);
+  });
+});
+
+describe('dayPlanKind', () => {
+  const lifting = ['Lower A', 'Upper', 'Lower B'];
+
+  it('calls a day that points at a lifting tab a training day', () => {
+    expect(dayPlanKind({ label: 'Lower A', tab: 'Lower A' }, lifting)).toBe('training');
+  });
+
+  it('calls a day with nothing scheduled a rest day', () => {
+    expect(dayPlanKind({ label: 'Rest Day', tab: null }, lifting)).toBe('rest');
+  });
+
+  /** Volleyball and Pilates have no lifting tab but are not rest either. */
+  it('treats cross-training days as active recovery', () => {
+    expect(dayPlanKind({ label: 'Volleyball Day', tab: null }, lifting)).toBe('recovery');
+    // Pilates points at the Warm-up tab, which is not a lifting day.
+    expect(dayPlanKind({ label: 'Pilates Day', tab: 'Warm-up' }, lifting)).toBe('recovery');
   });
 });
