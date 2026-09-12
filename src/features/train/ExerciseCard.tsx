@@ -7,7 +7,7 @@
  *   suggest-alternative flow, custom notes/archive/delete, progression
  *   suggestion, est-1RM + mini chart, history, logging form.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import styled from '@emotion/styled';
 import {
@@ -34,6 +34,9 @@ import type { AnyExercise, LiftSetEntry } from '@/lib/types';
 import { isCustomExercise, isLiftSet } from '@/lib/types';
 import { celebrateAchievements } from '@/features/today/celebrate';
 import { autoStartRestTimer } from './restTimer';
+import { humanizeEquipment } from './ExercisePicker';
+import { libraryAlternativesFor } from '@/services/exerciseLibraryService';
+import type { LibraryExercise } from '@/services/exerciseLibraryService';
 import { HistoryList } from './HistoryList';
 import { LoggingForm } from './LoggingForm';
 import { MiniChart } from './MiniChart';
@@ -149,6 +152,53 @@ const CardShell = styled(Card)<{ active?: boolean; dragging?: boolean }>`
   }
 `;
 
+/**
+ * One suggestion, from either source, so the render path stays single.
+ *
+ * `reason` is nullable because only the curated table has one — the library
+ * ships no prose, so a derived clause is used where the metadata allows and
+ * the suggestion falls back to a bare name where it does not.
+ */
+interface AltOption {
+  name: string;
+  reason: string | null;
+  sets: number;
+  reps: string;
+  cues: string | null;
+  muscles: string | null;
+}
+
+const fromCurated = (a: AlternativeExercise): AltOption => ({
+  name: a.name,
+  reason: a.reason,
+  sets: a.targetSets,
+  reps: a.targetReps,
+  cues: a.cues,
+  muscles: a.muscles,
+});
+
+/**
+ * Library entries carry no sets or reps, so the suggestion INHERITS the
+ * prescription of the exercise it would replace — you are substituting into the
+ * same slot, so a 3x10 accessory yields the substitute at 3x10.
+ */
+function fromLibrary(entry: LibraryExercise, replacing: AnyExercise): AltOption {
+  // Both parts or neither: "same movement pattern," with nothing after it reads
+  // like a truncated sentence.
+  const reason =
+    entry.movement_pattern && entry.equipment
+      ? `same movement pattern, ${humanizeEquipment(entry.equipment).toLowerCase()}`
+      : null;
+  return {
+    name: entry.name,
+    reason,
+    sets: replacing.targetSets,
+    reps: replacing.targetReps,
+    cues: entry.execution_cues[0] ?? null,
+    muscles: entry.primary_muscles.length ? entry.primary_muscles.join(', ') : null,
+  };
+}
+
 export interface ExerciseCardProps {
   exercise: AnyExercise;
   day: string;
@@ -186,7 +236,8 @@ export function ExerciseCard({
   const goal = useGoalsStore(selectGoalFor(exercise));
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [altPick, setAltPick] = useState<AlternativeExercise | null>(null);
+  const [altPick, setAltPick] = useState<AltOption | null>(null);
+  const [libraryAlts, setLibraryAlts] = useState<AltOption[]>([]);
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState('');
 
@@ -217,7 +268,37 @@ export function ExerciseCard({
 
   const suggestion = suggestedNextWeight(entries, exercise, unit);
   const oneRM = estimated1RM(entries, exercise.name);
-  const altOptions = ALTERNATIVES[exercise.name];
+
+  const curatedAlts = ALTERNATIVES[exercise.name];
+  /*
+   * Curated wins. The nine built-ins have hand-written reasons and cues that
+   * nothing derived from the library can match; the fallback exists for the
+   * exercises that have no curated entry at all — custom ones, mainly, which
+   * until now showed no alternatives button whatsoever.
+   */
+  const altOptions: AltOption[] = curatedAlts?.length ? curatedAlts.map(fromCurated) : libraryAlts;
+
+  /*
+   * Only once the card is OPEN. The library is a 1.2 MB lazy chunk, and a day
+   * holds several cards — fetching it for every collapsed card without curated
+   * alternatives would pull it on first paint, which is exactly what keeping
+   * the import dynamic is for.
+   */
+  useEffect(() => {
+    if (!expanded || curatedAlts?.length) return;
+    let cancelled = false;
+    void libraryAlternativesFor(exercise.name)
+      .then((found) => {
+        if (!cancelled) setLibraryAlts(found.map((entry) => fromLibrary(entry, exercise)));
+      })
+      .catch(() => {
+        // Offline with the chunk uncached: the rest of the card still works.
+        if (!cancelled) setLibraryAlts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [expanded, exercise, curatedAlts]);
 
   const handleRepeat = (source: LiftSetEntry) => {
     useEntriesStore.getState().logSet({
@@ -242,10 +323,10 @@ export function ExerciseCard({
     toast('Set deleted', { undo: () => useEntriesStore.getState().restoreEntry(removed) });
   };
 
-  const swapPrefillFor = (pick: AlternativeExercise): SwapPrefill => ({
+  const swapPrefillFor = (pick: AltOption): SwapPrefill => ({
     name: pick.name,
-    sets: pick.targetSets,
-    reps: pick.targetReps,
+    sets: pick.sets,
+    reps: pick.reps,
     cues: pick.cues,
     muscles: pick.muscles,
   });
@@ -333,18 +414,20 @@ export function ExerciseCard({
             </InfoBox>
           ) : null}
 
-          {altOptions && altOptions.length ? (
+          {altOptions.length ? (
             <Stack gap={2}>
               <Button
                 variant="secondary"
                 fullWidth
                 onClick={() => {
-                  const pick = altOptions[Math.floor(Math.random() * altOptions.length)] as AlternativeExercise;
+                  const pick = altOptions[Math.floor(Math.random() * altOptions.length)] as AltOption;
                   setAltPick(pick);
                 }}
               >
                 <RefreshCw size={16} aria-hidden="true" />
-                {altPick ? `Try: ${altPick.name} — ${altPick.reason}` : 'Suggest an alternative'}
+                {altPick
+                  ? `Try: ${altPick.name}${altPick.reason ? ` — ${altPick.reason}` : ''}`
+                  : 'Suggest an alternative'}
               </Button>
               {altPick ? (
                 <>

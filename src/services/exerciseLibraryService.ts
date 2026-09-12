@@ -186,6 +186,22 @@ export function alternativesFor(exercise: LibraryExercise): LibraryExercise[] {
   return exercise.alternative_ids.map((id) => byId.get(id)).filter((e): e is LibraryExercise => Boolean(e));
 }
 
+/**
+ * Curated library alternatives for a LOGGED exercise name, loading the library
+ * if it is not in memory yet.
+ *
+ * 868 of the 876 library entries ship `alternative_ids` (about four each), so
+ * this resolves hand-curated data rather than guessing at similarity. Returns
+ * empty when the name does not resolve — `lookupExercise` refuses to guess on
+ * an ambiguous prefix, and offering the wrong exercise is worse than offering
+ * none.
+ */
+export async function libraryAlternativesFor(logName: string): Promise<LibraryExercise[]> {
+  if (!logName.trim()) return [];
+  const entry = await resolveExerciseMetadata(logName);
+  return entry ? alternativesFor(entry) : [];
+}
+
 /** True once the library is in memory (lets render paths use the sync lookup). */
 export function isLibraryLoaded(): boolean {
   return cachedLibrary !== null;
