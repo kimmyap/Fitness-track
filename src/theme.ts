@@ -34,6 +34,16 @@ export interface ThemeColors {
   ring: string;
   /** Modal/scrim backdrop. */
   overlay: string;
+  /**
+   * Achievement tiers. Used as a card border AND as the tier word on it, so
+   * each is picked to clear 4.5:1 as text on `card` in its own theme — dark
+   * values lightened, light values darkened. Tier is always spelled out beside
+   * the colour, so none of these carry meaning on their own.
+   */
+  tierBronze: string;
+  tierSilver: string;
+  tierGold: string;
+  tierPlatinum: string;
 }
 
 const darkColors: ThemeColors = {
@@ -55,6 +65,10 @@ const darkColors: ThemeColors = {
   onDestructive: '#000000',
   ring: '#F97316',
   overlay: 'rgba(0, 0, 0, 0.6)',
+  tierBronze: '#D9A06B',
+  tierSilver: '#C3CEDD',
+  tierGold: '#F0C24B',
+  tierPlatinum: '#7FD8E8',
 };
 
 const lightColors: ThemeColors = {
@@ -76,6 +90,10 @@ const lightColors: ThemeColors = {
   onDestructive: '#FFFFFF',
   ring: '#EA580C',
   overlay: 'rgba(15, 23, 42, 0.5)',
+  tierBronze: '#8A4F21',
+  tierSilver: '#5A6B80',
+  tierGold: '#8A6100',
+  tierPlatinum: '#0E7490',
 };
 
 /** Spacing scale (px): --space-1 … --space-6 = 4 / 8 / 12 / 16 / 24 / 32. */

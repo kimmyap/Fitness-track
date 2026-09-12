@@ -57,6 +57,16 @@ Dark-first, "Vibrant & Block-based". Components consume **theme tokens only — 
 | Text on primary | `colors.onPrimary` | `#0F172A` | `#FFFFFF` |
 | Completed sets / PRs (fill) | `colors.accent` + `colors.onAccent` | `#22C55E` + `#0F172A` | `#16A34A` + `#FFFFFF` |
 | Green text / icons / chart strokes | `colors.accentText` | `#22C55E` | `#16A34A` |
+| Achievement tier — bronze | `colors.tierBronze` | `#D9A06B` | `#8A4F21` |
+| Achievement tier — silver | `colors.tierSilver` | `#C3CEDD` | `#5A6B80` |
+| Achievement tier — gold | `colors.tierGold` | `#F0C24B` | `#8A6100` |
+| Achievement tier — platinum | `colors.tierPlatinum` | `#7FD8E8` | `#0E7490` |
+
+Tier colours are used as the unlocked badge's border **and** as the tier word on it, so each clears
+4.5:1 as text on `card` in its own theme (measured: bronze 5.23:1 dark / 6.52:1 light, and every other
+tier higher). The tier is always spelled out beside the colour — never colour alone. Tier and category
+are **derived** from each achievement's existing `metric` and `threshold` (see `achievementTier` /
+`achievementCategory` in `domain.ts`), not stored per definition, so a new achievement classifies itself.
 
 Rest timers use the inverted bar (`foreground` background) with a Timer icon; the
 digits turn `accentText` green only once a countdown finishes.

@@ -799,6 +799,66 @@ export function dayPlanKind(plan: { label: string; tab: string | null }, lifting
   return 'recovery';
 }
 
+export type AchievementCategory = 'streaks' | 'volume' | 'cross-training' | 'milestones';
+
+export const ACHIEVEMENT_CATEGORY_LABEL: Record<AchievementCategory, string> = {
+  streaks: 'Streaks',
+  volume: 'Volume',
+  'cross-training': 'Cross-Training',
+  milestones: 'Milestones',
+};
+
+/**
+ * Which filter an achievement belongs under.
+ *
+ * DERIVED from the metric it already counts rather than stored on each
+ * definition: a hand-written table would be a second thing to keep in step,
+ * and a new achievement would silently land in no category at all.
+ */
+export function achievementCategory(a: AchievementDef): AchievementCategory {
+  switch (a.metric) {
+    case 'streak':
+      return 'streaks';
+    case 'totalVolume':
+    case 'totalSets':
+      return 'volume';
+    case 'crossTraining':
+      return 'cross-training';
+    default:
+      return 'milestones';
+  }
+}
+
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+const TIER_ORDER: AchievementTier[] = ['bronze', 'silver', 'gold', 'platinum'];
+
+export const ACHIEVEMENT_TIER_LABEL: Record<AchievementTier, string> = {
+  bronze: 'Bronze',
+  silver: 'Silver',
+  gold: 'Gold',
+  platinum: 'Platinum',
+};
+
+/**
+ * Rank within its own metric family: the easiest threshold for a metric is
+ * bronze, the next silver, and so on, with everything past the fourth staying
+ * platinum.
+ *
+ * Also derived rather than assigned. Ranking against SIBLINGS is what makes it
+ * meaningful — thresholds are not comparable across metrics (a 3-session streak
+ * and 10,000lb of volume are not the same kind of number), so the only honest
+ * ordering is within a family.
+ */
+export function achievementTier(a: AchievementDef, all: AchievementDef[] = ACHIEVEMENTS): AchievementTier {
+  const siblings = all
+    .filter((x) => x.metric === a.metric)
+    .map((x) => x.threshold)
+    .sort((x, y) => x - y);
+  const rank = siblings.indexOf(a.threshold);
+  return TIER_ORDER[Math.min(rank < 0 ? 0 : rank, TIER_ORDER.length - 1)] as AchievementTier;
+}
+
 export interface AchievementProgress {
   /** Capped at the threshold — a locked card never shows more than its target. */
   current: number;

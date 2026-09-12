@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   ACHIEVEMENTS,
   ACHIEVEMENT_METRIC_NOUN,
+  ACHIEVEMENT_CATEGORY_LABEL,
+  achievementCategory,
   achievementProgress,
+  achievementTier,
   achievementProgressHint,
   achievementStatsSnapshot,
   barWeight,
@@ -721,5 +724,52 @@ describe('dayPlanKind', () => {
     expect(dayPlanKind({ label: 'Volleyball Day', tab: null }, lifting)).toBe('recovery');
     // Pilates points at the Warm-up tab, which is not a lifting day.
     expect(dayPlanKind({ label: 'Pilates Day', tab: 'Warm-up' }, lifting)).toBe('recovery');
+  });
+});
+
+describe('achievement categories and tiers', () => {
+  it('derives a category from the metric each achievement counts', () => {
+    const byId = (id: string) => ACHIEVEMENTS.find((a) => a.id === id)!;
+
+    expect(achievementCategory(byId('streak-30'))).toBe('streaks');
+    expect(achievementCategory(byId('volume-50k'))).toBe('volume');
+    expect(achievementCategory(byId('sets-500'))).toBe('volume');
+    expect(achievementCategory(byId('cross-train-10'))).toBe('cross-training');
+    expect(achievementCategory(byId('first-pr'))).toBe('milestones');
+    expect(achievementCategory(byId('bodyweight-10'))).toBe('milestones');
+  });
+
+  it('puts every achievement in exactly one category', () => {
+    const counted = ACHIEVEMENTS.map(achievementCategory);
+    expect(counted).toHaveLength(ACHIEVEMENTS.length);
+    counted.forEach((c) => expect(ACHIEVEMENT_CATEGORY_LABEL[c]).toBeDefined());
+  });
+
+  /** Thresholds are only comparable inside one metric family. */
+  it('ranks tiers against siblings sharing the metric', () => {
+    const byId = (id: string) => ACHIEVEMENTS.find((a) => a.id === id)!;
+
+    // streak thresholds are 3, 7, 14, 30, 60
+    expect(achievementTier(byId('streak-3'))).toBe('bronze');
+    expect(achievementTier(byId('streak-7'))).toBe('silver');
+    expect(achievementTier(byId('streak-14'))).toBe('gold');
+    expect(achievementTier(byId('streak-30'))).toBe('platinum');
+    // Anything past the fourth stays platinum rather than falling off the scale.
+    expect(achievementTier(byId('streak-60'))).toBe('platinum');
+
+    // volume thresholds are 10k, 50k, 100k
+    expect(achievementTier(byId('volume-10k'))).toBe('bronze');
+    expect(achievementTier(byId('volume-100k'))).toBe('gold');
+  });
+
+  it('makes the easiest achievement in a family bronze, never harder', () => {
+    const families = new Map<string, typeof ACHIEVEMENTS>();
+    ACHIEVEMENTS.forEach((a) => {
+      families.set(a.metric, [...(families.get(a.metric) ?? []), a]);
+    });
+    families.forEach((group) => {
+      const easiest = [...group].sort((x, y) => x.threshold - y.threshold)[0]!;
+      expect(achievementTier(easiest)).toBe('bronze');
+    });
   });
 });

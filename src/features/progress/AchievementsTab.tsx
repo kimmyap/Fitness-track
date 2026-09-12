@@ -5,16 +5,22 @@
  * from the seen list. Locked and unlocked badges differ by icon AND text —
  * never color alone.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import styled from '@emotion/styled';
 import { Award, Lock } from 'lucide-react';
 import { Card } from '@/components';
 import {
   ACHIEVEMENTS,
+  ACHIEVEMENT_CATEGORY_LABEL,
   ACHIEVEMENT_METRIC_NOUN,
+  ACHIEVEMENT_TIER_LABEL,
+  achievementCategory,
   achievementProgress,
   achievementStatsSnapshot,
+  achievementTier,
   toDisplayWeight,
+  type AchievementCategory,
+  type AchievementTier,
 } from '@/lib/domain';
 import { ACHIEVEMENT_ICONS } from '@/lib/program';
 import { useBodyweightStore, useEntriesStore, useMeasurementsStore, useSettingsStore } from '@/stores';
@@ -56,17 +62,70 @@ const Grid = styled.ul`
  * the palette is held to. Icon + "Locked" wording still carry the meaning, so
  * none of it rests on colour.
  */
-const BadgeCard = styled.li<{ unlocked: boolean }>`
+const TIER_TOKEN: Record<AchievementTier, 'tierBronze' | 'tierSilver' | 'tierGold' | 'tierPlatinum'> = {
+  bronze: 'tierBronze',
+  silver: 'tierSilver',
+  gold: 'tierGold',
+  platinum: 'tierPlatinum',
+};
+
+/**
+ * Unlocked cards take their border from the tier; locked ones stay dashed and
+ * neutral. The tier is a thing you earned, so an unearned card claiming a tier
+ * colour would be saying you had it.
+ */
+const BadgeCard = styled.li<{ unlocked: boolean; tier: AchievementTier }>`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: ${({ theme }) => theme.space[1]};
   text-align: center;
   background: ${({ theme, unlocked }) => (unlocked ? theme.colors.card : 'transparent')};
-  border: 1px ${({ unlocked }) => (unlocked ? 'solid' : 'dashed')}
-    ${({ theme, unlocked }) => (unlocked ? theme.colors.primary : theme.colors.border)};
+  border: ${({ unlocked }) => (unlocked ? '2px solid' : '1px dashed')}
+    ${({ theme, unlocked, tier }) => (unlocked ? theme.colors[TIER_TOKEN[tier]] : theme.colors.border)};
   border-radius: ${({ theme }) => theme.radii.md};
   padding: ${({ theme }) => `${theme.space[3]} ${theme.space[2]}`};
+`;
+
+/** The tier spelled out, so the border colour is never the only signal. */
+const TierWord = styled.span<{ tier: AchievementTier }>`
+  font-size: ${({ theme }) => theme.typography.fontSizes.xs};
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: ${({ theme, tier }) => theme.colors[TIER_TOKEN[tier]]};
+`;
+
+const ChipRow = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.space[2]};
+  overflow-x: auto;
+  padding-bottom: ${({ theme }) => theme.space[1]};
+  /* Chips scroll sideways rather than wrapping into a second row at 375px. */
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const Chip = styled.button<{ active: boolean }>`
+  flex: none;
+  min-height: ${({ theme }) => theme.touchTarget};
+  padding: ${({ theme }) => `${theme.space[1]} ${theme.space[3]}`};
+  border-radius: ${({ theme }) => theme.radii.full};
+  border: 1px solid ${({ theme, active }) => (active ? 'transparent' : theme.colors.border)};
+  background: ${({ theme, active }) => (active ? theme.colors.primary : 'transparent')};
+  color: ${({ theme, active }) => (active ? theme.colors.onPrimary : theme.colors.mutedForeground)};
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  font-weight: ${({ active }) => (active ? 700 : 500)};
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.ring};
+    outline-offset: 2px;
+  }
 `;
 
 const BadgeIcon = styled.span<{ unlocked: boolean }>`
@@ -125,11 +184,6 @@ const BadgeDesc = styled.span`
   color: ${({ theme }) => theme.colors.mutedForeground};
 `;
 
-const BadgeHint = styled.span`
-  font-size: ${({ theme }) => theme.typography.fontSizes.xs};
-  font-weight: 500;
-  color: ${({ theme }) => theme.colors.secondary};
-`;
 
 export function AchievementsTab() {
   const entries = useEntriesStore((s) => s.entries);
@@ -141,8 +195,22 @@ export function AchievementsTab() {
     () => achievementStatsSnapshot(entries, bwEntries, measurements),
     [entries, bwEntries, measurements],
   );
+  const [filter, setFilter] = useState<AchievementCategory | 'all'>('all');
+
+  // The hero counts EVERY achievement, not the filtered subset — a filter
+  // narrows what you are looking at, it does not change how complete you are.
   const unlockedCount = ACHIEVEMENTS.filter((a) => a.check(snap)).length;
   const completionPct = Math.round((unlockedCount / ACHIEVEMENTS.length) * 100);
+
+  const visible = useMemo(
+    () => (filter === 'all' ? ACHIEVEMENTS : ACHIEVEMENTS.filter((a) => achievementCategory(a) === filter)),
+    [filter],
+  );
+
+  const categories = useMemo(() => {
+    const present = new Set(ACHIEVEMENTS.map(achievementCategory));
+    return (Object.keys(ACHIEVEMENT_CATEGORY_LABEL) as AchievementCategory[]).filter((c) => present.has(c));
+  }, []);
 
   return (
     <Stack>
@@ -160,9 +228,27 @@ export function AchievementsTab() {
         </HeroLine>
       </Card>
 
+      <ChipRow role="group" aria-label="Filter achievements">
+        <Chip type="button" active={filter === 'all'} aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+          All
+        </Chip>
+        {categories.map((c) => (
+          <Chip
+            key={c}
+            type="button"
+            active={filter === c}
+            aria-pressed={filter === c}
+            onClick={() => setFilter(c)}
+          >
+            {ACHIEVEMENT_CATEGORY_LABEL[c]}
+          </Chip>
+        ))}
+      </ChipRow>
+
       <Grid aria-label="Achievements">
-        {ACHIEVEMENTS.map((a) => {
+        {visible.map((a) => {
           const unlocked = a.check(snap);
+          const tier = achievementTier(a);
           const Icon = unlocked ? (ACHIEVEMENT_ICONS[a.id] ?? Award) : Lock;
           const progress = achievementProgress(a, snap);
           // Volume thresholds are five figures — convert and abbreviate so the
@@ -173,14 +259,14 @@ export function AchievementsTab() {
               : n.toLocaleString();
           const noun = a.metric === 'totalVolume' ? unit : ACHIEVEMENT_METRIC_NOUN[a.metric];
           return (
-            <BadgeCard key={a.id} unlocked={unlocked}>
+            <BadgeCard key={a.id} unlocked={unlocked} tier={tier}>
               <BadgeIcon unlocked={unlocked}>
                 <Icon size={22} aria-hidden="true" />
               </BadgeIcon>
               <BadgeLabel>{a.label}</BadgeLabel>
               <BadgeDesc>{a.desc}</BadgeDesc>
               {unlocked ? (
-                <BadgeHint>Unlocked</BadgeHint>
+                <TierWord tier={tier}>{ACHIEVEMENT_TIER_LABEL[tier]}</TierWord>
               ) : (
                 <>
                   <Track aria-hidden="true">
