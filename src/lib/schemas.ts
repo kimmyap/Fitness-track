@@ -100,6 +100,29 @@ export const equipmentWeightsSchema = z.looseObject({
   legPressSled: z.nullable(z.number()),
 });
 
+/**
+ * A day's wellness metrics. Every field optional — a day with only sleep
+ * recorded is valid — but a present field must be a number, so a half-written
+ * `{ calories: "" }` is dropped rather than reaching the chart maths.
+ */
+export const dailyMetricSchema = z.looseObject({
+  calories: z.optional(z.number()),
+  protein: z.optional(z.number()),
+  sleepHours: z.optional(z.number()),
+  energy: z.optional(z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)])),
+});
+
+/** The "YYYY-MM-DD" key of a date-keyed map. */
+export const dateKeySchema = isoDate;
+
+export const cardioSessionSchema = z.looseObject({
+  id: z.optional(z.string()), // backfilled on read, like entries
+  date: isoDate,
+  type: z.enum(['jog', 'treadmill', 'other']),
+  minutes: z.number(),
+  miles: z.optional(z.number()),
+});
+
 export const notesMapSchema = z.record(z.string(), z.string());
 export const goalsMapSchema = z.record(z.string(), z.number());
 export const customExercisesMapSchema = z.record(z.string(), z.array(customExerciseSchema));
@@ -136,6 +159,36 @@ export function keepValid<T>(
   }
   if (dropped) console.warn(`${label}: ignored ${dropped} malformed row(s); the rest were kept.`);
   return { rows, dropped };
+}
+
+/**
+ * Map equivalent of `keepValid`: keep the pairs whose key AND value both
+ * validate, drop the rest.
+ *
+ * The rule above says map readers fall back to their default, and for the
+ * config-shaped maps (notes, goals, input modes) that is right — they are
+ * small and rewritable. A map that holds a HISTORY, one row per date, is a
+ * different thing: falling back to `{}` would throw away every day over one
+ * bad row, which is the loss rule 2 exists to prevent. Those readers use this.
+ */
+export function keepValidEntries<T>(
+  value: unknown,
+  keySchema: ShapeCheck,
+  valueSchema: ShapeCheck,
+  label: string,
+): Record<string, T> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    console.warn(`${label}: expected an object, got ${typeof value} — ignoring it.`);
+    return {};
+  }
+  const out: Record<string, T> = {};
+  let dropped = 0;
+  for (const [key, val] of Object.entries(value)) {
+    if (keySchema.safeParse(key).success && valueSchema.safeParse(val).success) out[key] = val as T;
+    else dropped++;
+  }
+  if (dropped) console.warn(`${label}: ignored ${dropped} malformed row(s); the rest were kept.`);
+  return out;
 }
 
 /** Validate a whole value, falling back when it does not match. */

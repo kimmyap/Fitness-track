@@ -12,6 +12,12 @@ export interface BodyweightState {
   /** Remove an entry; returns it for the Undo toast. */
   deleteWeighIn: (id: string) => BodyweightEntry | undefined;
   restoreWeighIn: (entry: BodyweightEntry) => void;
+  /**
+   * Set the weight for a date, replacing that date's last weigh-in instead of
+   * appending. The metrics form re-saves the same day as you fill it in, which
+   * through `addWeighIn` would stack a new row per keystroke-save.
+   */
+  upsertWeighIn: (weightLbs: number, date: string) => BodyweightEntry;
 }
 
 export const useBodyweightStore = create<BodyweightState>((set, get) => {
@@ -36,6 +42,18 @@ export const useBodyweightStore = create<BodyweightState>((set, get) => {
       return removed;
     },
     restoreWeighIn: (entry) => persist([...get().bwEntries, entry]),
+    upsertWeighIn: (weightLbs, date) => {
+      const { bwEntries } = get();
+      const existing = [...bwEntries].reverse().find((e) => e.date === date);
+      if (existing) {
+        const updated: BodyweightEntry = { ...existing, weight: weightLbs };
+        persist(bwEntries.map((e) => (e.id === existing.id ? updated : e)));
+        return updated;
+      }
+      const entry: BodyweightEntry = { id: generateId(), date, weight: weightLbs };
+      persist([...bwEntries, entry]);
+      return entry;
+    },
   };
 });
 

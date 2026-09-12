@@ -23,6 +23,7 @@ import {
   useEntriesStore,
   useGoalsStore,
   useMeasurementsStore,
+  useMetricsStore,
   useNotesStore,
   useSettingsStore,
 } from '@/stores';
@@ -30,7 +31,9 @@ import { generateId, isoDate, mergeById } from '@/lib/domain';
 import type {
   BackupPayload,
   BodyweightEntry,
+  CardioSession,
   CoreOverridesMap,
+  DailyMetricsMap,
   CustomExercisesMap,
   Entry,
   EquipmentWeights,
@@ -62,6 +65,8 @@ export function buildBackupPayload(): BackupPayload {
     coreOverrides: useCoreOverridesStore.getState().coreOverrides,
     measurements: useMeasurementsStore.getState().measurements,
     equipmentWeights: useSettingsStore.getState().equipmentWeights,
+    dailyMetrics: useMetricsStore.getState().dailyMetrics,
+    cardio: useMetricsStore.getState().cardio,
   };
 }
 
@@ -186,6 +191,22 @@ export function applyImport(payload: IncomingBackup): void {
     });
     store.setMeasurements(merged);
   }
+  // daily metrics: spread per DATE key, incoming wins — same as notes/goals
+  const dailyMetrics = asObject<DailyMetricsMap>(payload.dailyMetrics);
+  if (dailyMetrics) {
+    const store = useMetricsStore.getState();
+    store.setDailyMetrics({ ...store.dailyMetrics, ...dailyMetrics });
+  }
+  // cardio: merge by id + backfill, same as entries/bodyweight/measurements
+  if (Array.isArray(payload.cardio)) {
+    const store = useMetricsStore.getState();
+    const merged = mergeById(store.cardio, payload.cardio as CardioSession[]);
+    merged.forEach((c) => {
+      if (!c.id) c.id = generateId();
+    });
+    store.setCardio(merged);
+  }
+
   const equipment = asObject<Partial<EquipmentWeights>>(payload.equipmentWeights);
   if (equipment) {
     const settings = useSettingsStore.getState();

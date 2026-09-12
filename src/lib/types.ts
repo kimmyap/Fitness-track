@@ -85,6 +85,48 @@ export interface BodyweightEntry {
   weight: number;
 }
 
+/**
+ * gymlog:dailyMetrics — NEW key, keyed by local date "YYYY-MM-DD".
+ *
+ * Body weight is deliberately NOT here: it already lives in gymlog:bodyweight
+ * and drives the Body chart. A copy in this map would be a second source of
+ * truth for the same number.
+ *
+ * Every field is optional and ABSENT when unset, like the rest of this file —
+ * a day where only sleep was recorded stores only `sleepHours`.
+ */
+export interface DailyMetric {
+  /** kcal. */
+  calories?: number;
+  /** grams. */
+  protein?: number;
+  sleepHours?: number;
+  /** Subjective 1 (wiped) to 5 (great). */
+  energy?: EnergyRating;
+}
+
+export type EnergyRating = 1 | 2 | 3 | 4 | 5;
+export type DailyMetricsMap = Record<string, DailyMetric>;
+
+/**
+ * gymlog:cardio — NEW key. An array, because a day can hold several sessions.
+ *
+ * Volleyball and Pilates are absent on purpose: they are already logged as
+ * ActivityEntry rows in gymlog:entries, which is what the calendar dots and
+ * the activity achievements read. Adding them here would double-count.
+ */
+export type CardioType = 'jog' | 'treadmill' | 'other';
+
+export interface CardioSession {
+  id: string;
+  /** Local date "YYYY-MM-DD". */
+  date: string;
+  type: CardioType;
+  minutes: number;
+  /** Miles. Optional and absent when not measured — treadmills report it, a jog may not. */
+  miles?: number;
+}
+
 /** gymlog:measurements rows. Inches; either may be null. */
 export interface MeasurementEntry {
   id: string;
@@ -164,6 +206,8 @@ export interface BackupPayload {
   measurements?: MeasurementEntry[];
   equipmentWeights?: EquipmentWeights;
   theme?: string;
+  dailyMetrics?: DailyMetricsMap;
+  cardio?: CardioSession[];
 }
 
 /**

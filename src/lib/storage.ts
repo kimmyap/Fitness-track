@@ -14,8 +14,11 @@
 import {
   achievementsSchema,
   bodyweightSchema,
+  cardioSessionSchema,
   coreOverridesMapSchema,
   customExercisesMapSchema,
+  dailyMetricSchema,
+  dateKeySchema,
   daysSchema,
   entrySchema,
   equipmentWeightsSchema,
@@ -23,6 +26,7 @@ import {
   exerciseOrderSchema,
   goalsMapSchema,
   keepValid,
+  keepValidEntries,
   measurementSchema,
   notesMapSchema,
   validOr,
@@ -30,8 +34,11 @@ import {
 } from './schemas';
 import type {
   BodyweightEntry,
+  CardioSession,
   CoreOverridesMap,
   CustomExercisesMap,
+  DailyMetric,
+  DailyMetricsMap,
   Entry,
   EquipmentWeights,
   ExcludedBuiltInsMap,
@@ -67,6 +74,10 @@ export const STORAGE_KEYS = {
   exerciseOrder: 'gymlog:exerciseOrder',
   /** NEW: ordered workout day names (defaults to the legacy three). */
   days: 'gymlog:days',
+  /** NEW: per-day wellness metrics, keyed "YYYY-MM-DD". Body weight is NOT here. */
+  dailyMetrics: 'gymlog:dailyMetrics',
+  /** NEW: cardio sessions. Volleyball/Pilates stay ActivityEntry rows in `entries`. */
+  cardio: 'gymlog:cardio',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
@@ -222,6 +233,9 @@ function buildBackupPayload(label: string, failedKey?: StorageKey, failedValue?:
     customGoals: readJSON<GoalsMap>(STORAGE_KEYS.goals, {}),
     bwEntries: readJSON<BodyweightEntry[]>(STORAGE_KEYS.bodyweight, []),
     seenAchievements: readJSON<string[]>(STORAGE_KEYS.achievements, []),
+    // New keys must be listed here too, or an emergency backup silently omits them.
+    dailyMetrics: readJSON<DailyMetricsMap>(STORAGE_KEYS.dailyMetrics, {}),
+    cardio: readJSON<CardioSession[]>(STORAGE_KEYS.cardio, []),
     unitPref,
     exportedAt: new Date().toISOString(),
     reason: `auto-backup after ${label} save failure`,
@@ -338,6 +352,32 @@ export function getBodyweight(): BodyweightEntry[] {
 }
 export function saveBodyweight(entries: BodyweightEntry[]): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.bodyweight, JSON.stringify(entries), 'Bodyweight');
+}
+
+/** Drops only the days that fail — this map is a history, not config. */
+export function getDailyMetrics(): DailyMetricsMap {
+  return keepValidEntries<DailyMetric>(
+    getParsed(STORAGE_KEYS.dailyMetrics) ?? {},
+    dateKeySchema,
+    dailyMetricSchema,
+    STORAGE_KEYS.dailyMetrics,
+  );
+}
+export function saveDailyMetrics(map: DailyMetricsMap): Promise<boolean> {
+  return setRawWithRetry(STORAGE_KEYS.dailyMetrics, JSON.stringify(map), 'Daily metrics');
+}
+
+/** Rows missing an id are backfilled in memory; nothing is written back on read. */
+export function getCardioSessions(): CardioSession[] {
+  const { rows } = keepValid<CardioSession>(
+    getParsed(STORAGE_KEYS.cardio) ?? [],
+    cardioSessionSchema,
+    STORAGE_KEYS.cardio,
+  );
+  return rows.map((r) => (r.id ? r : { ...r, id: generateIdInternal() }));
+}
+export function saveCardioSessions(sessions: CardioSession[]): Promise<boolean> {
+  return setRawWithRetry(STORAGE_KEYS.cardio, JSON.stringify(sessions), 'Cardio');
 }
 
 export function getSeenAchievements(): string[] {

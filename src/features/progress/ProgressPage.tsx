@@ -8,17 +8,19 @@ import { PageHeader, SegmentedTabs } from '@/components';
 import { ChartsTab } from './ChartsTab';
 import { BodyTab } from './BodyTab';
 import { AchievementsTab } from './AchievementsTab';
+import { MetricsTab } from '@/features/metrics/MetricsTab';
 
 const TABS = [
   { id: 'charts', label: 'Charts' },
   { id: 'body', label: 'Body' },
+  { id: 'daily', label: 'Daily' },
   { id: 'achievements', label: 'Achievements' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
 
 function isTabId(v: string | null): v is TabId {
-  return v === 'charts' || v === 'body' || v === 'achievements';
+  return TABS.some((t) => t.id === v);
 }
 
 const Panel = styled.div`
@@ -43,10 +45,18 @@ export function ProgressPage() {
 
   return (
     <>
-      <PageHeader title="Progress" subtitle="Charts · Body · Achievements" />
+      <PageHeader title="Progress" subtitle="Charts · Body · Daily · Achievements" />
       <SegmentedTabs tabs={[...TABS]} value={tab} onChange={setTab} aria-label="Progress sections" />
       <Panel role="tabpanel" id={`tabpanel-${tab}`} aria-labelledby={`tab-${tab}`}>
-        {tab === 'charts' ? <ChartsTab /> : tab === 'body' ? <BodyTab /> : <AchievementsTab />}
+        {tab === 'charts' ? (
+          <ChartsTab />
+        ) : tab === 'body' ? (
+          <BodyTab />
+        ) : tab === 'daily' ? (
+          <MetricsTab />
+        ) : (
+          <AchievementsTab />
+        )}
       </Panel>
     </>
   );

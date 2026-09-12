@@ -1,6 +1,7 @@
 export * from './entries';
 export * from './bodyweight';
 export * from './measurements';
+export * from './metrics';
 export * from './settings';
 export * from './customExercises';
 export * from './coreOverrides';
