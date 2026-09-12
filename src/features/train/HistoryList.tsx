@@ -4,10 +4,15 @@
  * recent date is open by default. Rows carry variation/RPE tags, a PB star, and
  * repeat / edit / delete actions. Warm-up rows are greyed so they can't be
  * mistaken for working sets.
+ *
+ * Delete is a two-tap gate. The first tap only arms the row; the confirm and
+ * cancel controls then replace the X in place. Cancel sits where the X was, so
+ * a double-tap — the mis-tap this guards against — lands on cancel and never on
+ * delete. The undo toast downstream is the second net, not the first.
  */
 import { useState } from 'react';
 import styled from '@emotion/styled';
-import { Check, ChevronDown, ChevronRight, ClipboardList, Pencil, RotateCw, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ClipboardList, Pencil, RotateCw, Trash2, Undo2, X } from 'lucide-react';
 import { Badge, EmptyState, IconButton } from '@/components';
 import { useEntriesStore, useSettingsStore } from '@/stores';
 import { displayDateWithWeekday, entryVolume, historyFor } from '@/lib/domain';
@@ -70,6 +75,13 @@ const Actions = styled.span`
   margin-left: auto;
 `;
 
+/** Confirm reads as a word, not just a red icon — colour never carries meaning alone. */
+const ConfirmText = styled.span`
+  margin-left: ${({ theme }) => theme.space[1]};
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  font-weight: 700;
+`;
+
 /**
  * Completed-set badge: sage-green fill + white checkmark (glanceable status).
  * Warm-ups get the muted variant — a green tick would imply a working set.
@@ -110,6 +122,12 @@ export function HistoryList({
   const entries = useEntriesStore((s) => s.entries);
   const unit = useSettingsStore((s) => s.unit);
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
+  /*
+   * Which row is armed for deletion. A single id, so arming one row disarms any
+   * other for free. Session-only by design — a pending delete must never
+   * outlive the view, and nothing about it belongs in storage.
+   */
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const rows = historyFor(entries, exerciseName);
   if (rows.length === 0) {
@@ -209,13 +227,35 @@ export function HistoryList({
                     <IconButton aria-label={`Edit this set (${weightDisplay} x ${r.reps})`} onClick={() => onEdit(r)}>
                       <Pencil size={16} aria-hidden="true" />
                     </IconButton>
-                    <IconButton
-                      aria-label={`Delete this set (${weightDisplay} x ${r.reps})`}
-                      tone="destructive"
-                      onClick={() => onDelete(r)}
-                    >
-                      <X size={16} aria-hidden="true" />
-                    </IconButton>
+                    {pendingDeleteId === r.id ? (
+                      <>
+                        <IconButton
+                          aria-label={`Confirm delete of this set (${weightDisplay} x ${r.reps})`}
+                          tone="destructive"
+                          onClick={() => {
+                            setPendingDeleteId(null);
+                            onDelete(r);
+                          }}
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                          <ConfirmText>Delete?</ConfirmText>
+                        </IconButton>
+                        <IconButton
+                          aria-label={`Keep this set (${weightDisplay} x ${r.reps})`}
+                          onClick={() => setPendingDeleteId(null)}
+                        >
+                          <Undo2 size={16} aria-hidden="true" />
+                        </IconButton>
+                      </>
+                    ) : (
+                      <IconButton
+                        aria-label={`Delete this set (${weightDisplay} x ${r.reps})`}
+                        tone="destructive"
+                        onClick={() => setPendingDeleteId(r.id)}
+                      >
+                        <X size={16} aria-hidden="true" />
+                      </IconButton>
+                    )}
                   </Actions>
                 </SetRow>
               );
