@@ -117,6 +117,100 @@ export const SetRow = styled.div<{
     editing ? `outline: 2px solid ${theme.colors.primary}; outline-offset: -2px;` : ''}
 `;
 
+/** Announced but not shown — pairs a glyph like the PB star with a real word. */
+export const SrOnly = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
+/**
+ * A logged set: three columns — set label | load | status.
+ *
+ * The whole row is the tap target (it opens that row's actions), so this is a
+ * real <button> and deliberately contains no nested interactive elements. Keep
+ * it that way: a button inside a button is invalid and breaks keyboard order.
+ * `SetRow` above is the flex two-column row still used by six other lists.
+ */
+export const LoggedSetRow = styled.button<{
+  completed?: boolean;
+  warmup?: boolean;
+  editing?: boolean;
+  expanded?: boolean;
+}>`
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: ${({ theme }) => theme.space[2]};
+  width: 100%;
+  min-height: ${({ theme }) => theme.touchTarget};
+  padding: ${({ theme }) => theme.space[2]};
+  border: none;
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radii.sm};
+  background: transparent;
+  color: inherit;
+  font-family: ${({ theme }) => theme.typography.body};
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  text-align: left;
+  cursor: pointer;
+
+  /* Logged working set: sage-green tint + left rule. Reinforced by the
+     checkmark and the set label, so meaning is never carried by colour alone. */
+  ${({ theme, completed, warmup }) =>
+    completed && !warmup
+      ? `background: color-mix(in srgb, ${theme.colors.accent} 14%, transparent);
+         box-shadow: inset 3px 0 0 ${theme.colors.accent};`
+      : ''}
+
+  /* Warm-up set: no green, greyed text and a neutral left rule. */
+  ${({ theme, warmup }) =>
+    warmup
+      ? `background: transparent;
+         color: ${theme.colors.mutedForeground};
+         box-shadow: inset 3px 0 0 ${theme.colors.border};`
+      : ''}
+
+  /* Open row stays visually joined to the action strip below it. */
+  ${({ theme, expanded }) =>
+    expanded
+      ? `background: ${theme.colors.muted};
+         border-bottom-left-radius: 0;
+         border-bottom-right-radius: 0;`
+      : ''}
+
+  /* The set currently being edited gets the orange active border. */
+  ${({ theme, editing }) =>
+    editing ? `outline: 2px solid ${theme.colors.primary}; outline-offset: -2px;` : ''}
+`;
+
+/** Column 1: "Set 2" / "Warm-up". */
+export const SetLabelCell = styled.span`
+  font-weight: 600;
+  white-space: nowrap;
+`;
+
+/** Column 2: the load, as tabular figures so rows line up down the list. */
+export const LoadCell = styled.span`
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-width: 0;
+`;
+
+/** Column 3: completion tick, PB star, special-type badges. */
+export const StatusCell = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space[1]};
+  justify-self: end;
+`;
+
 /** Info box (form cues / notes; legacy gt-info-box). */
 export const InfoBox = styled.div`
   background: ${({ theme }) => theme.colors.muted};

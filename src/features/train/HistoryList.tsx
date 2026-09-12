@@ -1,22 +1,34 @@
 /**
  * Exercise history: last 15 entries grouped by date. Each date is a collapse
  * toggle showing weekday + set/warm-up counts + day volume; only the most
- * recent date is open by default. Rows carry variation/RPE tags, a PB star, and
- * repeat / edit / delete actions. Warm-up rows are greyed so they can't be
+ * recent date is open by default. Warm-up rows are greyed so they can't be
  * mistaken for working sets.
  *
- * Delete is gated by ConfirmDeleteAction: the first tap only arms the row. The
- * undo toast downstream is the second net, not the first.
+ * Each set is three columns — set label | load | status — and the row itself is
+ * the only tap target: it opens that row's action strip (repeat / edit /
+ * delete). Rows used to carry those three icon buttons inline, which put a
+ * destructive control in a dense list exactly where a thumb scrolls. Delete is
+ * still gated by ConfirmDeleteAction inside the strip; the undo toast
+ * downstream is the third net now, not the first.
  */
 import { useState } from 'react';
 import styled from '@emotion/styled';
 import { Check, ChevronDown, ChevronRight, ClipboardList, Pencil, RotateCw } from 'lucide-react';
-import { Badge, ConfirmDeleteAction, EmptyState, IconButton } from '@/components';
+import { Badge, ConfirmDeleteAction, EmptyState, IconButton, RowMenu, RowMenuLabel } from '@/components';
 import { useEntriesStore, useSettingsStore } from '@/stores';
 import { displayDateWithWeekday, entryVolume, historyFor } from '@/lib/domain';
 import type { LiftSetEntry } from '@/lib/types';
 import { isLiftSet } from '@/lib/types';
-import { SetRow, fmtStoredWeight, fmtVolume, unitLabel } from './ui';
+import {
+  LoadCell,
+  LoggedSetRow,
+  SetLabelCell,
+  SrOnly,
+  StatusCell,
+  fmtStoredWeight,
+  fmtVolume,
+  unitLabel,
+} from './ui';
 
 /** Day header doubles as the collapse toggle for that day's sets. */
 const DayToggle = styled.button`
@@ -52,25 +64,10 @@ const DayLabel = styled.span`
   gap: ${({ theme }) => theme.space[1]};
 `;
 
-const RowInfo = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space[1]};
-  flex-wrap: wrap;
-  min-width: 0;
-`;
-
-const WeightNum = styled.span<{ pb: boolean; warmup?: boolean }>`
-  font-variant-numeric: tabular-nums;
-  font-weight: ${({ warmup }) => (warmup ? 500 : 700)};
-  color: ${({ theme, pb, warmup }) =>
-    warmup ? theme.colors.mutedForeground : pb ? theme.colors.secondary : theme.colors.cardForeground};
-`;
-
-const Actions = styled.span`
-  display: inline-flex;
-  align-items: center;
-  margin-left: auto;
+/** PB star: colour plus a glyph plus announced text, never colour alone. */
+const PbStar = styled.span`
+  color: ${({ theme }) => theme.colors.secondary};
+  font-weight: 700;
 `;
 
 /**
@@ -83,7 +80,6 @@ const CheckMark = styled.span<{ warmup?: boolean }>`
   justify-content: center;
   width: 24px;
   height: 24px;
-  margin-right: ${({ theme }) => theme.space[1]};
   flex: none;
   border-radius: ${({ theme }) => theme.radii.full};
   background: ${({ theme, warmup }) => (warmup ? theme.colors.muted : theme.colors.accent)};
@@ -114,11 +110,17 @@ export function HistoryList({
   const unit = useSettingsStore((s) => s.unit);
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
   /*
-   * Which row is armed for deletion. A single id, so arming one row disarms any
-   * other for free. Session-only by design — a pending delete must never
-   * outlive the view, and nothing about it belongs in storage.
+   * Which row has its actions open, and which is armed for deletion. Single ids,
+   * so opening or arming one row closes the other for free. Session-only by
+   * design — neither a pending delete nor an open strip belongs in storage.
    */
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const closeRow = () => {
+    setOpenRowId(null);
+    setPendingDeleteId(null);
+  };
 
   const rows = historyFor(entries, exerciseName);
   if (rows.length === 0) {
@@ -186,50 +188,93 @@ export function HistoryList({
                 !r.warmupSet &&
                 !r.assistedPullup &&
                 !r.dropSet;
+              // Column 1 names the set; the reps moved into the load column.
               const setLabel = r.warmupSet
-                ? `Warm-up · ${r.reps} reps`
+                ? 'Warm-up'
                 : r.sets && r.sets > 1
-                  ? `${r.sets}x${r.reps}`
-                  : `Set ${setNumber(r)} · ${r.reps} reps`;
-              const weightDisplay = r.assistedPullup
+                  ? `${r.sets} sets`
+                  : `Set ${setNumber(r)}`;
+              const weightText = r.assistedPullup
                 ? `${fmtStoredWeight(r.weight, unit)} assist`
                 : !r.weight && (r.variation === 'Bodyweight' || r.variation === 'Bodyweight Lunges')
                   ? 'Bodyweight'
-                  : `${fmtStoredWeight(r.weight, unit)}${isPB ? ' ★' : ''}`;
+                  : fmtStoredWeight(r.weight, unit);
+              const loadText = `${weightText} × ${r.reps}${r.rpe ? ` @${r.rpe}` : ''}`;
+              const rowName = `${setLabel}, ${loadText}`;
+              const isOpen = openRowId === r.id;
               return (
-                <SetRow key={r.id} completed warmup={Boolean(r.warmupSet)} editing={r.id === editingId}>
-                  <RowInfo>
-                    {r.variation ? <Badge>{r.variation}</Badge> : null}
-                    {r.dropSet ? <Badge>Drop</Badge> : null}
-                    {r.toFailure ? <Badge>Failure</Badge> : null}
-                    <span>{setLabel}</span>
-                    {r.rpe ? <Badge>RPE {r.rpe}</Badge> : null}
-                    <WeightNum pb={isPB} warmup={Boolean(r.warmupSet)}>
-                      {weightDisplay}
-                    </WeightNum>
-                  </RowInfo>
-                  <Actions>
-                    <CheckMark aria-hidden="true" warmup={Boolean(r.warmupSet)}>
-                      <Check size={16} />
-                    </CheckMark>
-                    <IconButton aria-label={`Repeat this set (${weightDisplay} x ${r.reps})`} onClick={() => onRepeat(r)}>
-                      <RotateCw size={16} aria-hidden="true" />
-                    </IconButton>
-                    <IconButton aria-label={`Edit this set (${weightDisplay} x ${r.reps})`} onClick={() => onEdit(r)}>
-                      <Pencil size={16} aria-hidden="true" />
-                    </IconButton>
-                    <ConfirmDeleteAction
-                      target={`this set (${weightDisplay} x ${r.reps})`}
-                      armed={pendingDeleteId === r.id}
-                      onArm={() => setPendingDeleteId(r.id)}
-                      onCancel={() => setPendingDeleteId(null)}
-                      onConfirm={() => {
-                        setPendingDeleteId(null);
-                        onDelete(r);
-                      }}
-                    />
-                  </Actions>
-                </SetRow>
+                <RowMenu
+                  key={r.id}
+                  label={rowName}
+                  open={isOpen}
+                  onToggle={() => {
+                    setPendingDeleteId(null);
+                    setOpenRowId(isOpen ? null : r.id);
+                  }}
+                  onClose={closeRow}
+                  actions={
+                    <>
+                      {/* Acting closes the strip — the row is done being worked on. */}
+                      <IconButton
+                        aria-label={`Repeat ${rowName}`}
+                        onClick={() => {
+                          closeRow();
+                          onRepeat(r);
+                        }}
+                      >
+                        <RotateCw size={16} aria-hidden="true" />
+                        <RowMenuLabel>Repeat</RowMenuLabel>
+                      </IconButton>
+                      <IconButton
+                        aria-label={`Edit ${rowName}`}
+                        onClick={() => {
+                          closeRow();
+                          onEdit(r);
+                        }}
+                      >
+                        <Pencil size={16} aria-hidden="true" />
+                        <RowMenuLabel>Edit</RowMenuLabel>
+                      </IconButton>
+                      <ConfirmDeleteAction
+                        target={`this set (${rowName})`}
+                        idleLabel="Delete"
+                        armed={pendingDeleteId === r.id}
+                        onArm={() => setPendingDeleteId(r.id)}
+                        onCancel={() => setPendingDeleteId(null)}
+                        onConfirm={() => {
+                          closeRow();
+                          onDelete(r);
+                        }}
+                      />
+                    </>
+                  }
+                >
+                  {(trigger) => (
+                    <LoggedSetRow
+                      {...trigger}
+                      completed
+                      warmup={Boolean(r.warmupSet)}
+                      editing={r.id === editingId}
+                      expanded={isOpen}
+                    >
+                      <SetLabelCell>{setLabel}</SetLabelCell>
+                      <LoadCell>{loadText}</LoadCell>
+                      <StatusCell>
+                        {r.variation ? <Badge>{r.variation}</Badge> : null}
+                        {r.dropSet ? <Badge>Drop</Badge> : null}
+                        {r.toFailure ? <Badge>Failure</Badge> : null}
+                        {isPB ? (
+                          <PbStar>
+                            ★<SrOnly>personal best</SrOnly>
+                          </PbStar>
+                        ) : null}
+                        <CheckMark aria-hidden="true" warmup={Boolean(r.warmupSet)}>
+                          <Check size={16} />
+                        </CheckMark>
+                      </StatusCell>
+                    </LoggedSetRow>
+                  )}
+                </RowMenu>
               );
             })}
           </div>

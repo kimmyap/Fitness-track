@@ -22,6 +22,12 @@ export interface ConfirmDeleteActionProps {
   onCancel: () => void;
   onConfirm: () => void;
   iconSize?: number;
+  /**
+   * Word shown beside the X before arming. Omit inside a dense row where only
+   * the icon fits; pass it where there is room, so delete reads like the
+   * labelled actions beside it.
+   */
+  idleLabel?: string;
 }
 
 /**
@@ -44,11 +50,13 @@ export function ConfirmDeleteAction({
   onCancel,
   onConfirm,
   iconSize = 16,
+  idleLabel,
 }: ConfirmDeleteActionProps) {
   if (!armed) {
     return (
       <IconButton aria-label={`Delete ${target}`} tone="destructive" onClick={onArm}>
         <X size={iconSize} aria-hidden="true" />
+        {idleLabel ? <ConfirmText>{idleLabel}</ConfirmText> : null}
       </IconButton>
     );
   }

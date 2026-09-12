@@ -3,13 +3,14 @@
  * volume, every entry that day (deletable with undo), Pilates/Volleyball/
  * Core backfill buttons, and the per-day note with debounced 600ms autosave.
  *
- * Deleting is gated by ConfirmDeleteAction, same as the Train page's history
- * list — one armed id for the whole day, so arming a row disarms any other.
+ * Rows open their own actions (RowMenu) and deleting is gated by
+ * ConfirmDeleteAction, same as the Train page's history list — one open id and
+ * one armed id for the whole day, so acting on a row resets any other.
  */
 import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import { CalendarX } from 'lucide-react';
-import { Badge, Button, Card, ConfirmDeleteAction, EmptyState, FieldLabel, toast } from '@/components';
+import { Badge, Button, Card, ConfirmDeleteAction, EmptyState, FieldLabel, RowMenu, toast } from '@/components';
 import { displayDate, generateId, setNumberInDay, toDisplayWeight } from '@/lib/domain';
 import { isLiftSet, type Entry, type LiftSetEntry } from '@/lib/types';
 import { useEntriesStore, useNotesStore, useSettingsStore } from '@/stores';
@@ -32,12 +33,26 @@ const SummaryLine = styled.p`
   font-variant-numeric: tabular-nums;
 `;
 
-const Row = styled.div`
+/**
+ * The row is the tap target — it opens that entry's actions — so it is a real
+ * <button> with nothing interactive nested inside it, matching the Train page's
+ * history rows.
+ */
+const Row = styled.button<{ expanded?: boolean }>`
   display: flex;
   align-items: center;
+  width: 100%;
+  min-height: ${({ theme }) => theme.touchTarget};
   gap: ${({ theme }) => theme.space[2]};
-  padding: ${({ theme }) => `${theme.space[1]} 0`};
+  padding: ${({ theme }) => `${theme.space[1]} ${theme.space[2]}`};
+  border: none;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radii.sm};
+  background: ${({ theme, expanded }) => (expanded ? theme.colors.muted : 'transparent')};
+  color: inherit;
+  font-family: ${({ theme }) => theme.typography.body};
+  text-align: left;
+  cursor: pointer;
 
   &:last-of-type {
     border-bottom: none;
@@ -133,11 +148,17 @@ export function DayDetail({ date, todayIso, onMutate }: DayDetailProps) {
   const dayEntries = entries.filter((e) => e.date === date);
   const { exerciseCount, volumeLbs } = daySummary(dayEntries);
 
-  /** Row armed for deletion. Session-only — a pending delete must not outlive the view. */
+  /** Open row and armed row. Session-only — neither must outlive the view. */
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  const handleDelete = (id: string) => {
+  const closeRow = () => {
+    setOpenRowId(null);
     setPendingDeleteId(null);
+  };
+
+  const handleDelete = (id: string) => {
+    closeRow();
     const removed = deleteEntry(id);
     if (!removed) return;
     toast('Set deleted', { undo: () => restoreEntry(removed) });
@@ -173,46 +194,58 @@ export function DayDetail({ date, todayIso, onMutate }: DayDetailProps) {
         <EmptyState icon={CalendarX} title="Nothing logged this day." />
       ) : (
         <div>
-          {dayEntries.map((e) =>
-            isLiftSet(e) ? (
-              <Row key={e.id}>
-                <RowMain>
-                  <RowName>
-                    {e.exercise}
-                    {e.variation ? <Badge>{e.variation}</Badge> : null}
-                  </RowName>
-                  <RowMeta>
-                    {liftSetLabel(entries, e)}
-                    {e.rpe ? <Badge>RPE {e.rpe}</Badge> : null}
-                  </RowMeta>
-                </RowMain>
-                <RowWeight>{weightDisplay(e)}</RowWeight>
-                <ConfirmDeleteAction
-                  target={`${e.exercise} set`}
-                  iconSize={18}
-                  armed={pendingDeleteId === e.id}
-                  onArm={() => setPendingDeleteId(e.id)}
-                  onCancel={() => setPendingDeleteId(null)}
-                  onConfirm={() => handleDelete(e.id)}
-                />
-              </Row>
-            ) : (
-              <Row key={e.id}>
-                <RowMain>
-                  <RowName>{completionLabel(e)}</RowName>
-                  <RowMeta>✓ done</RowMeta>
-                </RowMain>
-                <ConfirmDeleteAction
-                  target={`${completionLabel(e)} entry`}
-                  iconSize={18}
-                  armed={pendingDeleteId === e.id}
-                  onArm={() => setPendingDeleteId(e.id)}
-                  onCancel={() => setPendingDeleteId(null)}
-                  onConfirm={() => handleDelete(e.id)}
-                />
-              </Row>
-            ),
-          )}
+          {dayEntries.map((e) => {
+            const target = isLiftSet(e) ? `${e.exercise} set` : `${completionLabel(e)} entry`;
+            const isOpen = openRowId === e.id;
+            return (
+              <RowMenu
+                key={e.id}
+                label={target}
+                open={isOpen}
+                onToggle={() => {
+                  setPendingDeleteId(null);
+                  setOpenRowId(isOpen ? null : e.id);
+                }}
+                onClose={closeRow}
+                actions={
+                  <ConfirmDeleteAction
+                    target={target}
+                    idleLabel="Delete"
+                    iconSize={18}
+                    armed={pendingDeleteId === e.id}
+                    onArm={() => setPendingDeleteId(e.id)}
+                    onCancel={() => setPendingDeleteId(null)}
+                    onConfirm={() => handleDelete(e.id)}
+                  />
+                }
+              >
+                {(trigger) => (
+                  <Row {...trigger} expanded={isOpen}>
+                    {isLiftSet(e) ? (
+                      <>
+                        <RowMain>
+                          <RowName>
+                            {e.exercise}
+                            {e.variation ? <Badge>{e.variation}</Badge> : null}
+                          </RowName>
+                          <RowMeta>
+                            {liftSetLabel(entries, e)}
+                            {e.rpe ? <Badge>RPE {e.rpe}</Badge> : null}
+                          </RowMeta>
+                        </RowMain>
+                        <RowWeight>{weightDisplay(e)}</RowWeight>
+                      </>
+                    ) : (
+                      <RowMain>
+                        <RowName>{completionLabel(e)}</RowName>
+                        <RowMeta>✓ done</RowMeta>
+                      </RowMain>
+                    )}
+                  </Row>
+                )}
+              </RowMenu>
+            );
+          })}
         </div>
       )}
 
