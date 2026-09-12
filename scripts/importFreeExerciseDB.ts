@@ -142,10 +142,33 @@ function capitalize(str: string): string {
 }
 
 /**
- * Links up to 4 alternatives per exercise: same movement pattern, sharing at
- * least one primary muscle. Different equipment is preferred (a swap is most
- * useful when the rack is taken), then alphabetical so the output is stable
- * across runs and git diffs stay meaningful.
+ * The four loaded-resistance categories are interchangeable as substitutes — a
+ * powerlifting squat stands in for a strength squat. Stretching, cardio and
+ * plyometrics are not: they were being offered as alternatives to working sets.
+ */
+const RESISTANCE_CATEGORIES = new Set(['strength', 'powerlifting', 'strongman', 'olympic weightlifting']);
+
+/** Collapses the resistance categories to one bucket; everything else stands alone. */
+function categoryGroup(category: string): string {
+  return RESISTANCE_CATEGORIES.has(category) ? 'resistance' : category;
+}
+
+/**
+ * Links up to 4 alternatives per exercise: same movement pattern, same kind of
+ * training, sharing at least one primary muscle. Same equipment first, then
+ * alphabetical so the output is stable across runs and git diffs stay readable.
+ *
+ * Two things here were wrong and are worth not reintroducing:
+ *
+ * 1. No category filter meant a loaded lift could be answered with a STRETCH —
+ *    "All Fours Quad Stretch" for a Goblet Squat, "90/90 Hamstring" for an RDL.
+ *    320 of the 584 strength exercises had at least one non-strength suggestion.
+ * 2. The equipment sort preferred DIFFERENT equipment, on the reasoning that you
+ *    look for a swap when the rack is taken. Sound in theory, poor in practice:
+ *    it pushed the near-equivalents out of the top four and pulled loosely
+ *    related movements in, so Pullups suggested "Cable Incline Pushdown" while
+ *    Chin-Up and V-Bar Pullup never appeared. The closest match is nearly always
+ *    the same-equipment variation, so that now sorts first.
  */
 function linkAlternatives(all: LibraryExercise[]): void {
   const byPattern = new Map<MovementPattern, LibraryExercise[]>();
@@ -156,13 +179,17 @@ function linkAlternatives(all: LibraryExercise[]): void {
   }
 
   for (const ex of all) {
+    const group = categoryGroup(ex.category);
     const candidates = (byPattern.get(ex.movement_pattern) ?? []).filter(
-      (other) => other.id !== ex.id && other.primary_muscles.some((m) => ex.primary_muscles.includes(m)),
+      (other) =>
+        other.id !== ex.id &&
+        categoryGroup(other.category) === group &&
+        other.primary_muscles.some((m) => ex.primary_muscles.includes(m)),
     );
     candidates.sort((a, b) => {
       const aSame = a.equipment === ex.equipment ? 1 : 0;
       const bSame = b.equipment === ex.equipment ? 1 : 0;
-      if (aSame !== bSame) return aSame - bSame;
+      if (aSame !== bSame) return bSame - aSame;
       return a.name.localeCompare(b.name);
     });
     ex.alternative_ids = candidates.slice(0, 4).map((alt) => alt.id);
