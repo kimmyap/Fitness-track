@@ -36,12 +36,18 @@ and UX-rule sections are still good.
 
 **Known drift (unfixed):**
 
-- **Four storage keys are live in code but absent from the "source of truth" spec.**
-  `gymlog:weightInputModes`, `gymlog:barWeight`, `gymlog:exerciseOrder` and `gymlog:days` all
-  exist in `src/lib/storage.ts` and are read/written by the app. `migration-spec.md` documents
-  none of them; `CLAUDE.md` mentions only `weightInputModes`. Read the `STORAGE_KEYS` map in
-  `src/lib/storage.ts:31` for the real list, and note the double-prefix quirk (logical key
-  `gymlog:entries` → actual localStorage key `gymlog_gymlog:entries`).
+- **Six storage keys are live in code but absent from the "source of truth" spec.**
+  `gymlog:weightInputModes`, `gymlog:barWeight`, `gymlog:exerciseOrder`, `gymlog:days`,
+  `gymlog:dailyMetrics` and `gymlog:cardio` all exist in `src/lib/storage.ts` and are
+  read/written by the app. `migration-spec.md` documents none of them; `CLAUDE.md` mentions only
+  `weightInputModes`. Read the `STORAGE_KEYS` map in `src/lib/storage.ts` for the real list, and
+  note the double-prefix quirk (logical key `gymlog:entries` → actual localStorage key
+  `gymlog_gymlog:entries`).
+- **Adding a key means touching TWO backup paths, not one.** `buildBackupPayload` in
+  `src/lib/storage.ts` (the emergency auto-backup on save failure) and `buildBackupPayload` /
+  `applyImport` in `src/features/more/backup.ts` (manual export/import) both list their fields by
+  hand. A key missing from either is silently absent from that export — which is gap #8, the
+  standing data-loss risk, arriving by omission. `dailyMetrics` and `cardio` are wired into both.
 - ~~`deploy-pipeline.md` lags the workflow on action versions and step commands.~~ **Fixed
   2026-09-11**: its YAML snippet is now byte-identical to `.github/workflows/ci-deploy.yml`.
   If you change the workflow, re-sync the snippet or replace it with a link — it drifted twice.
@@ -99,13 +105,13 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-12:
-typecheck clean, lint clean, **278 tests across 20 files**, build succeeds.
+typecheck clean, lint clean, **319 tests across 22 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
-added a file.)
+added a file; 262 across 18 before the metrics screen and the Today/Achievements passes.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~950 kB (289 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~972 kB (295 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,205 kB (188 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -203,7 +209,7 @@ otherwise discover the hard way.
    history loss, and nothing prompts a periodic export.
 9. **No route-level code splitting.** `docs/plan.md` called it "optional"; it was not done. The
    950 kB main bundle ships all five routes on first paint.
-10. **Partly fixed 2026-09-12.** 20 vitest files plus a Playwright suite in `e2e/`, run by
+10. **Partly fixed 2026-09-12.** 22 vitest files plus a Playwright suite in `e2e/`, run by
     `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
     it builds the app and drives a browser. `npm run test:e2e` locally — but see the Chromium
     note below before you conclude the suite is broken. It exists because three
@@ -237,6 +243,11 @@ otherwise discover the hard way.
     (light `primary` 3.56:1, light `accent` 3.30:1, dark `primary`-as-text 4.27:1) as deliberate.
     That is a legitimate call, but there is no issue, no `@todo`, and no condition that would
     trigger revisiting them. If the app ever has a second user, this resurfaces with no owner.
+    Separately, `Button` used to fade to `opacity: 0.55` when disabled, which dims background and
+    label together and so collapses their contrast by construction — measured 2.09:1 dark and
+    1.49:1 light. It now switches to the muted surface (6.96:1 / 6.92:1). WCAG exempts disabled
+    controls, so that was never a conformance failure, just unreadable. Do not reintroduce the
+    fade; if you need a new inactive style, measure it.
 12. **TypeScript is pinned to `~6.0.0`** waiting on typescript-eslint support for TS 7. Nothing
     watches for that support landing, so the pin will quietly outlive its reason. Check
     typescript-eslint releases before assuming the pin is still needed.
@@ -279,12 +290,13 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 262 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 319 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
 
-1. `npm run dev`, open the app, click through all five routes in both themes at 375px wide.
+1. `npm run dev`, open the app, click through all five routes in both themes at 375px wide
+   (Progress now has four sub-tabs: Charts / Body / Daily / Achievements).
 2. Read `src/lib/storage.ts` end to end. It is the riskiest file in the repo — every hard rule
    about data compatibility is enforced (or not) there, and it is ahead of its own spec.
 3. Read the last four commit messages in full. They are the real design record.
@@ -294,6 +306,48 @@ To verify against legacy data rather than an empty app, run `npm run seed:legacy
 output into the devtools console (it clears every `gymlog_` key first, so use a throwaway
 profile). Dates in the seed are fixed, not relative to today, so history, calendar, charts, PRs
 and goals populate while streaks read cold.
+
+## 11. Added since this file was written (2026-09-12)
+
+Feature surface that the sections above predate:
+
+- **Progress → Daily** (`src/features/metrics/`) — per-day calories / protein / sleep / energy,
+  plus cardio sessions. Two NEW keys, `gymlog:dailyMetrics` (map keyed `YYYY-MM-DD`) and
+  `gymlog:cardio` (array). Deliberately independent of `features/train`: it keeps its own styled
+  primitives so the two can be restyled apart.
+- **Two overlaps were resolved by NOT duplicating**, and both will look like omissions if you
+  don't know why. Body weight on that screen writes to the existing `gymlog:bodyweight`, the key
+  the Body chart reads — there is no weight field in `dailyMetrics`. Cardio types are jog /
+  treadmill / other only: volleyball and Pilates are already `ActivityEntry` rows in
+  `gymlog:entries`, and offering them twice would double-count the calendar dots and the
+  cross-training achievements.
+- **Achievements** gained tiers, category filters, progress tracks and a detail modal. Tier,
+  category and unlock DATE are all **derived** (`achievementTier`, `achievementCategory`,
+  `achievementUnlockDates` in `domain.ts`), not stored. Unlock dates come from replaying history
+  — rebuilding the snapshot as it stood each logged day and taking the first day a check passes
+  — so they are real earn dates, retroactively, with no key to migrate. The tradeoff: a derived
+  date moves if the history behind it is deleted, the same contract unlocked state already had.
+- **Four tier colour tokens** (`tierBronze/Silver/Gold/Platinum`) are in `src/theme.ts` and the
+  `CLAUDE.md` Design System table. They are used as border AND text, so each was measured to
+  clear 4.5:1 on `card` in its own theme.
+
+Two invariants worth not breaking:
+
+1. **Maps of the user's own content drop bad rows; config maps may fall back.** A validation
+   layer shipped in `5eda04b` made every map reader fall back to `{}` on any mismatch. One
+   unreadable custom exercise then emptied the whole library — and because Settings → Archived
+   only renders when non-empty, the restore UI vanished with it, so it read as permanent data
+   loss. Fixed in `8ff65f6`: `getCustomExercises`, `getNotes` and `getGoals` now drop only the
+   rows that fail (`keepValid` / `keepValidEntries` in `schemas.ts`). Config-shaped maps
+   (input modes, exercise order, core overrides, replaced built-ins) still fall back wholesale,
+   which is fine — they are regenerable settings. If you add a reader for authored data, follow
+   the first pattern.
+2. **Nothing is written back as a result of a read.** A malformed row stays on disk rather than
+   being erased by looking at it. Tests assert the raw string is byte-identical after a read.
+
+Not done, and each needs a decision rather than an implementation: nutrition targets (the Daily
+hints are averages of your own history, because no target is stored and inventing one would be
+health advice), and route-level code splitting (gap #9, still open).
 
 If you have budget for one improvement before feature work, make it gap **#7** (self-host the
 fonts). It is what finishes #6: the app now loads offline, but Space Grotesk and DM Sans still
