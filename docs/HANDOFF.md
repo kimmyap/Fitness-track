@@ -48,11 +48,29 @@ and UX-rule sections are still good.
   `applyImport` in `src/features/more/backup.ts` (manual export/import) both list their fields by
   hand. A key missing from either is silently absent from that export — which is gap #8, the
   standing data-loss risk, arriving by omission. `dailyMetrics` and `cardio` are wired into both.
-  **One key is deliberately in neither: `warmupProgress`.** It holds today's warm-up tick marks,
-  which expire at midnight and describe a plan drawn for one device on one day, so exporting them
-  would be noise rather than safety. That exception is commented at both payload sites — without
-  the comments its absence looks exactly like the failure this rule warns about. It is the only
-  one; assume any other missing key is a bug.
+  **`warmupProgress` is out of both ON PURPOSE**: today's tick marks expire at midnight and
+  describe a plan drawn for one device on one day, so exporting them would be noise rather than
+  safety. That exception is commented at both payload sites — without the comments its absence
+  looks exactly like the failure this rule warns about.
+- **But it is NOT the only key outside the payloads, and the others are not deliberate.** An audit
+  on 2026-09-13 counted them (an earlier revision of this file claimed warm-up progress was the
+  only omission — it was wrong):
+
+  | Key | Manual export | Emergency auto-backup |
+  |---|---|---|
+  | `days`, `exerciseOrder` | **absent** | absent |
+  | `barWeight`, `weightInputModes` | **absent** | absent |
+  | `theme`, `lastProgramReview` | absent | absent |
+  | `customExercises`, `excludedBuiltIns`, `coreOverrides`, `measurements`, `equipmentWeights` | present | **absent** |
+
+  Export and import agree with each other — `applyImport` reads back exactly the 13 fields the
+  exporter writes — so nothing round-trips wrongly; the six are simply outside the backup contract.
+  `days` is the one that matters: restore on a new device and your workout days revert to the
+  legacy three, while `customExercises` and `exerciseOrder` are keyed BY DAY NAME and come back
+  pointing at days the restored program no longer has. `measurements` and `customExercises`
+  missing from the *emergency* dump is the second-worst, since that path fires exactly when
+  storage is already failing. Fixing this changes the export format and the import path, so it
+  wants a deliberate decision, not a drive-by — it is unowned as of this audit.
 - ~~`deploy-pipeline.md` lags the workflow on action versions and step commands.~~ **Fixed
   2026-09-11**: its YAML snippet is now byte-identical to `.github/workflows/ci-deploy.yml`.
   If you change the workflow, re-sync the snippet or replace it with a link — it drifted twice.

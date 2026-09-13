@@ -190,7 +190,7 @@ export function alternativesFor(exercise: LibraryExercise): LibraryExercise[] {
  * Curated library alternatives for a LOGGED exercise name, loading the library
  * if it is not in memory yet.
  *
- * 868 of the 876 library entries ship `alternative_ids` (about four each), so
+ * 856 of the 876 library entries ship `alternative_ids` (about four each), so
  * this resolves hand-curated data rather than guessing at similarity. Returns
  * empty when the name does not resolve — `lookupExercise` refuses to guess on
  * an ambiguous prefix, and offering the wrong exercise is worse than offering

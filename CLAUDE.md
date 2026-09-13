@@ -103,3 +103,59 @@ Everything else clears 4.5:1. Dark-mode fills (`onAccent` on `accent` 7.83:1, `o
 
 ## Design skill
 `.claude/skills/ui-ux-pro-max/` (+ companions) is installed. Python is NOT on this machine — query its CSV data files directly (Grep/Read) instead of running `scripts/search.py`.
+
+## Audit findings — pitfalls that cost real time (2026-09-13)
+
+These are recorded because each was a live bug or a false premise, not a hypothetical.
+
+- **Validation drops ROWS, not maps.** A whole-map fallback in `5eda04b` let one bad custom
+  exercise empty the entire library, and the Settings "Archived" section only renders when
+  non-empty, so the restore UI vanished with it — it read as permanent data loss. Readers for
+  the user's own authored content use `keepValid` / `keepValidEntries`; only regenerable config
+  maps may fall back wholesale.
+- **Reading never writes.** A malformed row stays byte-identical on disk. Tests assert this.
+- **Adding a key touches TWO payloads** (`buildBackupPayload` in `storage.ts`, and
+  `src/features/more/backup.ts`). Six keys are currently outside both and it is unowned — see
+  `docs/HANDOFF.md` §2 for the table. `warmupProgress` is the one deliberate omission.
+- **`exerciseLibrary.json` (1.2 MB) must stay a DYNAMIC import**, gated on the user opening the
+  thing that needs it — not on mount. Re-check with: 0 requests for the chunk on the Train page,
+  1 after expanding a card.
+- **Word-boundary your name-matching regexes.** `/arm/` matched inside **"Warm-up"** — a real
+  `DAY_PLAN` tab — and served the wrong warm-up block. Every token in `warmupFocusForDay` is
+  `\b`-anchored for this reason.
+- **Seed anything that must not reshuffle under the user.** The warm-up plan is drawn from a
+  `${date}:${shuffles}` seed, never `Math.random`, so a re-render or tab switch cannot redraw a
+  list mid-use. Persisted ticks store the nonce alongside them or they restore against the
+  wrong draw.
+- **Never write storage inside a `setState` updater** — React runs updaters twice in StrictMode.
+  Compute the next value outside, then set and persist.
+- **Emotion: no backticks inside a styled template literal**, even in a CSS comment; it breaks
+  the build. Custom props that collide with real HTML attribute names (`open`, `wrap`) need
+  `shouldForwardProp` or a rename.
+- **Unit tests do not catch layout.** A Shuffle button overlapping a tab at 375px, a bar
+  covering the card it described, and a blank offline page all shipped past a green suite.
+  Drive a real browser at 375px in both themes before committing UI.
+- **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
+  Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
+
+## Continuous memory rule (applies to every future task, without being asked)
+
+At the end of any task that changes architecture, storage schema, or fixes a recurring bug,
+update the docs **before reporting the task done** — no user prompt required:
+
+1. **New or changed storage key, or a change to how a key is read/written** → record the shape
+   and the reasoning in `docs/HANDOFF.md` §11, and add the key to the §2 backup-payload table.
+2. **A bug whose root cause could recur** (a regex that over-matched, a lazy import that became
+   eager, a selector that looped) → add one bullet to the pitfalls list above, stating the
+   failure, not just the fix.
+3. **Counts and sizes** stated in `docs/HANDOFF.md` §5 (test count, file count, bundle kB) are
+   load-bearing — a future session compares against them to detect drift. Re-measure and update
+   them in the same commit rather than leaving them stale.
+4. **A wrong premise that reached a prompt** (wrong stack, wrong path, a feature that already
+   existed) → add it to `docs/repo-facts.md`, which exists to be pasted into tools that cannot
+   see this codebase.
+5. **Correct what you previously wrote** when an audit contradicts it, and say so in the commit.
+   An earlier revision of `HANDOFF.md` §2 claimed one key was the only backup omission; there
+   were seven. Stale documentation is worse than none, because it is trusted.
+
+Keep these entries dense and factual. State what broke and why, not what was learned.
