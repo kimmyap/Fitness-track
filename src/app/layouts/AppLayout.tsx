@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import { NavLink, Outlet } from 'react-router';
 import { CalendarDays, Dumbbell, House, MoreHorizontal, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Toaster } from '@/components';
+import { BarbellIcon, Toaster } from '@/components';
 
 const BREAKPOINT = '1024px';
 
@@ -84,7 +84,11 @@ const Sidebar = styled.nav`
   }
 `;
 
+/* The icon inherits currentColor, so it tracks `primary` in both themes. */
 const Brand = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space[2]};
   font-family: ${({ theme }) => theme.typography.display};
   font-weight: 700;
   font-size: ${({ theme }) => theme.typography.fontSizes.lg};
@@ -141,7 +145,10 @@ export function AppLayout() {
   return (
     <Shell>
       <Sidebar aria-label="Primary">
-        <Brand>Fitness Track</Brand>
+        <Brand>
+          <BarbellIcon size={22} aria-hidden="true" />
+          Fitness Track
+        </Brand>
         {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <SideLink key={to} to={to} end={end}>
             <Icon size={20} aria-hidden="true" />
