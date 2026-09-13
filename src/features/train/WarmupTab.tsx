@@ -10,10 +10,13 @@
  *   day to day while staying stable within a day (see warmupPlan.ts).
  * - LENGTH. Quick or Full, changing how much of the block you get.
  *
- * Tick state is deliberately EPHEMERAL component state: it is a scratchpad for
- * the next ten minutes, not history, so it writes no storage key. The thing
- * that persists is the same legacy completion entry as before —
- * `{ type: 'warmup', date }`, unchanged shape.
+ * Tick state survives a reload via `gymlog:warmupProgress`, which stores the
+ * ticks AND the shuffle nonce they were made against — restoring one without
+ * the other would check off movements of a different draw. It is scratch
+ * state: a value from any other day is discarded on read, and it is the one
+ * key deliberately absent from both backup payloads (see
+ * `getWarmupProgress`). What counts as history is still the legacy completion
+ * entry, `{ type: 'warmup', date }`, unchanged shape.
  *
  * Legacy quirk preserved: toggling warm-up does NOT run the achievements
  * check (unlike the core toggle).
@@ -24,6 +27,7 @@ import { Circle, CircleCheck, Shuffle } from 'lucide-react';
 import { Button, Card, SegmentedTabs, WeekStrip, toast } from '@/components';
 import { useEntriesStore } from '@/stores';
 import { isoDate } from '@/lib/domain';
+import { getWarmupProgress, saveWarmupProgress } from '@/lib/storage';
 import { DAY_PLAN, WARMUP_BLOCKS, WARMUP_FOCUS_LABEL, WARMUP_WHY, randomHype } from '@/lib/program';
 import type { WarmupFocus } from '@/lib/program';
 import { CardTitle, Muted, Row, SetRow, SrOnly, Stack, last7Dates } from './ui';
@@ -143,9 +147,19 @@ export function WarmupTab() {
   const todayPlan = DAY_PLAN[new Date().getDay()];
   const focus = warmupFocusForDay(todayPlan?.tab);
 
+  /*
+   * Restored together, and that pairing is the point: the plan is drawn from a
+   * `${date}:${shuffles}` seed, so ticks without the nonce they were made
+   * against would check off movements of a different draw.
+   */
   const [duration, setDuration] = useState<WarmupDuration>('full');
-  const [shuffles, setShuffles] = useState(0);
-  const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set<string>());
+  const restored = useState(() => getWarmupProgress(todayIso))[0];
+  const [shuffles, setShuffles] = useState(() => restored?.shuffles ?? 0);
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set(restored?.items ?? []));
+
+  const persist = (items: ReadonlySet<string>, nonce: number) => {
+    void saveWarmupProgress({ date: todayIso, shuffles: nonce, items: [...items] });
+  };
 
   const plan = useMemo(
     () => buildWarmupPlan({ focus, duration, seed: `${todayIso}:${shuffles}` }),
@@ -158,18 +172,21 @@ export function WarmupTab() {
   );
   const allTicked = tickedCount === plan.itemCount;
 
+  /* Computed outside the updater: a write is a side effect, and React calls
+     updaters twice in StrictMode. */
   const toggleItem = (item: WarmupPlanItem) => {
-    setTicked((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(item.key)) next.add(item.key);
-      return next;
-    });
+    const next = new Set(ticked);
+    if (!next.delete(item.key)) next.add(item.key);
+    setTicked(next);
+    persist(next, shuffles);
   };
 
   /* A new draw means the old ticks describe movements you are no longer doing. */
   const reshuffle = () => {
-    setShuffles((n) => n + 1);
+    const nonce = shuffles + 1;
+    setShuffles(nonce);
     setTicked(new Set<string>());
+    persist(new Set<string>(), nonce);
   };
 
   const stripDays = last7Dates().map((date) => ({

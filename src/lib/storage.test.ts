@@ -11,11 +11,13 @@ import {
   getLastProgramReview,
   getSaveStatus,
   getThemeRaw,
+  getWarmupProgress,
   getUnit,
   saveEntries,
   saveLastProgramReview,
   saveTheme,
   saveUnit,
+  saveWarmupProgress,
   setRawWithRetry,
   STORAGE_KEYS,
   subscribeSaveStatus,
@@ -216,5 +218,81 @@ describe('user-content maps survive a bad row', () => {
 
     getCustomExercises();
     expect(localStorage.getItem(fullKey(STORAGE_KEYS.customExercises))).toBe(raw);
+  });
+});
+
+describe('warm-up progress (scratch state)', () => {
+  const progress = { date: '2026-09-13', shuffles: 2, items: ['cardio:Jump rope', 'lower:Hip circles'] };
+
+  it('round-trips the ticks AND the shuffle nonce', async () => {
+    await saveWarmupProgress(progress);
+    expect(getWarmupProgress('2026-09-13')).toEqual(progress);
+  });
+
+  /**
+   * The plan is redrawn each day, so yesterday's ticks name movements that are
+   * no longer on screen. Returning them would check off the wrong rows.
+   */
+  it('discards a value stored on any other date', async () => {
+    await saveWarmupProgress(progress);
+    expect(getWarmupProgress('2026-09-14')).toBeNull();
+    expect(getWarmupProgress('2026-09-12')).toBeNull();
+  });
+
+  it('falls back to nothing ticked when the stored shape is wrong', () => {
+    localStorage.setItem(fullKey(STORAGE_KEYS.warmupProgress), JSON.stringify({ date: '2026-09-13', items: 'nope' }));
+    expect(getWarmupProgress('2026-09-13')).toBeNull();
+  });
+
+  it('does not rewrite storage as a result of reading a stale value', () => {
+    const raw = JSON.stringify({ date: '2026-01-01', shuffles: 0, items: ['cardio:Jump rope'] });
+    localStorage.setItem(fullKey(STORAGE_KEYS.warmupProgress), raw);
+
+    expect(getWarmupProgress('2026-09-13')).toBeNull();
+    expect(localStorage.getItem(fullKey(STORAGE_KEYS.warmupProgress))).toBe(raw);
+  });
+
+  /**
+   * The one key intentionally missing from exports — assert it stays missing.
+   *
+   * Imports a FRESH storage module: `autoBackupCooldown` is module state, and
+   * an earlier test's useRealTimers() drops the timeout that would clear it, so
+   * the shared module refuses to build a second backup at all.
+   */
+  it('is absent from the emergency backup payload', async () => {
+    vi.resetModules();
+    const storage = await import('./storage');
+    const realSetItem = Storage.prototype.setItem;
+    vi.useFakeTimers();
+
+    await storage.saveWarmupProgress(progress);
+    await storage.saveDailyMetrics({ '2026-09-13': { calories: 2000 } });
+
+    let body = '';
+    URL.createObjectURL = vi.fn((blob: Blob) => {
+      void blob.text().then((t) => {
+        body = t;
+      });
+      return 'blob:test';
+    }) as unknown as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn();
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    Storage.prototype.setItem = vi.fn(() => {
+      throw new Error('quota exceeded');
+    });
+
+    const promise = storage.setRawWithRetry(storage.STORAGE_KEYS.entries, '[]', 'Workout log');
+    await vi.advanceTimersByTimeAsync(300 + 800 + 1800);
+    await expect(promise).resolves.toBe(false);
+    Storage.prototype.setItem = realSetItem;
+    await vi.advanceTimersByTimeAsync(0); // let blob.text() settle
+
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    // A present key proves the payload was really built; the absent one is the point.
+    expect(body).toContain('dailyMetrics');
+    expect(body).not.toContain('warmupProgress');
+
+    clickSpy.mockRestore();
+    vi.useRealTimers();
   });
 });

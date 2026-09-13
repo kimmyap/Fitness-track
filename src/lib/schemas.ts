@@ -128,6 +128,17 @@ export const cardioSessionSchema = z.looseObject({
   miles: z.optional(z.number()),
 });
 
+/**
+ * Warm-up tick state. Whole-value: there are no rows to keep or drop, and a
+ * half-valid warm-up scratchpad is worth nothing, so a mismatch falls back to
+ * "nothing ticked" rather than being partially honoured.
+ */
+export const warmupProgressSchema = z.looseObject({
+  date: isoDate,
+  shuffles: z.number(),
+  items: z.array(z.string()),
+});
+
 /** Value schemas for the maps read row-by-row via keepValidEntries. */
 export const stringValueSchema = z.string();
 export const numberValueSchema = z.number();

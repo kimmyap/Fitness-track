@@ -110,7 +110,7 @@ describe('WarmupTab', () => {
     expect(movementNames()).not.toEqual(before);
   });
 
-  /** Ticks are a scratchpad; the completion entry is the only thing stored. */
+  /** Ticks are scratch state; the completion entry is what counts as history. */
   it('logs completion in the unchanged legacy entry shape', () => {
     renderWithTheme(<WarmupTab />);
 
@@ -120,5 +120,66 @@ describe('WarmupTab', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ type: 'warmup', date: '2026-09-15' });
     expect(screen.getByText('Marked complete')).toBeInTheDocument();
+  });
+});
+
+/**
+ * Ticks survive a reload via `gymlog:warmupProgress`. The nonce is the part
+ * worth testing: restoring ticks against a plan drawn with a different shuffle
+ * count would check off movements the user never touched.
+ */
+describe('WarmupTab persistence', () => {
+  it('restores ticks after a remount', () => {
+    const first = renderWithTheme(<WarmupTab />);
+    fireEvent.click(movementButtons()[0] as HTMLElement);
+    const tickedName = movementNames()[0];
+    expect(progress()).toBe('1 of 7 ticked off');
+    first.unmount();
+
+    renderWithTheme(<WarmupTab />);
+    expect(progress()).toBe('1 of 7 ticked off');
+    expect(movementButtons()[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(movementNames()[0]).toBe(tickedName);
+  });
+
+  it('restores the shuffled plan, not the day-zero draw', () => {
+    const first = renderWithTheme(<WarmupTab />);
+    fireEvent.click(screen.getByRole('button', { name: /Shuffle/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Shuffle/ }));
+    const shuffledNames = movementNames();
+    fireEvent.click(movementButtons()[0] as HTMLElement);
+    first.unmount();
+
+    renderWithTheme(<WarmupTab />);
+    expect(movementNames()).toEqual(shuffledNames);
+    expect(progress()).toBe('1 of 7 ticked off');
+  });
+
+  /**
+   * A past day's ticks name movements that are no longer on screen.
+   *
+   * The later date is another TUESDAY on purpose: same focus block, so the only
+   * thing that can clear the ticks is the stored date failing to match. A
+   * different weekday would pass even if the date check were deleted.
+   */
+  it('ignores progress stored on another day', () => {
+    const first = renderWithTheme(<WarmupTab />);
+    fireEvent.click(movementButtons()[0] as HTMLElement);
+    first.unmount();
+
+    vi.setSystemTime(new Date('2026-09-22T09:00:00'));
+    renderWithTheme(<WarmupTab />);
+    expect(screen.getByText('Lower body prep')).toBeInTheDocument();
+    expect(progress()).toBe('0 of 7 ticked off');
+  });
+
+  it('clears stored ticks when you shuffle', () => {
+    const first = renderWithTheme(<WarmupTab />);
+    fireEvent.click(movementButtons()[0] as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: /Shuffle/ }));
+    first.unmount();
+
+    renderWithTheme(<WarmupTab />);
+    expect(progress()).toBe('0 of 7 ticked off');
   });
 });

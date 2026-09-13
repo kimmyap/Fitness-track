@@ -219,3 +219,25 @@ export type StoredWeightInputMode = 'total' | 'perSide';
 /** gymlog:exerciseOrder — day name → ordered exercise names. NEW key. */
 export type ExerciseOrderMap = Record<string, string[]>;
 export type WeightInputModeMap = Record<string, StoredWeightInputMode>;
+
+/**
+ * gymlog:warmupProgress — NEW key. Which movements of TODAY's warm-up are
+ * ticked off.
+ *
+ * A single object rather than a date-keyed map (unlike dailyMetrics), because
+ * this is scratch state that expires at midnight: nothing ever reads
+ * yesterday's, and a map of it would grow forever. A stored value whose `date`
+ * is not today is discarded on read, so the key is self-pruning.
+ *
+ * `shuffles` is NOT incidental. The plan is drawn from the pools by a seed of
+ * `${date}:${shuffles}`, so restoring ticks without the nonce they were made
+ * against would check off movements of a different draw.
+ */
+export interface WarmupProgress {
+  /** Local date "YYYY-MM-DD". */
+  date: string;
+  /** The shuffle nonce the ticked plan was drawn with. */
+  shuffles: number;
+  /** Ticked item keys, e.g. "cardio:Jump rope". */
+  items: string[];
+}

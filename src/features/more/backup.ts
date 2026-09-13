@@ -67,6 +67,9 @@ export function buildBackupPayload(): BackupPayload {
     equipmentWeights: useSettingsStore.getState().equipmentWeights,
     dailyMetrics: useMetricsStore.getState().dailyMetrics,
     cardio: useMetricsStore.getState().cardio,
+    // `gymlog:warmupProgress` is deliberately NOT exported. It holds today's
+    // warm-up tick marks, which expire at midnight and describe a plan drawn
+    // for one device on one day. See getWarmupProgress in src/lib/storage.ts.
   };
 }
 

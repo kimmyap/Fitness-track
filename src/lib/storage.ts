@@ -31,6 +31,7 @@ import {
   measurementSchema,
   stringValueSchema,
   validOr,
+  warmupProgressSchema,
   weightInputModesSchema,
 } from './schemas';
 import type {
@@ -49,6 +50,7 @@ import type {
   NotesMap,
   Unit,
   ExerciseOrderMap,
+  WarmupProgress,
   WeightInputModeMap,
 } from './types';
 
@@ -80,6 +82,11 @@ export const STORAGE_KEYS = {
   dailyMetrics: 'gymlog:dailyMetrics',
   /** NEW: cardio sessions. Volleyball/Pilates stay ActivityEntry rows in `entries`. */
   cardio: 'gymlog:cardio',
+  /**
+   * NEW: today's ticked warm-up movements. Scratch state, deliberately absent
+   * from both backup payloads — see getWarmupProgress.
+   */
+  warmupProgress: 'gymlog:warmupProgress',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
@@ -238,6 +245,10 @@ function buildBackupPayload(label: string, failedKey?: StorageKey, failedValue?:
     // New keys must be listed here too, or an emergency backup silently omits them.
     dailyMetrics: readJSON<DailyMetricsMap>(STORAGE_KEYS.dailyMetrics, {}),
     cardio: readJSON<CardioSession[]>(STORAGE_KEYS.cardio, []),
+    // `warmupProgress` is the ONE key deliberately left out, here and in
+    // src/features/more/backup.ts. It is today's tick marks: it expires at
+    // midnight and means nothing on another device. Its absence is a choice,
+    // not the omission this comment warns about.
     unitPref,
     exportedAt: new Date().toISOString(),
     reason: `auto-backup after ${label} save failure`,
@@ -392,6 +403,33 @@ export function getCardioSessions(): CardioSession[] {
 }
 export function saveCardioSessions(sessions: CardioSession[]): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.cardio, JSON.stringify(sessions), 'Cardio');
+}
+
+/**
+ * Today's ticked warm-up movements, or null when there are none to restore.
+ *
+ * Returns null for a value stored on ANY other date: the plan is redrawn each
+ * day, so yesterday's ticks describe movements that are no longer on screen.
+ * That check is also what keeps the key from growing — it is one object, and a
+ * stale one is replaced by the next write rather than accumulating.
+ *
+ * Reading never writes: a stale value stays on disk until the next tick
+ * replaces it, per the repo-wide invariant.
+ *
+ * NOT in buildBackupPayload, and NOT in src/features/more/backup.ts. That is
+ * deliberate and is the one exception to "a new key goes in both payloads":
+ * restoring a half-ticked warm-up from another day onto another device is
+ * meaningless, and it would bloat every export with state that expires at
+ * midnight.
+ */
+export function getWarmupProgress(todayIso: string): WarmupProgress | null {
+  const stored = getChecked<WarmupProgress | null>(STORAGE_KEYS.warmupProgress, warmupProgressSchema, null);
+  if (!stored || stored.date !== todayIso) return null;
+  return stored;
+}
+
+export function saveWarmupProgress(progress: WarmupProgress): Promise<boolean> {
+  return setRawWithRetry(STORAGE_KEYS.warmupProgress, JSON.stringify(progress), 'Warm-up progress');
 }
 
 export function getSeenAchievements(): string[] {
