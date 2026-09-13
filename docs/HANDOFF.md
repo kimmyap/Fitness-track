@@ -295,9 +295,12 @@ otherwise discover the hard way.
     that are new in react-hooks 7 — `purity` (5, all in `Confetti.tsx`), `set-state-in-effect`
     (5), `refs` (2), `static-components` (1), `immutability` (1, the `sessionSetType` module
     object in `LoggingForm.tsx`) — plus 2 `no-useless-assignment` from eslint 10 core in
-    `domain.ts`. None is a bug; each fix is a behaviour change to code that works. Dependabot
-    will keep reopening these three. Either do the 14 fixes deliberately as their own task, or
-    leave the set held — but do not take eslint 10 without react-hooks 7, npm will not allow it.
+    `domain.ts`. None is a bug; each fix is a behaviour change to code that works.
+    **Decided 2026-09-13: held.** The owner chose to stay on eslint 9 rather than refactor
+    working code to satisfy new stylistic rules. Do not re-litigate this on the next Dependabot
+    PR — reopen it only if a rule in react-hooks 7 turns out to catch a real bug here, or if
+    eslint 9 stops receiving security fixes. And do not take eslint 10 without react-hooks 7;
+    npm will not allow it.
 14. **Zero source comments flagged as TODO/FIXME/HACK** — a genuinely clean codebase, but it
     also means the code carries no signal about known-incomplete areas. Everything deferred is
     in this list or in `git log`, nowhere else.
