@@ -135,7 +135,7 @@ before the warm-up rework, 343 before its ticks were persisted.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~979 kB (297 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~984 kB (299 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,202 kB (194 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -284,8 +284,21 @@ otherwise discover the hard way.
     fade; if you need a new inactive style, measure it.
 12. **TypeScript is pinned to `~6.0.0`** waiting on typescript-eslint support for TS 7. Nothing
     watches for that support landing, so the pin will quietly outlive its reason. Check
-    typescript-eslint releases before assuming the pin is still needed.
-13. **Zero source comments flagged as TODO/FIXME/HACK** — a genuinely clean codebase, but it
+    typescript-eslint releases before assuming the pin is still needed. **Checked 2026-09-13:
+    still needed.** `typescript-eslint@8.70.0` declares `typescript: >=4.8.4 <6.1.0`, so TS 7 is
+    not supported and `~6.0.0` (6.0.x only) is exactly the right range — even 6.1 is excluded.
+    Re-check the same way: `npm view typescript-eslint@latest peerDependencies`.
+13. **ESLint is held at 9 on purpose, and it is a THREE-package decision.** `eslint@10`,
+    `@eslint/js@10` and `eslint-plugin-react-hooks@7` move together: react-hooks v5 peers cap at
+    `^9.0.0`, so npm refuses eslint 10 alongside it, and react-hooks 7 is the only version that
+    accepts eslint 10. Taking the set surfaces **14 errors in working, tested code** from rules
+    that are new in react-hooks 7 — `purity` (5, all in `Confetti.tsx`), `set-state-in-effect`
+    (5), `refs` (2), `static-components` (1), `immutability` (1, the `sessionSetType` module
+    object in `LoggingForm.tsx`) — plus 2 `no-useless-assignment` from eslint 10 core in
+    `domain.ts`. None is a bug; each fix is a behaviour change to code that works. Dependabot
+    will keep reopening these three. Either do the 14 fixes deliberately as their own task, or
+    leave the set held — but do not take eslint 10 without react-hooks 7, npm will not allow it.
+14. **Zero source comments flagged as TODO/FIXME/HACK** — a genuinely clean codebase, but it
     also means the code carries no signal about known-incomplete areas. Everything deferred is
     in this list or in `git log`, nowhere else.
 
