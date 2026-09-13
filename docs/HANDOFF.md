@@ -36,9 +36,9 @@ and UX-rule sections are still good.
 
 **Known drift (unfixed):**
 
-- **Six storage keys are live in code but absent from the "source of truth" spec.**
+- **Seven storage keys are live in code but absent from the "source of truth" spec.**
   `gymlog:weightInputModes`, `gymlog:barWeight`, `gymlog:exerciseOrder`, `gymlog:days`,
-  `gymlog:dailyMetrics` and `gymlog:cardio` all exist in `src/lib/storage.ts` and are
+  `gymlog:dailyMetrics`, `gymlog:cardio` and `gymlog:warmupProgress` all exist in `src/lib/storage.ts` and are
   read/written by the app. `migration-spec.md` documents none of them; `CLAUDE.md` mentions only
   `weightInputModes`. Read the `STORAGE_KEYS` map in `src/lib/storage.ts` for the real list, and
   note the double-prefix quirk (logical key `gymlog:entries` → actual localStorage key
@@ -48,6 +48,11 @@ and UX-rule sections are still good.
   `applyImport` in `src/features/more/backup.ts` (manual export/import) both list their fields by
   hand. A key missing from either is silently absent from that export — which is gap #8, the
   standing data-loss risk, arriving by omission. `dailyMetrics` and `cardio` are wired into both.
+  **One key is deliberately in neither: `warmupProgress`.** It holds today's warm-up tick marks,
+  which expire at midnight and describe a plan drawn for one device on one day, so exporting them
+  would be noise rather than safety. That exception is commented at both payload sites — without
+  the comments its absence looks exactly like the failure this rule warns about. It is the only
+  one; assume any other missing key is a bug.
 - ~~`deploy-pipeline.md` lags the workflow on action versions and step commands.~~ **Fixed
   2026-09-11**: its YAML snippet is now byte-identical to `.github/workflows/ci-deploy.yml`.
   If you change the workflow, re-sync the snippet or replace it with a link — it drifted twice.
@@ -105,10 +110,10 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-13:
-typecheck clean, lint clean, **343 tests across 25 files**, build succeeds.
+typecheck clean, lint clean, **352 tests across 25 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
-before the warm-up rework.)
+before the warm-up rework, 343 before its ticks were persisted.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
@@ -301,7 +306,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 343 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 352 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -374,11 +379,15 @@ Feature surface that the sections above predate:
   - Picks are returned in POOL order, not draw order — the pools read big-joints-first — and
     the "light warm-up sets on first lift" line is `pinned`, outside the rotation, on the
     lifting blocks only.
-- **Warm-up ticks are deliberately not persisted.** Per-movement checkoff lives in component
-  state; a refresh mid-warm-up loses it. That was the agreed price of touching no storage. The
-  only thing written is the same legacy completion entry as ever, `{ type: 'warmup', date }`
-  on `gymlog:entries` — asserted in `WarmupTab.test.tsx`, because that assertion is what makes
-  a future "just store the ticks too" change obvious rather than silent.
+- **Warm-up ticks survive a reload, via `gymlog:warmupProgress` — and the SHUFFLE NONCE is
+  stored with them.** That pairing is the whole difficulty, and dropping it would look like a
+  simplification: the plan is drawn from a `${date}:${shuffles}` seed, so restoring ticks
+  against the wrong nonce rebuilds a different draw and checks off movements the user never
+  touched. Two more deliberate choices. The value is a single object, not the date-keyed map
+  `dailyMetrics` uses, because this is scratch state that expires at midnight — a stored value
+  whose `date` is not today is discarded on read, so the key cannot grow. And it is the one key
+  absent from both backup payloads (see §2). What counts as history is still the legacy
+  completion entry, `{ type: 'warmup', date }` on `gymlog:entries`, unchanged and asserted.
 - **The full-body block is new content**, not a rename. Non-lifting days (Pilates, volleyball,
   rest) previously had only the cardio card and two lifting routines they were meant to ignore.
 - **The desktop sidebar wordmark now carries `BarbellIcon`** (`AppLayout.tsx`). It inherits
@@ -401,9 +410,8 @@ Two invariants worth not breaking:
 
 Not done, and each needs a decision rather than an implementation: nutrition targets (the Daily
 hints are averages of your own history, because no target is stored and inventing one would be
-health advice), route-level code splitting (gap #9, still open), and persisting warm-up ticks
-through a refresh (a new `gymlog:warmupProgress` key — small, but it turns a scratchpad into
-stored state, so it is a decision rather than an oversight).
+health advice), and route-level code splitting (gap #9, still open). Persisting warm-up ticks
+was on this list and is now done — `gymlog:warmupProgress`, described above.
 
 If you have budget for one improvement before feature work, make it gap **#7** (self-host the
 fonts). It is what finishes #6: the app now loads offline, but Space Grotesk and DM Sans still
