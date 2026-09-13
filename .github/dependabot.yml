@@ -9,6 +9,21 @@ updates:
       minor-and-patch:
         update-types: ["minor", "patch"]
     open-pull-requests-limit: 5
+    # ESLint is held at 9 by decision — see docs/HANDOFF.md §8 gap #13.
+    # These three move as ONE set (eslint-plugin-react-hooks v5 peers cap at
+    # eslint ^9.0.0, and v7 is the only release accepting eslint 10), and taking
+    # the set surfaces 16 lint errors in working, tested code from rules that are
+    # new in react-hooks 7. Without this block Dependabot re-proposes all three
+    # every Monday and they occupy three of the five PR slots above.
+    # Majors only: minor and patch updates to all three still come through.
+    # Delete this block to revisit the decision.
+    ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-plugin-react-hooks"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
