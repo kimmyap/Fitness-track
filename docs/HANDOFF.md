@@ -104,14 +104,15 @@ history (the one PR, #1, was Dependabot's). See §8 for why that is a gap.
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-All four must pass before a commit. Verified green on 2026-09-12:
-typecheck clean, lint clean, **323 tests across 23 files**, build succeeds.
+All four must pass before a commit. Verified green on 2026-09-13:
+typecheck clean, lint clean, **343 tests across 25 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
-added a file; 262 across 18 before the metrics screen and the Today/Achievements passes.)
+added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
+before the warm-up rework.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~972 kB (295 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~979 kB (297 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,202 kB (194 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -300,7 +301,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 323 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 343 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -317,7 +318,7 @@ output into the devtools console (it clears every `gymlog_` key first, so use a 
 profile). Dates in the seed are fixed, not relative to today, so history, calendar, charts, PRs
 and goals populate while streaks read cold.
 
-## 11. Added since this file was written (2026-09-12)
+## 11. Added since this file was written (2026-09-12, extended 2026-09-13)
 
 Feature surface that the sections above predate:
 
@@ -352,6 +353,37 @@ Feature surface that the sections above predate:
 - **20 library exercises now have no alternatives at all** (it was 8). Category grouping
   legitimately narrows the candidate pool, and all 20 are edge cases in the small categories. An
   exercise with no suggest button is this, not a bug.
+- **The warm-up is drawn per session, not printed.** `WARMUP_ROUTINE` (three fixed sections,
+  all rendered at once, five movements each) is gone. In its place `program.ts` holds
+  `WARMUP_CARDIO` plus `WARMUP_BLOCKS` — POOLS of ~10, one block per focus — and
+  `src/features/train/warmupPlan.ts` draws a session from them. Four behaviours, each with a
+  reason that is easy to undo by accident:
+  - **Focus** comes from `DAY_PLAN[dow].tab` through `warmupFocusForDay`, which matches on the
+    day NAME rather than a lookup table, because days are user-editable and a renamed day must
+    still classify. Every token in that regex is `\b`-anchored: unanchored, "arm" matched inside
+    **"Warm-up"** — Monday's own tab — and the one non-lifting weekday was served an upper-body
+    block. Unrecognised names get the full-body block, never a guess.
+  - **The draw is seeded by the date, never `Math.random`.** A plan has to survive re-renders,
+    a tab switch and a theme change without reshuffling a list you are halfway through. Shuffle
+    advances a nonce that feeds the same seed. If you ever reach for `Math.random` here, the
+    list will redraw on every keystroke elsewhere on the page.
+  - **Quick is a SUBSET of Full.** Both durations run one draw and differ only in how much of
+    it they take, so lengthening the warm-up adds movements instead of replacing ticked ones.
+    That property is asserted in `warmupPlan.test.ts`; a "pick 3" / "pick 5" rewrite that draws
+    twice would pass a casual eye and break it.
+  - Picks are returned in POOL order, not draw order — the pools read big-joints-first — and
+    the "light warm-up sets on first lift" line is `pinned`, outside the rotation, on the
+    lifting blocks only.
+- **Warm-up ticks are deliberately not persisted.** Per-movement checkoff lives in component
+  state; a refresh mid-warm-up loses it. That was the agreed price of touching no storage. The
+  only thing written is the same legacy completion entry as ever, `{ type: 'warmup', date }`
+  on `gymlog:entries` — asserted in `WarmupTab.test.tsx`, because that assertion is what makes
+  a future "just store the ticks too" change obvious rather than silent.
+- **The full-body block is new content**, not a rename. Non-lifting days (Pilates, volleyball,
+  rest) previously had only the cardio card and two lifting routines they were meant to ignore.
+- **The desktop sidebar wordmark now carries `BarbellIcon`** (`AppLayout.tsx`). It inherits
+  `currentColor`, which on `Brand` is `primary`, so there is no second token to keep in step
+  across themes. Sidebar only — the bottom nav has five labelled items across 375px and no room.
 
 Two invariants worth not breaking:
 
@@ -369,7 +401,9 @@ Two invariants worth not breaking:
 
 Not done, and each needs a decision rather than an implementation: nutrition targets (the Daily
 hints are averages of your own history, because no target is stored and inventing one would be
-health advice), and route-level code splitting (gap #9, still open).
+health advice), route-level code splitting (gap #9, still open), and persisting warm-up ticks
+through a refresh (a new `gymlog:warmupProgress` key — small, but it turns a scratchpad into
+stored state, so it is a decision rather than an oversight).
 
 If you have budget for one improvement before feature work, make it gap **#7** (self-host the
 fonts). It is what finishes #6: the app now loads offline, but Space Grotesk and DM Sans still
