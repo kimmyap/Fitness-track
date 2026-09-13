@@ -24,6 +24,12 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "eslint-plugin-react-hooks"
         update-types: ["version-update:semver-major"]
+      # TypeScript majors: typescript-eslint declares `typescript: >=4.8.4
+      # <6.1.0` (checked 2026-09-13 against 8.70.0), so TS 7 breaks lint
+      # outright. See HANDOFF §8 gap #12, which carries the command to
+      # re-check. Drop this entry once typescript-eslint widens that range.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
