@@ -308,48 +308,116 @@ export const DAY_PLAN: Record<number, DayPlan> = {
 };
 
 // ---------------------------------------------------------------------------
-// Warm-up routine content (static cards on the Warm-up tab)
+// Warm-up routine content
+//
+// POOLS, not fixed lists. The Warm-up tab draws a session plan from these (see
+// features/train/warmupPlan.ts) so the same five movements don't come round
+// every single day. Widening the rotation is a matter of adding an item here —
+// no code change. Everything is dynamic work; deep static stretching belongs
+// after the session, not before it.
 // ---------------------------------------------------------------------------
 
-export interface WarmupSection {
-  title: string;
-  subtitle: string;
-  items: { name: string; detail: string }[];
+export interface WarmupItem {
+  name: string;
+  detail: string;
 }
 
-export const WARMUP_ROUTINE: WarmupSection[] = [
-  {
-    title: 'Cardio, 3-5 min',
-    subtitle: 'Pick one, just enough to break a light sweat',
+/** Which region a block preps. `full` covers the non-lifting days. */
+export type WarmupFocus = 'lower' | 'upper' | 'full';
+
+export interface WarmupSection {
+  id: string;
+  title: string;
+  subtitle: string;
+  /** Rotating pool — a session plan picks a subset of these. */
+  items: WarmupItem[];
+  /**
+   * Always present, always last, never shuffled: the part that only makes
+   * sense immediately before the first working set.
+   */
+  pinned?: WarmupItem[];
+}
+
+/** Always in the plan — one pick, whatever you are training. */
+export const WARMUP_CARDIO: WarmupSection = {
+  id: 'cardio',
+  title: 'Raise the temperature',
+  subtitle: 'One of these, just enough to break a light sweat',
+  items: [
+    { name: 'Bike or rower', detail: '3-5 min, easy pace' },
+    { name: 'Incline treadmill walk', detail: '3-5 min' },
+    { name: 'Jump rope', detail: '2-3 min' },
+    { name: 'Brisk walk outside', detail: '5 min' },
+    { name: 'Stair climber', detail: '3 min, steady' },
+    { name: 'Elliptical', detail: '4 min, easy pace' },
+  ],
+};
+
+/**
+ * One block per focus. Pools are ordered big joints first, and a plan keeps
+ * that order, so the sequence still reads sensibly whichever items come up.
+ */
+export const WARMUP_BLOCKS: Record<WarmupFocus, WarmupSection> = {
+  lower: {
+    id: 'lower',
+    title: 'Lower body prep',
+    subtitle: 'Dynamic, not static — save the deep stretching for after',
     items: [
-      { name: 'Bike or rower', detail: '3-5 min, easy pace' },
-      { name: 'Incline treadmill walk', detail: '3-5 min' },
-      { name: 'Jump rope', detail: '2-3 min' },
-    ],
-  },
-  {
-    title: 'Before Lower A / Lower B',
-    subtitle: 'Dynamic, not static, save the deep stretching for after',
-    items: [
+      { name: 'Hip circles', detail: '8 each direction' },
+      { name: 'Leg swings (front/side)', detail: '10 per leg' },
       { name: 'Bodyweight squats', detail: '10-15 reps' },
       { name: 'Glute bridges', detail: '12-15 reps' },
+      { name: 'Bodyweight good mornings', detail: '12 reps' },
       { name: 'Walking lunges', detail: '8-10 per leg' },
-      { name: 'Leg swings (front/side)', detail: '10 per leg' },
-      { name: 'Light warm-up sets on first lift', detail: '2 sets, empty bar or light lbs' },
+      { name: 'Cossack squats', detail: '6 per side' },
+      { name: 'Monster walks (band)', detail: '10 steps each way' },
+      { name: "World's greatest stretch", detail: '5 per side' },
+      { name: 'Ankle rocks against a wall', detail: '10 per side' },
     ],
+    pinned: [{ name: 'Light warm-up sets on first lift', detail: '2 sets, empty bar or light lbs' }],
   },
-  {
-    title: 'Before Upper',
+  upper: {
+    id: 'upper',
+    title: 'Upper body prep',
     subtitle: 'Wake up shoulders and upper back before pressing',
     items: [
+      { name: 'Cat-cow', detail: '8 slow reps' },
       { name: 'Arm circles', detail: '10 each direction' },
+      { name: 'Thoracic rotations', detail: '8 per side' },
       { name: 'Band or cable pull-aparts', detail: '15 reps' },
-      { name: 'Push-ups (light)', detail: '8-10 reps' },
+      { name: 'Band shoulder dislocates', detail: '10 reps' },
+      { name: 'Wall slides', detail: '10 reps' },
       { name: 'Scapular pull-ups or rows', detail: '10 reps' },
-      { name: 'Light warm-up sets on first lift', detail: '2 sets, empty bar or light lbs' },
+      { name: 'Face pulls (light)', detail: '15 reps' },
+      { name: 'Push-ups (light)', detail: '8-10 reps' },
+      { name: 'Dead hang', detail: '20-30 sec' },
+    ],
+    pinned: [{ name: 'Light warm-up sets on first lift', detail: '2 sets, empty bar or light lbs' }],
+  },
+  full: {
+    id: 'full',
+    title: 'Full body prep',
+    subtitle: 'For court, mat or class days — everything moving, nothing loaded',
+    items: [
+      { name: 'Cat-cow', detail: '8 slow reps' },
+      { name: 'Arm circles', detail: '10 each direction' },
+      { name: 'Hip circles', detail: '8 each direction' },
+      { name: 'Standing side bends', detail: '8 per side' },
+      { name: 'Thoracic rotations', detail: '8 per side' },
+      { name: 'Leg swings (front/side)', detail: '10 per leg' },
+      { name: 'Bodyweight squats', detail: '10 reps' },
+      { name: 'Glute bridges', detail: '12 reps' },
+      { name: 'Inchworms', detail: '6 reps' },
+      { name: "World's greatest stretch", detail: '5 per side' },
     ],
   },
-];
+};
+
+export const WARMUP_FOCUS_LABEL: Record<WarmupFocus, string> = {
+  lower: 'Lower body',
+  upper: 'Upper body',
+  full: 'Full body',
+};
 
 export const WARMUP_WHY = {
   title: 'Why this matters',
