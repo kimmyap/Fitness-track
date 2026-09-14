@@ -292,6 +292,27 @@ describe('warm-up progress (scratch state)', () => {
     expect(body).toContain('dailyMetrics');
     expect(body).not.toContain('warmupProgress');
 
+    /*
+     * Everything else must be in there. This dump fires when a save has just
+     * failed — the moment you most need a complete file — and until
+     * 2026-09-13 it carried only the legacy five plus metrics, silently
+     * omitting custom exercises, measurements and the whole program structure.
+     */
+    for (const field of [
+      'customExercises',
+      'excludedBuiltIns',
+      'coreOverrides',
+      'measurements',
+      'equipmentWeights',
+      'days',
+      'exerciseOrder',
+      'weightInputModes',
+      'barWeight',
+      'lastProgramReview',
+    ]) {
+      expect(body).toContain(field);
+    }
+
     clickSpy.mockRestore();
     vi.useRealTimers();
   });

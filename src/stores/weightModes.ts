@@ -13,6 +13,8 @@ import type { WeightEntryMode } from '@/lib/domain';
 export interface WeightModesState {
   modes: WeightInputModeMap;
   setMode: (exerciseName: string, mode: StoredWeightInputMode) => void;
+  /** Replace the whole map. Bulk writers only (backup import). */
+  setModes: (modes: WeightInputModeMap) => void;
   clearMode: (exerciseName: string) => void;
 }
 
@@ -25,6 +27,7 @@ export const useWeightModesStore = create<WeightModesState>((set, get) => {
   return {
     modes: getWeightInputModes(),
     setMode: (exerciseName, mode) => persist({ ...get().modes, [exerciseName]: mode }),
+    setModes: (modes) => persist(modes),
     clearMode: (exerciseName) => {
       const modes = { ...get().modes };
       delete modes[exerciseName];

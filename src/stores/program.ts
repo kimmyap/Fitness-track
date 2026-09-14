@@ -36,6 +36,14 @@ export interface ProgramState {
   removeDay: (name: string) => void;
   /** Reorder within a day. `names` is the full, ordered list for that day. */
   setDayOrder: (day: string, names: string[]) => void;
+  /**
+   * Replace the whole day list. For bulk writers only (backup import); day
+   * editing in the UI goes through addDay / renameDay / removeDay, which also
+   * carry the built-in materialisation those operations need.
+   */
+  setDays: (days: string[]) => void;
+  /** Replace the whole per-day order map. Bulk writers only, as setDays. */
+  setOrder: (order: ExerciseOrderMap) => void;
   /** Move one exercise up/down among `currentOrder`. */
   moveExercise: (day: string, name: string, direction: -1 | 1, currentOrder: string[]) => void;
   /** Reassign an exercise from one day to another. */
@@ -143,6 +151,14 @@ export const useProgramStore = create<ProgramState>((set, get) => {
 
     setDayOrder: (day, names) => {
       persistOrder({ ...get().order, [day]: names });
+    },
+
+    setDays: (days) => {
+      persistDays(days);
+    },
+
+    setOrder: (order) => {
+      persistOrder(order);
     },
 
     moveExercise: (day, name, direction, currentOrder) => {

@@ -242,9 +242,25 @@ function buildBackupPayload(label: string, failedKey?: StorageKey, failedValue?:
     customGoals: readJSON<GoalsMap>(STORAGE_KEYS.goals, {}),
     bwEntries: readJSON<BodyweightEntry[]>(STORAGE_KEYS.bodyweight, []),
     seenAchievements: readJSON<string[]>(STORAGE_KEYS.achievements, []),
-    // New keys must be listed here too, or an emergency backup silently omits them.
+    // New keys must be listed here too, or an emergency backup silently omits
+    // them. This payload used to carry only the legacy five plus metrics, so a
+    // quota-failure dump — the moment you most need everything — lacked your
+    // custom exercises, measurements and program structure. Field names match
+    // src/features/more/backup.ts exactly, so an emergency file imports through
+    // the same applyImport path as a manual export.
     dailyMetrics: readJSON<DailyMetricsMap>(STORAGE_KEYS.dailyMetrics, {}),
     cardio: readJSON<CardioSession[]>(STORAGE_KEYS.cardio, []),
+    customExercises: readJSON<CustomExercisesMap>(STORAGE_KEYS.customExercises, {}),
+    excludedBuiltIns: readJSON<ExcludedBuiltInsMap>(STORAGE_KEYS.excludedBuiltIns, {}),
+    coreOverrides: readJSON<CoreOverridesMap>(STORAGE_KEYS.coreOverrides, {}),
+    measurements: readJSON<MeasurementEntry[]>(STORAGE_KEYS.measurements, []),
+    equipmentWeights: getEquipmentWeights(),
+    days: readJSON<string[]>(STORAGE_KEYS.days, []),
+    exerciseOrder: readJSON<ExerciseOrderMap>(STORAGE_KEYS.exerciseOrder, {}),
+    weightInputModes: readJSON<WeightInputModeMap>(STORAGE_KEYS.weightInputModes, {}),
+    barWeight: getBarWeight(),
+    theme: getThemeRaw() ?? undefined,
+    lastProgramReview: getLastProgramReview(),
     // `warmupProgress` is the ONE key deliberately left out, here and in
     // src/features/more/backup.ts. It is today's tick marks: it expires at
     // midnight and means nothing on another device. Its absence is a choice,

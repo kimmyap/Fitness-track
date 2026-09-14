@@ -52,25 +52,14 @@ and UX-rule sections are still good.
   describe a plan drawn for one device on one day, so exporting them would be noise rather than
   safety. That exception is commented at both payload sites — without the comments its absence
   looks exactly like the failure this rule warns about.
-- **But it is NOT the only key outside the payloads, and the others are not deliberate.** An audit
-  on 2026-09-13 counted them (an earlier revision of this file claimed warm-up progress was the
-  only omission — it was wrong):
-
-  | Key | Manual export | Emergency auto-backup |
-  |---|---|---|
-  | `days`, `exerciseOrder` | **absent** | absent |
-  | `barWeight`, `weightInputModes` | **absent** | absent |
-  | `theme`, `lastProgramReview` | absent | absent |
-  | `customExercises`, `excludedBuiltIns`, `coreOverrides`, `measurements`, `equipmentWeights` | present | **absent** |
-
-  Export and import agree with each other — `applyImport` reads back exactly the 13 fields the
-  exporter writes — so nothing round-trips wrongly; the six are simply outside the backup contract.
-  `days` is the one that matters: restore on a new device and your workout days revert to the
-  legacy three, while `customExercises` and `exerciseOrder` are keyed BY DAY NAME and come back
-  pointing at days the restored program no longer has. `measurements` and `customExercises`
-  missing from the *emergency* dump is the second-worst, since that path fires exactly when
-  storage is already failing. Fixing this changes the export format and the import path, so it
-  wants a deliberate decision, not a drive-by — it is unowned as of this audit.
+- ~~**But it is NOT the only key outside the payloads.**~~ **Fixed 2026-09-14.** An audit the
+  day before found seven keys outside the manual export and thirteen outside the emergency
+  auto-backup. Both payloads now carry every key except `warmupProgress`, and the emergency dump
+  uses the SAME field names as the manual export, so a quota-failure file imports through the
+  same `applyImport` path — it did not before. Merge semantics for the six that were added:
+  `days` UNIONs (see §11), `exerciseOrder` / `weightInputModes` spread per key with incoming
+  winning, `barWeight` and `theme` apply when valid, and `lastProgramReview` backfills only when
+  unset so a restore cannot move a review clock you are already running.
 - ~~`deploy-pipeline.md` lags the workflow on action versions and step commands.~~ **Fixed
   2026-09-11**: its YAML snippet is now byte-identical to `.github/workflows/ci-deploy.yml`.
   If you change the workflow, re-sync the snippet or replace it with a link — it drifted twice.
@@ -127,15 +116,16 @@ history (the one PR, #1, was Dependabot's). See §8 for why that is a gap.
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-All four must pass before a commit. Verified green on 2026-09-13:
-typecheck clean, lint clean, **352 tests across 25 files**, build succeeds.
+All four must pass before a commit. Verified green on 2026-09-14:
+typecheck clean, lint clean, **361 tests across 25 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
-before the warm-up rework, 343 before its ticks were persisted.)
+before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
+were completed.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~984 kB (299 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~985 kB (299 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,202 kB (194 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -340,7 +330,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 352 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 361 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -427,6 +417,17 @@ Feature surface that the sections above predate:
 - **The desktop sidebar wordmark now carries `BarbellIcon`** (`AppLayout.tsx`). It inherits
   `currentColor`, which on `Brand` is `primary`, so there is no second token to keep in step
   across themes. Sidebar only — the bottom nav has five labelled items across 375px and no room.
+
+- **Both backup payloads are complete as of 2026-09-14**, and `days` is why it mattered. Custom
+  exercises and per-day card order are keyed BY DAY NAME, so exporting them without the day list
+  produced a file that restored exercises onto days the program no longer had. `days` merges as a
+  UNION — local order first, then imported days you lack — because this module's contract is that
+  a merge never deletes anything, and a file listing fewer days than you have must not take yours
+  away. Observed consequence, verified in a browser: restoring onto a wiped device gives you the
+  legacy three PLUS your real days, e.g. `["Lower A","Upper","Lower B","Push Day","Pull Day"]`,
+  because a fresh install starts on the defaults. Nothing is lost and the extras delete in
+  Settings. Adopting the file's list wholesale when the user has never stored one would be a
+  cleaner restore; it is not implemented, and it is a behaviour change, not a bug fix.
 
 Two invariants worth not breaking:
 

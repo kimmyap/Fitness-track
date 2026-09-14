@@ -21,7 +21,9 @@ import {
   useGoalsStore,
   useMeasurementsStore,
   useNotesStore,
+  useProgramStore,
   useSettingsStore,
+  useWeightModesStore,
 } from '@/stores';
 import type { Entry, LiftSetEntry } from '@/lib/types';
 
@@ -41,6 +43,12 @@ beforeEach(() => {
   useCustomExercisesStore.getState().setExcludedBuiltIns({});
   useCoreOverridesStore.getState().setCoreOverrides({});
   useMeasurementsStore.getState().setMeasurements([]);
+  useProgramStore.getState().setDays(['Lower A', 'Upper', 'Lower B']);
+  useProgramStore.getState().setOrder({});
+  useWeightModesStore.getState().setModes({});
+  useSettingsStore.getState().setBarWeight(null);
+  useSettingsStore.getState().setThemePref('system');
+  useSettingsStore.setState({ lastProgramReview: null });
 });
 
 describe('export payload', () => {
@@ -229,5 +237,113 @@ describe('applyImport — NEW backup shape (rebuild extras)', () => {
     expect(useMeasurementsStore.getState().measurements).toEqual([
       { id: 'm1', date: '2026-08-01', waist: 30, hips: 38 },
     ]);
+  });
+});
+
+/**
+ * Program structure was absent from both payloads until 2026-09-13. `days` is
+ * the consequential one: customExercises and exerciseOrder are keyed BY DAY
+ * NAME, so a file without it restored exercises onto days that did not exist.
+ */
+describe('applyImport — program structure', () => {
+  it('exports the keys that used to be missing', () => {
+    useProgramStore.getState().setDays(['Lower A', 'Push Day']);
+    useProgramStore.getState().setOrder({ 'Push Day': ['Bench Press'] });
+    useWeightModesStore.getState().setModes({ 'Bench Press': 'perSide' });
+    useSettingsStore.getState().setBarWeight(35);
+    useSettingsStore.getState().setThemePref('dark');
+
+    expect(buildBackupPayload()).toMatchObject({
+      days: ['Lower A', 'Push Day'],
+      exerciseOrder: { 'Push Day': ['Bench Press'] },
+      weightInputModes: { 'Bench Press': 'perSide' },
+      barWeight: 35,
+      theme: 'dark',
+    });
+  });
+
+  /** UNION, not replace: a file with fewer days must not take yours away. */
+  it('unions days, keeping local order and appending unknown ones', () => {
+    useProgramStore.getState().setDays(['Lower A', 'My Day']);
+
+    applyImport({ days: ['Lower A', 'Imported Day'] });
+
+    expect(useProgramStore.getState().days).toEqual(['Lower A', 'My Day', 'Imported Day']);
+  });
+
+  it('never drops a local day the file omits', () => {
+    useProgramStore.getState().setDays(['Lower A', 'Upper', 'Precious Day']);
+
+    applyImport({ days: ['Lower A'] });
+
+    expect(useProgramStore.getState().days).toContain('Precious Day');
+  });
+
+  it('spreads exercise order and weight modes per key, incoming winning', () => {
+    useProgramStore.getState().setOrder({ 'Lower A': ['Deadlifts'], Upper: ['Rows'] });
+    useWeightModesStore.getState().setModes({ Deadlifts: 'total' });
+
+    applyImport({
+      exerciseOrder: { 'Lower A': ['Sumo Squats', 'Deadlifts'] },
+      weightInputModes: { Deadlifts: 'perSide', 'Bench Press': 'total' },
+    });
+
+    expect(useProgramStore.getState().order).toEqual({
+      'Lower A': ['Sumo Squats', 'Deadlifts'],
+      Upper: ['Rows'],
+    });
+    expect(useWeightModesStore.getState().modes).toEqual({ Deadlifts: 'perSide', 'Bench Press': 'total' });
+  });
+
+  it('applies barWeight and theme, ignoring junk', () => {
+    applyImport({ barWeight: 35, theme: 'dark' });
+    expect(useSettingsStore.getState().barWeightLbs).toBe(35);
+    expect(useSettingsStore.getState().themePref).toBe('dark');
+
+    applyImport({ barWeight: 'heavy', theme: 'neon' });
+    expect(useSettingsStore.getState().barWeightLbs).toBe(35);
+    expect(useSettingsStore.getState().themePref).toBe('dark');
+  });
+
+  /** A file without a theme means "no opinion", not "switch me to system". */
+  it('leaves the theme alone when the file has none', () => {
+    useSettingsStore.getState().setThemePref('dark');
+    applyImport({ entries: [] });
+    expect(useSettingsStore.getState().themePref).toBe('dark');
+  });
+
+  /** Restoring a file must not move a review clock you are already running. */
+  it('backfills lastProgramReview only when unset', () => {
+    applyImport({ lastProgramReview: '2026-01-01' });
+    expect(useSettingsStore.getState().lastProgramReview).toBe('2026-01-01');
+
+    applyImport({ lastProgramReview: '2026-08-01' });
+    expect(useSettingsStore.getState().lastProgramReview).toBe('2026-01-01');
+  });
+
+  it('round-trips the new fields as a no-op merge', () => {
+    useProgramStore.getState().setDays(['Lower A', 'Push Day']);
+    useProgramStore.getState().setOrder({ 'Push Day': ['Bench Press'] });
+    useWeightModesStore.getState().setModes({ 'Bench Press': 'perSide' });
+    useSettingsStore.getState().setBarWeight(35);
+
+    const payload = buildBackupPayload();
+    applyImport(payload as unknown as Record<string, unknown>);
+
+    expect(useProgramStore.getState().days).toEqual(['Lower A', 'Push Day']);
+    expect(useProgramStore.getState().order).toEqual({ 'Push Day': ['Bench Press'] });
+    expect(useWeightModesStore.getState().modes).toEqual({ 'Bench Press': 'perSide' });
+    expect(useSettingsStore.getState().barWeightLbs).toBe(35);
+  });
+
+  /** An OLD file has none of these; it must not wipe what you have. */
+  it('leaves everything alone for a legacy file with no program fields', () => {
+    useProgramStore.getState().setDays(['Lower A', 'My Day']);
+    useWeightModesStore.getState().setModes({ Deadlifts: 'total' });
+
+    applyImport({ entries: [], notes: {}, customGoals: {} });
+
+    expect(useProgramStore.getState().days).toEqual(['Lower A', 'My Day']);
+    expect(useWeightModesStore.getState().modes).toEqual({ Deadlifts: 'total' });
   });
 });

@@ -208,6 +208,18 @@ export interface BackupPayload {
   theme?: string;
   dailyMetrics?: DailyMetricsMap;
   cardio?: CardioSession[];
+  /**
+   * Your ordered workout day names. The most consequential of these: custom
+   * exercises and exercise order are keyed BY DAY NAME, so a restore without
+   * this leaves them pointing at days the restored program does not have.
+   */
+  days?: string[];
+  exerciseOrder?: ExerciseOrderMap;
+  weightInputModes?: WeightInputModeMap;
+  /** Straight-bar weight in lbs; null = the standard bar. */
+  barWeight?: number | null;
+  /** ISO "YYYY-MM-DD". Drives the program-review nudge. */
+  lastProgramReview?: string | null;
 }
 
 /**

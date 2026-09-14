@@ -25,7 +25,9 @@ import {
   useMeasurementsStore,
   useMetricsStore,
   useNotesStore,
+  useProgramStore,
   useSettingsStore,
+  useWeightModesStore,
 } from '@/stores';
 import { generateId, isoDate, mergeById } from '@/lib/domain';
 import type {
@@ -39,8 +41,11 @@ import type {
   EquipmentWeights,
   ExcludedBuiltInsMap,
   GoalsMap,
+  ExerciseOrderMap,
   MeasurementEntry,
   NotesMap,
+  ThemePref,
+  WeightInputModeMap,
 } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -67,10 +72,24 @@ export function buildBackupPayload(): BackupPayload {
     equipmentWeights: useSettingsStore.getState().equipmentWeights,
     dailyMetrics: useMetricsStore.getState().dailyMetrics,
     cardio: useMetricsStore.getState().cardio,
+    // Program structure. `days` matters most: customExercises and
+    // exerciseOrder are keyed BY DAY NAME, so exporting those without the day
+    // list produced a file that restored exercises onto days that did not exist.
+    days: useProgramStore.getState().days,
+    exerciseOrder: useProgramStore.getState().order,
+    weightInputModes: useWeightModesStore.getState().modes,
+    barWeight: useSettingsStore.getState().barWeightLbs,
+    theme: themeRawFromPref(useSettingsStore.getState().themePref),
+    lastProgramReview: useSettingsStore.getState().lastProgramReview,
     // `gymlog:warmupProgress` is deliberately NOT exported. It holds today's
     // warm-up tick marks, which expire at midnight and describe a plan drawn
     // for one device on one day. See getWarmupProgress in src/lib/storage.ts.
   };
+}
+
+/** `system` is stored as ABSENCE of the theme key, so it exports as absent too. */
+function themeRawFromPref(pref: ThemePref): string | undefined {
+  return pref === 'system' ? undefined : pref;
 }
 
 /** Legacy filename: gymlog-backup-YYYY-MM-DD.json (local date). */
@@ -218,5 +237,50 @@ export function applyImport(payload: IncomingBackup): void {
       legPressSled:
         'legPressSled' in equipment ? (equipment.legPressSled ?? null) : settings.equipmentWeights.legPressSled,
     });
+  }
+
+  /*
+   * days: UNION, local order first, then imported days you do not already
+   * have. Not replace — this module's contract is that a merge never deletes
+   * anything, and a day carries custom exercises and card order keyed by its
+   * NAME. A file listing fewer days than you have must not take yours away.
+   * You may end up with days from both and delete some in Settings; that is
+   * recoverable, losing a day is not.
+   */
+  if (Array.isArray(payload.days)) {
+    const program = useProgramStore.getState();
+    const incoming = (payload.days as unknown[]).filter((d): d is string => typeof d === 'string' && d.length > 0);
+    const merged = [...program.days, ...incoming.filter((d) => !program.days.includes(d))];
+    if (merged.length !== program.days.length) program.setDays(merged);
+  }
+  // exercise order / weight input modes: spread per key, incoming wins
+  const order = asObject<ExerciseOrderMap>(payload.exerciseOrder);
+  if (order) {
+    const program = useProgramStore.getState();
+    program.setOrder({ ...program.order, ...order });
+  }
+  const modes = asObject<WeightInputModeMap>(payload.weightInputModes);
+  if (modes) {
+    const store = useWeightModesStore.getState();
+    store.setModes({ ...store.modes, ...modes });
+  }
+  // barWeight: a number sets it, an explicit null clears it back to the standard bar
+  if (typeof payload.barWeight === 'number' && Number.isFinite(payload.barWeight)) {
+    useSettingsStore.getState().setBarWeight(payload.barWeight);
+  } else if (payload.barWeight === null) {
+    useSettingsStore.getState().setBarWeight(null);
+  }
+  // theme: only the two real values. `system` is ABSENCE of the key, so a file
+  // without a theme leaves yours alone rather than forcing you to system.
+  if (payload.theme === 'light' || payload.theme === 'dark') {
+    useSettingsStore.getState().setThemePref(payload.theme);
+  }
+  /*
+   * lastProgramReview: backfill only. It refuses to overwrite an existing
+   * value by design, which is what we want — restoring a file should not move
+   * a review clock you are already running.
+   */
+  if (typeof payload.lastProgramReview === 'string' && payload.lastProgramReview) {
+    useSettingsStore.getState().backfillProgramReview(payload.lastProgramReview);
   }
 }
