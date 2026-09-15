@@ -56,6 +56,7 @@ import {
   weeksSinceReview,
   warmupRamp,
   type WeightEntryContext,
+  detectStall,
 } from './domain';
 import { DAYS } from './program';
 import type { CustomExercise, Entry, EquipmentWeights, LiftSetEntry } from './types';
@@ -881,5 +882,111 @@ describe('warmupRamp', () => {
   it('respects a configured trap bar weight', () => {
     const trap = { ...ctx, equipment: { trapBar: 55, legPressSled: null } };
     for (const w of weights(225, 'Trap Bar', trap)) expect(w).toBeGreaterThanOrEqual(55);
+  });
+});
+
+describe('detectStall', () => {
+  const set = (date: string, weight: number, reps: number, over: Partial<LiftSetEntry> = {}): LiftSetEntry => ({
+    id: `${date}-${weight}-${reps}-${Math.random()}`,
+    exercise: 'Sumo Squats',
+    weight,
+    sets: 1,
+    reps,
+    date,
+    ...over,
+  });
+
+  it('flags three consecutive sessions with no improvement', () => {
+    const stall = detectStall(
+      [set('2026-08-01', 135, 8), set('2026-08-08', 135, 8), set('2026-08-15', 135, 8)],
+      'Sumo Squats',
+    );
+    expect(stall).toEqual({ sessions: 3, weight: 135, since: '2026-08-01' });
+  });
+
+  /**
+   * Two is the app's own advice being followed — `suggestedNextWeight` tells
+   * you to repeat a weight after a miss or RPE >= 9.
+   */
+  it('stays quiet at two sessions', () => {
+    expect(detectStall([set('2026-08-08', 135, 8), set('2026-08-15', 135, 8)], 'Sumo Squats')).toBeNull();
+  });
+
+  /** Double progression is progress. Calling it a stall is the killer false positive. */
+  it('does not flag reps climbing at the same weight', () => {
+    expect(
+      detectStall(
+        [set('2026-08-01', 135, 8), set('2026-08-08', 135, 9), set('2026-08-15', 135, 10)],
+        'Sumo Squats',
+      ),
+    ).toBeNull();
+  });
+
+  it('flags when reps go backwards or stay flat', () => {
+    expect(
+      detectStall(
+        [set('2026-08-01', 135, 10), set('2026-08-08', 135, 9), set('2026-08-15', 135, 8)],
+        'Sumo Squats',
+      ),
+    ).toMatchObject({ sessions: 3 });
+  });
+
+  it('resets the run when the weight moves', () => {
+    const entries = [
+      set('2026-08-01', 135, 8),
+      set('2026-08-08', 135, 8),
+      set('2026-08-15', 135, 8),
+      set('2026-08-22', 145, 8),
+    ];
+    expect(detectStall(entries, 'Sumo Squats')).toBeNull();
+  });
+
+  /** A deload and return is two short runs, not one long one. */
+  it('treats a deload as breaking the run', () => {
+    const entries = [
+      set('2026-08-01', 135, 8),
+      set('2026-08-08', 135, 8),
+      set('2026-08-15', 125, 8),
+      set('2026-08-22', 135, 8),
+    ];
+    expect(detectStall(entries, 'Sumo Squats')).toBeNull();
+  });
+
+  it('counts sessions, not calendar gaps', () => {
+    const entries = [set('2026-01-05', 135, 8), set('2026-04-10', 135, 8), set('2026-08-15', 135, 8)];
+    expect(detectStall(entries, 'Sumo Squats')).toMatchObject({ sessions: 3, since: '2026-01-05' });
+  });
+
+  it('ignores warm-up, assisted and drop sets when finding the top weight', () => {
+    const entries = [
+      set('2026-08-01', 135, 8),
+      set('2026-08-08', 135, 8),
+      set('2026-08-15', 135, 8),
+      set('2026-08-15', 225, 1, { dropSet: true }),
+      set('2026-08-15', 185, 5, { warmupSet: true }),
+    ];
+    expect(detectStall(entries, 'Sumo Squats')).toMatchObject({ weight: 135, sessions: 3 });
+  });
+
+  it('is scoped to one exercise and empty history is not a stall', () => {
+    const entries = [
+      set('2026-08-01', 135, 8),
+      set('2026-08-08', 135, 8),
+      set('2026-08-15', 135, 8, { exercise: 'Deadlifts' }),
+    ];
+    expect(detectStall(entries, 'Sumo Squats')).toBeNull();
+    expect(detectStall([], 'Sumo Squats')).toBeNull();
+  });
+
+  /** Several sets in one session are ONE session, at that session's top weight. */
+  it('collapses multiple sets per session', () => {
+    const entries = [
+      set('2026-08-01', 115, 8),
+      set('2026-08-01', 135, 8),
+      set('2026-08-08', 135, 8),
+      set('2026-08-08', 125, 10),
+      set('2026-08-15', 135, 8),
+    ];
+    expect(detectStall(entries, 'Sumo Squats')).toMatchObject({ sessions: 3, weight: 135 });
   });
 });

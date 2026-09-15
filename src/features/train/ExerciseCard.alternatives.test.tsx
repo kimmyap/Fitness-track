@@ -147,3 +147,50 @@ describe('ExerciseCard alternatives', () => {
     expect(screen.queryByRole('button', { name: /suggest an alternative/i })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * The stall notice sits ABOVE the suggestion on purpose. When it fires, the
+ * suggestion is usually saying "(hold)" for the third or fourth time, so the
+ * stall line has to be read FIRST for that repetition to land as context
+ * rather than as the app repeating itself. Verified by measuring both boxes in
+ * a browser, not by reading the JSX: stall y=1274, suggestion y=1358.
+ */
+describe('ExerciseCard stall notice', () => {
+  const flatSet = (date: string) => ({
+    id: `s-${date}`,
+    exercise: 'Sumo Squats',
+    weight: 135,
+    sets: 1,
+    reps: 8,
+    date,
+  });
+
+  it('stays silent with no history', () => {
+    renderCard(sumoSquats);
+    expect(screen.queryByText(/Held/)).not.toBeInTheDocument();
+  });
+
+  it('names the weight and the session count once stuck', () => {
+    useEntriesStore.setState({
+      entries: [flatSet('2026-08-01'), flatSet('2026-08-08'), flatSet('2026-08-15')],
+    });
+    renderCard(sumoSquats);
+
+    const notice = screen.getByText(/Held/);
+    expect(notice.textContent).toContain('135lbs');
+    expect(notice.textContent).toContain('3 sessions');
+    expect(notice.textContent).toMatch(/lighter week|swapping/);
+  });
+
+  it('says nothing while reps are still climbing', () => {
+    useEntriesStore.setState({
+      entries: [
+        { ...flatSet('2026-08-01'), reps: 8 },
+        { ...flatSet('2026-08-08'), reps: 9 },
+        { ...flatSet('2026-08-15'), reps: 10 },
+      ],
+    });
+    renderCard(sumoSquats);
+    expect(screen.queryByText(/Held/)).not.toBeInTheDocument();
+  });
+});

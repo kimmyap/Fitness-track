@@ -16,6 +16,7 @@ import {
   NotebookPen,
   PersonStanding,
   RefreshCw,
+  TrendingDown,
   Video,
 } from 'lucide-react';
 import { Badge, Button, Card, ConfirmTap, Field, FieldLabel, ProgressRing, toast } from '@/components';
@@ -27,6 +28,8 @@ import {
   suggestedNextWeight,
   toDisplayWeight,
   volumeTrend,
+  detectStall,
+  displayDate,
 } from '@/lib/domain';
 import { ALTERNATIVES, EXERCISE_INFO, EXERCISE_VARIATIONS, iconForExercise } from '@/lib/program';
 import type { AlternativeExercise } from '@/lib/program';
@@ -267,6 +270,7 @@ export function ExerciseCard({
     : null;
 
   const suggestion = suggestedNextWeight(entries, exercise, unit);
+  const stall = detectStall(entries, exercise.name);
   const oneRM = estimated1RM(entries, exercise.name);
 
   const curatedAlts = ALTERNATIVES[exercise.name];
@@ -502,6 +506,16 @@ export function ExerciseCard({
                 Delete permanently (loses goal weight config)
               </ConfirmTap>
             </Stack>
+          ) : null}
+
+          {stall ? (
+            <InfoBox>
+              <span>
+                <TrendingDown size={16} aria-hidden="true" /> Held{' '}
+                <strong>{fmtStoredWeight(stall.weight, unit)}</strong> for {stall.sessions} sessions since{' '}
+                {displayDate(stall.since)}. Worth a lighter week, or swapping the movement.
+              </span>
+            </InfoBox>
           ) : null}
 
           {suggestion ? (

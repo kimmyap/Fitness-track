@@ -117,15 +117,15 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-15:
-typecheck clean, lint clean, **371 tests across 25 files**, build succeeds.
+typecheck clean, lint clean, **384 tests across 25 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed, 361 before the warm-up ramp.)
+were completed, 361 before the warm-up ramp, 371 before stall detection.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~987 kB (299 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~989 kB (300 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,202 kB (194 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -359,7 +359,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 371 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 384 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -495,13 +495,16 @@ From a product audit on 2026-09-15. Written down because this repo has no issue 
 anything not here lives in commit prose and evaporates. Ordered by value ÷ effort; none is
 started.
 
-1. **Stall detection.** `suggestedNextWeight` (`domain.ts`) reads only the MOST RECENT session,
-   so it can say "repeat this weight" but never "this is the fourth session at 135". Proposed
-   definition: 3+ consecutive sessions where neither the top working weight nor the reps at that
-   weight improved. Three, not two, because the existing suggestion already tells you to repeat
-   a weight after a miss or RPE >= 9 — flagging two would contradict advice on the same card.
-   Reps must count as progress or double progression (135x8 -> x9 -> x10) reads as a stall, and
-   that false positive is what would make the feature ignorable. Pure derived, no storage.
+1. ~~**Stall detection.**~~ **Built 2026-09-15** — `detectStall` in `domain.ts`, surfaced on the
+   exercise card. Shipped to the definition recorded here: 3+ consecutive sessions where neither
+   the top working weight nor the reps at that weight improved. Both halves are load-bearing and
+   a future "simplification" would break them. THREE, not two, because `suggestedNextWeight`
+   already tells you to repeat a weight after a miss or RPE >= 9, so flagging two contradicts the
+   box directly beneath it. REPS COUNT AS PROGRESS, or double progression (135x8 -> x9 -> x10)
+   reads as a stall — the false positive that would make the feature ignorable. A run ends at the
+   first session on a different weight, so a deload and return is two short runs. The notice
+   renders ABOVE the suggestion: when it fires the suggestion is usually saying "(hold)" again,
+   and the stall line has to be read first for that repetition to land as context.
 2. **PR log.** `bestFor` / `isPR` / `prCountAllTime` all exist and a PR fires confetti, then
    vanishes — no screen lists what you have hit and when. Entirely derived, no storage.
 3. **Session duration.** There is NO Workout/session entity — entries are loose sets keyed by

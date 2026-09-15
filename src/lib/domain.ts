@@ -993,6 +993,84 @@ export function plateCalculator(target: number, bar: number, unit: Unit): PlateB
   return { perSide, plates: used, leftover };
 }
 
+export interface StallReport {
+  /** Consecutive sessions at this weight with no improvement. Always >= 3. */
+  sessions: number;
+  /** The stuck top working weight, in STORED lbs (format with fmtStoredWeight). */
+  weight: number;
+  /** Date of the earliest session in the run, "YYYY-MM-DD". */
+  since: string;
+}
+
+/** Sessions at one weight before it counts as stuck rather than deliberate. */
+export const STALL_MIN_SESSIONS = 3;
+
+/**
+ * Whether an exercise has stopped moving.
+ *
+ * `suggestedNextWeight` reads only the MOST RECENT session, so it can say
+ * "repeat this weight" but never "this is the fourth session at 135". This
+ * looks across sessions and is the signal for a deload or a swap.
+ *
+ * Two definitional choices, both load-bearing:
+ *
+ * 1. THREE sessions, not two. The suggestion already tells you to repeat a
+ *    weight after a missed rep target or RPE >= 9, so a second session at the
+ *    same load is the app's own advice being followed. Flagging it would
+ *    contradict the box directly above it on the card.
+ *
+ * 2. REPS COUNT AS PROGRESS. 135x8 -> 135x9 -> 135x10 is double progression,
+ *    textbook and healthy. A weight-only check calls that stuck, and that
+ *    false positive is the fastest way to make the feature ignorable — so an
+ *    improvement in reps at the same weight across the run clears it.
+ *
+ * Consecutive SESSIONS, not calendar days: a fortnight between sessions is a
+ * gap, not a stall. A run ends at the first session on a different weight, so
+ * a deload and return reads as two short runs rather than one long one.
+ */
+export function detectStall(entries: Entry[], exName: string): StallReport | null {
+  const working = entries.filter(
+    (e): e is LiftSetEntry =>
+      isLiftSet(e) &&
+      e.exercise === exName &&
+      Boolean(e.weight) &&
+      !e.warmupSet &&
+      !e.assistedPullup &&
+      !e.dropSet,
+  );
+  if (!working.length) return null;
+
+  // One row per session, newest first: its top weight and the best reps at it.
+  const byDate = new Map<string, LiftSetEntry[]>();
+  for (const row of working) {
+    const list = byDate.get(row.date);
+    if (list) list.push(row);
+    else byDate.set(row.date, [row]);
+  }
+  const sessions = [...byDate.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([date, rows]) => {
+      const top = Math.max(...rows.map((r) => r.weight));
+      return { date, top, reps: Math.max(...rows.filter((r) => r.weight === top).map((r) => r.reps)) };
+    });
+
+  const target = sessions[0]?.top;
+  if (target === undefined) return null;
+  const run = [];
+  for (const session of sessions) {
+    if (session.top !== target) break;
+    run.push(session);
+  }
+  if (run.length < STALL_MIN_SESSIONS) return null;
+
+  const newest = run[0];
+  const oldest = run[run.length - 1];
+  if (!newest || !oldest) return null;
+  if (newest.reps > oldest.reps) return null; // reps are still climbing — working as intended
+
+  return { sessions: run.length, weight: target, since: oldest.date };
+}
+
 export interface WarmupRampSet {
   /** TOTAL weight in display units, always loadable with the bar + PLATE_SIZES. */
   weight: number;
