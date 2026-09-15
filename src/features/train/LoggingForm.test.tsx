@@ -182,3 +182,56 @@ describe('LoggingForm field order', () => {
     expect(modes.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
+
+/**
+ * The ramp writes entries, so its logging path is tested, not just its display.
+ * `warmupSet: true` is the whole reason this is safe: those entries are already
+ * excluded from PBs, est-1RM, volume, the progression suggestion and the prefill.
+ */
+describe('LoggingForm warm-up ramp', () => {
+  const openRamp = () => {
+    const summary = screen.getByText(/Warm-up sets to/);
+    fireEvent.click(summary);
+    return summary;
+  };
+
+  it('appears only once there is something to ramp through', () => {
+    renderForm();
+    // Sumo Squats prefills empty, so no target and no ramp.
+    expect(screen.queryByText(/Warm-up sets to/)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+    expect(screen.getByText(/Warm-up sets to/)).toBeInTheDocument();
+  });
+
+  it('logs a tapped row as a warm-up set, excluded from PB maths', () => {
+    renderForm();
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+    openRamp();
+
+    const rows = screen.getAllByRole('button', { name: /tap to log/i });
+    expect(rows.length).toBeGreaterThan(0);
+    fireEvent.click(rows[0] as HTMLElement);
+
+    const logged = liftEntries();
+    expect(logged).toHaveLength(1);
+    expect(logged[0]).toMatchObject({ exercise: 'Sumo Squats', warmupSet: true, date: PAST_DATE });
+    // Not a working set: the flags that would make it count are absent.
+    expect(logged[0]?.dropSet).toBeUndefined();
+    expect(logged[0]?.toFailure).toBeUndefined();
+  });
+
+  it('logs the ramp weight itself, not the working weight', () => {
+    renderForm();
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+    openRamp();
+
+    const rows = screen.getAllByRole('button', { name: /tap to log/i });
+    fireEvent.click(rows[0] as HTMLElement);
+
+    // 45 per side on a 45 lb bar = 135 total; the first ramp step is well under it.
+    const logged = liftEntries()[0] as LiftSetEntry;
+    expect(logged.weight).toBeLessThan(135);
+    expect(logged.weight).toBeGreaterThanOrEqual(45);
+  });
+});

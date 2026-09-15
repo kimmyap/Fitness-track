@@ -993,6 +993,57 @@ export function plateCalculator(target: number, bar: number, unit: Unit): PlateB
   return { perSide, plates: used, leftover };
 }
 
+export interface WarmupRampSet {
+  /** TOTAL weight in display units, always loadable with the bar + PLATE_SIZES. */
+  weight: number;
+  reps: number;
+}
+
+/** Fractions of the working weight, with the reps each is done for. */
+const WARMUP_RAMP_STEPS: { pct: number; reps: number }[] = [
+  { pct: 0.4, reps: 5 },
+  { pct: 0.6, reps: 3 },
+  { pct: 0.8, reps: 2 },
+];
+
+/**
+ * Warm-up sets ramping to a working weight, rounded DOWN to loadable weights.
+ *
+ * Rounds down rather than to nearest on purpose: PLATE_SIZES bottoms out at a
+ * 2.5 pair (5 lb steps; 2.5 kg in metric), so an un-rounded 40% of 135 is
+ * 54 lb — a number you cannot load. A warm-up a notch light costs nothing; one
+ * a notch heavy costs a rep off the working set.
+ *
+ * The ramp COLLAPSES rather than padding: steps at or below the bar, duplicates
+ * after rounding, and anything reaching the working weight are dropped. Warming
+ * up to 95 lb yields two rows, to 65 lb yields one. That is the correct answer,
+ * not a truncated one.
+ *
+ * Returns [] for anything not plate-loaded — dumbbells, cables and machines do
+ * not ramp on a bar, and inventing rows for them would be noise.
+ */
+export function warmupRamp(
+  targetTotal: number,
+  variation: string | null | undefined,
+  ctx: WeightEntryContext,
+): WarmupRampSet[] {
+  if (!isPlateLoaded(variation)) return [];
+  const bar = barForVariation(variation, ctx);
+  const step = (PLATE_SIZES[ctx.unit].at(-1) ?? 2.5) * 2; // smallest loadable increment
+  if (!Number.isFinite(targetTotal) || targetTotal <= bar + step) return [];
+
+  const out: WarmupRampSet[] = [];
+  for (const { pct, reps } of WARMUP_RAMP_STEPS) {
+    const raw = targetTotal * pct;
+    // Down to the nearest loadable total: bar + a whole number of increments.
+    const loadable = raw <= bar ? bar : bar + Math.floor((raw - bar) / step) * step;
+    if (loadable < bar || loadable >= targetTotal) continue;
+    if (out.some((s) => s.weight === loadable)) continue;
+    out.push({ weight: Math.round(loadable * 100) / 100, reps });
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Misc business logic
 // ---------------------------------------------------------------------------

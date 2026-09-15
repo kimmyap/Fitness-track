@@ -54,6 +54,8 @@ import {
   weeklyRecap,
   weekRange,
   weeksSinceReview,
+  warmupRamp,
+  type WeightEntryContext,
 } from './domain';
 import { DAYS } from './program';
 import type { CustomExercise, Entry, EquipmentWeights, LiftSetEntry } from './types';
@@ -822,5 +824,62 @@ describe('achievementUnlockDates', () => {
     Object.values(achievementUnlockDates(entries, [], [])).forEach((d) => {
       expect(logged.has(d)).toBe(true);
     });
+  });
+});
+
+describe('warmupRamp', () => {
+  const ctx = { unit: 'lbs' as const, equipment: { trapBar: null, legPressSled: null }, barWeightLbs: null };
+  const kgCtx = { ...ctx, unit: 'kg' as const };
+  const weights = (target: number, variation = 'Barbell', c: WeightEntryContext = ctx) =>
+    warmupRamp(target, variation, c).map((s) => s.weight);
+
+  /** The whole point: an un-rounded 40% of 135 is 54 lb, which cannot be loaded. */
+  it('rounds every step DOWN to a loadable total', () => {
+    expect(weights(135)).toEqual([50, 80, 105]);
+    expect(weights(225)).toEqual([90, 135, 180]);
+    // Each is the 45 lb bar plus a whole number of 5 lb (2.5-pair) increments.
+    for (const target of [95, 115, 135, 185, 225, 245]) {
+      for (const w of weights(target)) expect((w - 45) % 5).toBe(0);
+    }
+  });
+
+  it('never reaches or passes the working weight', () => {
+    for (const target of [65, 95, 135, 185, 225]) {
+      for (const w of weights(target)) expect(w).toBeLessThan(target);
+    }
+  });
+
+  it('ramps 5/3/2 reps, lightest first', () => {
+    const ramp = warmupRamp(225, 'Barbell', ctx);
+    expect(ramp.map((s) => s.reps)).toEqual([5, 3, 2]);
+    expect(ramp.map((s) => s.weight)).toEqual([...ramp.map((s) => s.weight)].sort((a, b) => a - b));
+  });
+
+  /** Collapsing is correct, not truncation: light targets need fewer steps. */
+  it('collapses instead of padding, and clamps sub-bar steps to the bar', () => {
+    // 40% of 65 is below the bar, so it clamps to 45 rather than vanishing.
+    expect(weights(65)).toEqual([45, 50]);
+    // Nothing to ramp through when the target is the bar or one increment above.
+    expect(weights(50)).toEqual([]);
+    expect(weights(45)).toEqual([]);
+    expect(weights(0)).toEqual([]);
+  });
+
+  /** Dumbbells, cables and machines do not ramp on a bar. */
+  it('returns nothing for anything not plate-loaded', () => {
+    expect(warmupRamp(135, 'Dumbbell', ctx)).toEqual([]);
+    expect(warmupRamp(135, 'Bodyweight', ctx)).toEqual([]);
+    expect(warmupRamp(135, 'Assisted Pull-up', ctx)).toEqual([]);
+  });
+
+  it('uses the metric bar and 2.5 kg increments in kg', () => {
+    expect(weights(100, 'Barbell', kgCtx)).toEqual([40, 60, 80]);
+    for (const w of weights(102.5, 'Barbell', kgCtx)) expect((w - 20) % 2.5).toBe(0);
+  });
+
+  /** Trap Bar carries its own configurable weight; the ramp must start there. */
+  it('respects a configured trap bar weight', () => {
+    const trap = { ...ctx, equipment: { trapBar: 55, legPressSled: null } };
+    for (const w of weights(225, 'Trap Bar', trap)) expect(w).toBeGreaterThanOrEqual(55);
   });
 });

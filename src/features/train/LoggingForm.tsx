@@ -42,6 +42,9 @@ import {
   plateQuickPicks,
   storedWeightFromModeInput,
   trapBarWeight,
+  warmupRamp,
+  fromDisplayWeight,
+  fmtNum,
 } from '@/lib/domain';
 import type { WeightEntryContext, WeightEntryMode } from '@/lib/domain';
 import { EXERCISE_VARIATIONS, RPE_SCALE, randomHype } from '@/lib/program';
@@ -329,6 +332,53 @@ export interface LoggingFormProps {
   onConfetti?: () => void;
 }
 
+/**
+ * Warm-up ramp: closed by default and absent entirely unless the movement is
+ * plate-loaded and the target is above the bar. Native <details> for the same
+ * reason the warm-up tab uses one — keyboard and screen readers for free.
+ */
+const RampDetails = styled.details`
+  border-left: 3px solid ${({ theme }) => theme.colors.border};
+  padding-left: ${({ theme }) => theme.space[3]};
+
+  > summary {
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.space[2]};
+    min-height: ${({ theme }) => theme.touchTarget};
+    font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+    color: ${({ theme }) => theme.colors.mutedForeground};
+    cursor: pointer;
+  }
+`;
+
+const RampRow = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.space[2]};
+  width: 100%;
+  min-height: ${({ theme }) => theme.touchTarget};
+  padding: ${({ theme }) => `${theme.space[1]} ${theme.space[2]}`};
+  border: none;
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  background: transparent;
+  color: ${({ theme }) => theme.colors.cardForeground};
+  font: inherit;
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+
+  &:first-of-type {
+    border-top: none;
+  }
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.muted};
+  }
+`;
+
 export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinishEdit, onConfetti }: LoggingFormProps) {
   const unit = useSettingsStore((s) => s.unit);
   const equipment = useSettingsStore((s) => s.equipmentWeights);
@@ -502,6 +552,41 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
     setValues(p.values);
   };
 
+  /*
+   * The ramp is for the weight you are ABOUT to lift, so it follows the input
+   * live. `values.weight` is in input units (per-side in perSide mode), so it
+   * goes through the same conversion the log path uses before being ramped.
+   */
+  const rampCtx: WeightEntryContext = { unit, equipment, barWeightLbs };
+  const rampTarget = computeTotalDisplayWeightWithMode(
+    mode,
+    variation,
+    values.weight === '' ? 0 : values.weight,
+    rampCtx,
+  );
+  const ramp = warmupRamp(rampTarget, variation, rampCtx);
+
+  /*
+   * Logs one ramp row as a warm-up set. `warmupSet: true` already excludes it
+   * from PBs, est-1RM, volume, the progression suggestion and the prefill, so
+   * this adds no new data shape — it fills in fields that exist.
+   */
+  const logRampSet = (set: { weight: number; reps: number }) => {
+    useEntriesStore.getState().logSet({
+      exercise: exercise.name,
+      weight: fromDisplayWeight(set.weight, unit),
+      reps: set.reps,
+      date: logDate,
+      ...(variation ? { variation } : {}),
+      warmupSet: true,
+      assistedPullup: false,
+      dropSet: false,
+      toFailure: false,
+    });
+    if (logDate === todayIso) autoStartRestTimer();
+    toast(`Warm-up logged: ${set.weight}${unitLabel(unit)} x ${set.reps}`);
+  };
+
   const buttonText = typoArmed
     ? "That's a big jump, tap again to confirm"
     : saving
@@ -610,6 +695,27 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
         <NumberInput label="Reps" value={values.reps} min={0} onChange={numChange('reps')} />
         <NumberInput label="RPE (optional)" value={values.rpe} min={1} max={10} onChange={numChange('rpe')} />
       </InputRow>
+
+      {ramp.length ? (
+        <RampDetails>
+          <summary>
+            Warm-up sets to {fmtNum(rampTarget)}
+            {unitLabel(unit)} ({ramp.length})
+          </summary>
+          {ramp.map((set) => (
+            <RampRow key={set.weight} type="button" onClick={() => logRampSet(set)}>
+              <span>
+                <strong>
+                  {fmtNum(set.weight)}
+                  {unitLabel(unit)}
+                </strong>{' '}
+                x {set.reps}
+              </span>
+              <Muted as="span">tap to log</Muted>
+            </RampRow>
+          ))}
+        </RampDetails>
+      ) : null}
 
       <Row>
         <Button variant="secondary" aria-label={`Decrease weight by ${stepAmount}`} onClick={() => nudgeWeight(-stepAmount)}>

@@ -117,15 +117,15 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-14:
-typecheck clean, lint clean, **361 tests across 25 files**, build succeeds.
+typecheck clean, lint clean, **371 tests across 25 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed.)
+were completed, 361 before the warm-up ramp.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~985 kB (299 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~987 kB (299 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,202 kB (194 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -330,7 +330,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 361 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 371 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -428,6 +428,17 @@ Feature surface that the sections above predate:
   because a fresh install starts on the defaults. Nothing is lost and the extras delete in
   Settings. Adopting the file's list wholesale when the user has never stored one would be a
   cleaner restore; it is not implemented, and it is a behaviour change, not a bug fix.
+
+- **The warm-up ramp rounds DOWN, and that is the whole feature.** `warmupRamp` in `domain.ts`
+  gives 40/60/80% of the working weight at 5/3/2 reps, each floored to a total the bar and
+  `PLATE_SIZES` can actually make (5 lb steps, 2.5 kg). An un-rounded 40% of 135 is 54 lb — a
+  number you cannot load, and the fastest way to make the feature ignorable. Down rather than
+  nearest because a light warm-up costs nothing and a heavy one costs a rep. Sub-bar steps CLAMP
+  to the bar rather than vanishing, so 95 lb still gives three rows starting with the empty bar.
+  It returns [] for anything `isPlateLoaded` rejects — dumbbells and machines do not ramp on a
+  bar. Tapping a row logs it with `warmupSet: true`, which was already excluded from PBs, 1RM,
+  volume, the progression suggestion and the prefill: the feature adds no data shape, it fills
+  in fields that existed.
 
 Two invariants worth not breaking:
 
