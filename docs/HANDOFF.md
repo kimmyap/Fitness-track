@@ -116,7 +116,7 @@ history (the one PR, #1, was Dependabot's). See §8 for why that is a gap.
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-All four must pass before a commit. Verified green on 2026-09-14:
+All four must pass before a commit. Verified green on 2026-09-15:
 typecheck clean, lint clean, **371 tests across 25 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
@@ -232,7 +232,36 @@ otherwise discover the hard way.
    emergency backup download on failure — but cleared site data or a lost phone is total
    history loss, and nothing prompts a periodic export.
 9. **No route-level code splitting.** `docs/plan.md` called it "optional"; it was not done. The
-   950 kB main bundle ships all five routes on first paint.
+   ~987 kB main bundle ships all five routes on first paint. **Measured 2026-09-13** on a
+   throwaway branch (built, driven in a browser, then reverted — nothing was committed), so the
+   numbers below are real rather than estimated. Bytes of JS actually fetched per route:
+
+   | Route | Now | Lazy routes | Change |
+   |---|---|---|---|
+   | Today | 956 KiB (1 file) | **423 KiB** (3 files) | **-56%** |
+   | Train | 956 KiB | 526 KiB (8 files) | -45% |
+   | Progress | 956 KiB | 825 KiB (5 files) | -14% |
+
+   First paint in gzip terms: **297 kB -> 140 kB, a 157 kB saving**. The chunk table says why —
+   `ProgressPage` alone is 410 kB raw / 118 kB gzip (Recharts, imported by three files all in
+   `features/progress`), and `TrainPage` 96.6 kB (dnd-kit). Every route comes out lighter,
+   Progress included, because it no longer carries Train, More and Calendar.
+
+   **Two things stop this being a one-line change, and the second is the reason it is still
+   open:**
+   - `fallback={null}` leaves the previous page on screen while a chunk loads. It needs the
+     existing `Skeleton`, or a slow tap looks dead.
+   - **It would break offline on unvisited routes.** `public/sw.js` precaches only the assets
+     `index.html` references — that is exactly the mechanism keeping the 1.2 MB library lazy.
+     Lazy route chunks are not in `index.html` either, so they fall to `cacheFirst`, which
+     returns a 503 for a route you have not opened online. All five routes work offline today
+     after one visit; splitting naively regresses gap #6, which was explicitly fixed. The fix is
+     to have the worker precache route chunks too (first paint still only EXECUTES index +
+     stores, so the saving survives) — which means a build manifest and an explicit exclusion
+     for the library, losing the "no exclusion list" property `sw.js` currently documents.
+
+   `e2e/offline.spec.ts` already asserts the failing case ("A route never visited online"), so
+   the regression would be caught rather than shipped. Do not attempt this without running it.
 10. **Partly fixed 2026-09-12.** 22 vitest files plus a Playwright suite in `e2e/`, run by
     `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
     it builds the app and drives a browser. `npm run test:e2e` locally — but see the Chromium
@@ -347,7 +376,7 @@ output into the devtools console (it clears every `gymlog_` key first, so use a 
 profile). Dates in the seed are fixed, not relative to today, so history, calendar, charts, PRs
 and goals populate while streaks read cold.
 
-## 11. Added since this file was written (2026-09-12, extended 2026-09-13)
+## 11. Added since this file was written (2026-09-12, extended 2026-09-15)
 
 Feature surface that the sections above predate:
 
@@ -456,10 +485,54 @@ Two invariants worth not breaking:
 
 Not done, and each needs a decision rather than an implementation: nutrition targets (the Daily
 hints are averages of your own history, because no target is stored and inventing one would be
-health advice), and route-level code splitting (gap #9, still open). Persisting warm-up ticks
-was on this list and is now done — `gymlog:warmupProgress`, described above.
+health advice), and route-level code splitting (gap #9, still open — now measured, see the table
+there). Persisting warm-up ticks was on this list and is now done — `gymlog:warmupProgress`,
+described above.
 
-If you have budget for one improvement before feature work, make it gap **#7** (self-host the
-fonts). It is what finishes #6: the app now loads offline, but Space Grotesk and DM Sans still
-come from the Google CDN, so an offline or flaky-Wi-Fi load falls back to system fonts. Self-
-hosting puts them in the precache with everything else.
+## 12. Backlog — product gaps, with the finding that matters for each
+
+From a product audit on 2026-09-15. Written down because this repo has no issue tracker, so
+anything not here lives in commit prose and evaporates. Ordered by value ÷ effort; none is
+started.
+
+1. **Stall detection.** `suggestedNextWeight` (`domain.ts`) reads only the MOST RECENT session,
+   so it can say "repeat this weight" but never "this is the fourth session at 135". Proposed
+   definition: 3+ consecutive sessions where neither the top working weight nor the reps at that
+   weight improved. Three, not two, because the existing suggestion already tells you to repeat
+   a weight after a miss or RPE >= 9 — flagging two would contradict advice on the same card.
+   Reps must count as progress or double progression (135x8 -> x9 -> x10) reads as a stall, and
+   that false positive is what would make the feature ignorable. Pure derived, no storage.
+2. **PR log.** `bestFor` / `isPR` / `prCountAllTime` all exist and a PR fires confetti, then
+   vanishes — no screen lists what you have hit and when. Entirely derived, no storage.
+3. **Session duration.** There is NO Workout/session entity — entries are loose sets keyed by
+   date, so two workouts in one day are indistinguishable and `FinishWorkoutModal` has nothing
+   to finish. Building the entity is expensive (legacy migration, and the legacy schema is a
+   hard constraint). But `createdAt` (epoch ms) is already stored on every set the rebuild logs
+   (`stores/entries.ts:49`), so duration is DERIVABLE from first-to-last within a day with no
+   schema change. Legacy and one-off entries lack it, so it degrades to "not shown".
+4. **Per-side (unilateral) logging.** The exercise library carries `is_unilateral` on every
+   entry and the app ignores it, so "10 reps" on a split squat is ambiguous and volume maths
+   silently treats it as total. The only item here needing a NEW entry field.
+5. **Set-by-set history search.** Lower than it first looks: `ChartsTab` already gives a
+   per-exercise est-1RM and top-set trend, so this is the log view, not the trend view.
+
+Considered and rejected, with reasons, so they are not re-proposed: progress photos
+(localStorage cannot hold images; IndexedDB plus gap #8's single-device risk makes them the
+least recoverable data in the app), supersets (real schema cost, straight-sets program), CSV
+export (the charts answer what a spreadsheet would), and cloud sync (contradicts the local-first
+premise; gap #8 is an ACCEPTED risk, not an unsolved one).
+
+Also open, smaller: on a device with no stored day list, a backup restore could adopt the file's
+`days` wholesale instead of unioning onto the legacy three (see §11). Behaviour change, not a
+bug fix.
+
+---
+
+**If you have budget for exactly one thing**, these two lists rank different currencies and do
+not compete. For a change the user FEELS, take backlog #1 (stall detection) — it is the only
+item that changes a training decision rather than a display. For infrastructure, take gap **#7**
+(self-host the fonts): it is what finishes #6, since the app now loads offline but Space Grotesk
+and DM Sans still come from the Google CDN, so an offline or flaky-Wi-Fi load falls back to
+system fonts. Self-hosting puts them in the precache with everything else. Gap #9 (route
+splitting) is the biggest measured win but the one with a real regression risk attached — read
+its offline note before starting.
