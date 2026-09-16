@@ -117,11 +117,11 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-15:
-typecheck clean, lint clean, **390 tests across 26 files**, build succeeds.
+typecheck clean, lint clean, **398 tests across 27 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log.)
+were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
@@ -359,7 +359,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 390 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 398 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -513,12 +513,16 @@ started.
    — the list and the confetti can no longer drift apart, and the existing tests confirmed the
    count's value did not move. Progress went to five tabs and needed `TrainPage`'s
    overflow-x scroller; without it the strip pushes the page sideways at 375px.
-3. **Session duration.** There is NO Workout/session entity — entries are loose sets keyed by
-   date, so two workouts in one day are indistinguishable and `FinishWorkoutModal` has nothing
-   to finish. Building the entity is expensive (legacy migration, and the legacy schema is a
-   hard constraint). But `createdAt` (epoch ms) is already stored on every set the rebuild logs
-   (`stores/entries.ts:49`), so duration is DERIVABLE from first-to-last within a day with no
-   schema change. Legacy and one-off entries lack it, so it degrades to "not shown".
+3. ~~**Session duration.**~~ **Built 2026-09-16** — `sessionSpanMinutes` in `domain.ts`, shown in
+   `FinishWorkoutModal` and `DayDetail`. Named for what it MEASURES, not what it approximates:
+   the span of your LOGGING, first set to last, derived from `createdAt` with no schema change.
+   It is not a session length and the doc comment says so. Three deliberate silences, each
+   preferring nothing to a plausible-looking lie: fewer than two timestamped sets (legacy rows
+   and one-off logs carry no `createdAt`), spans under `MIN_SESSION_SPAN_MINUTES` (5 — sets
+   logged inside a minute mean you filled it in afterwards), and no special-casing of two
+   workouts in one day, which read as ONE span with the gap included. That last one is the
+   missing Workout entity showing through; building the entity remains expensive (legacy
+   migration against a schema `CLAUDE.md` makes a hard constraint) and is still not done.
 4. **Per-side (unilateral) logging.** The exercise library carries `is_unilateral` on every
    entry and the app ignores it, so "10 reps" on a split squat is ambiguous and volume maths
    silently treats it as total. The only item here needing a NEW entry field.

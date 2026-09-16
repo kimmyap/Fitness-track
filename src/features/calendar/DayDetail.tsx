@@ -11,7 +11,14 @@ import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import { CalendarX } from 'lucide-react';
 import { Button, Card, ConfirmDeleteAction, EmptyState, FieldLabel, RowMenu, toast } from '@/components';
-import { displayDate, generateId, setNumberInDay, toDisplayWeight } from '@/lib/domain';
+import {
+  displayDate,
+  fmtSessionSpan,
+  generateId,
+  sessionSpanMinutes,
+  setNumberInDay,
+  toDisplayWeight,
+} from '@/lib/domain';
 import { isLiftSet, type Entry, type LiftSetEntry } from '@/lib/types';
 import { useEntriesStore, useNotesStore, useSettingsStore } from '@/stores';
 import { daySummary } from './calendarMath';
@@ -176,6 +183,9 @@ export function DayDetail({ date, todayIso, onMutate }: DayDetailProps) {
     return 'Core Finisher';
   };
 
+  /* Span of your LOGGING, not a session length — see sessionSpanMinutes. */
+  const spanMinutes = sessionSpanMinutes(entries, date);
+
   return (
     <Card as="section" aria-label={`Details for ${displayDate(date)}`}>
       <DetailTitle>
@@ -187,6 +197,7 @@ export function DayDetail({ date, todayIso, onMutate }: DayDetailProps) {
           {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''} ·{' '}
           {Math.round(toDisplayWeight(volumeLbs, unit)).toLocaleString()}
           {unit} lifted
+          {spanMinutes !== null ? ` · ${fmtSessionSpan(spanMinutes)}` : ''}
         </SummaryLine>
       ) : null}
 

@@ -58,6 +58,8 @@ import {
   type WeightEntryContext,
   detectStall,
   prHistory,
+  sessionSpanMinutes,
+  fmtSessionSpan,
 } from './domain';
 import { DAYS } from './program';
 import type { CustomExercise, Entry, EquipmentWeights, LiftSetEntry } from './types';
@@ -1060,5 +1062,49 @@ describe('prHistory', () => {
     ];
     expect(prCountAllTime(entries)).toBe(prHistory(entries).length);
     expect(prHistory([])).toEqual([]);
+  });
+});
+
+describe('sessionSpanMinutes', () => {
+  const MIN = 60000;
+  const at = (id: string, date: string, createdAt?: number): LiftSetEntry => ({
+    id,
+    exercise: 'Sumo Squats',
+    weight: 135,
+    sets: 1,
+    reps: 8,
+    date,
+    ...(createdAt === undefined ? {} : { createdAt }),
+  });
+
+  it('measures first to last logged set', () => {
+    const entries = [at('a', '2026-08-01', 0), at('b', '2026-08-01', 52 * MIN), at('c', '2026-08-01', 30 * MIN)];
+    expect(sessionSpanMinutes(entries, '2026-08-01')).toBe(52);
+  });
+
+  /** Absent on legacy rows and one-off logs — guess nothing rather than wrongly. */
+  it('returns null without at least two timestamped sets', () => {
+    expect(sessionSpanMinutes([at('a', '2026-08-01', 0)], '2026-08-01')).toBeNull();
+    expect(sessionSpanMinutes([at('a', '2026-08-01'), at('b', '2026-08-01')], '2026-08-01')).toBeNull();
+    expect(sessionSpanMinutes([], '2026-08-01')).toBeNull();
+  });
+
+  /** Sets logged inside a minute mean you filled it in afterwards. */
+  it('stays silent below the five-minute floor', () => {
+    expect(sessionSpanMinutes([at('a', '2026-08-01', 0), at('b', '2026-08-01', 90_000)], '2026-08-01')).toBeNull();
+    expect(sessionSpanMinutes([at('a', '2026-08-01', 0), at('b', '2026-08-01', 5 * MIN)], '2026-08-01')).toBe(5);
+  });
+
+  it('is scoped to the date asked for', () => {
+    const entries = [at('a', '2026-08-01', 0), at('b', '2026-08-01', 40 * MIN), at('c', '2026-08-02', 999 * MIN)];
+    expect(sessionSpanMinutes(entries, '2026-08-01')).toBe(40);
+    expect(sessionSpanMinutes(entries, '2026-08-02')).toBeNull();
+  });
+
+  it('formats past an hour', () => {
+    expect(fmtSessionSpan(52)).toBe('52 min');
+    expect(fmtSessionSpan(60)).toBe('1h');
+    expect(fmtSessionSpan(95)).toBe('1h 35m');
+    expect(fmtSessionSpan(125)).toBe('2h 05m');
   });
 });

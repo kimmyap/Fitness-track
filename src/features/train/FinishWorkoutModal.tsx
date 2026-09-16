@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import styled from '@emotion/styled';
 import { Button, Modal, StatStrip, StatTile } from '@/components';
 import { useEntriesStore, useSettingsStore } from '@/stores';
-import { bestFor, entryVolume, isoDate } from '@/lib/domain';
+import { bestFor, entryVolume, fmtSessionSpan, isoDate, sessionSpanMinutes } from '@/lib/domain';
 import { isLiftSet } from '@/lib/types';
 import type { ActivityEntry, LiftSetEntry } from '@/lib/types';
 import { randomHype } from '@/lib/program';
@@ -63,8 +63,12 @@ export function FinishWorkoutModal({ open, onClose, onConfetti }: FinishWorkoutM
     if (open && prCount > 0) onConfetti();
   }, [open, prCount, onConfetti]);
 
+  /* Span of your LOGGING, not a session length — see sessionSpanMinutes. */
+  const spanMinutes = sessionSpanMinutes(entries, todayIso);
+
   const summaryBits = [
     `${exNames.length} exercise${exNames.length !== 1 ? 's' : ''}`,
+    spanMinutes !== null ? fmtSessionSpan(spanMinutes) : null,
     warmupCount ? `${warmupCount} warm-up set${warmupCount !== 1 ? 's' : ''}` : null,
     doneCore ? 'Core done' : null,
     doneActivity.length ? doneActivity.join(', ') : null,
