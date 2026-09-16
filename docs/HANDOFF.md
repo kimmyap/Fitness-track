@@ -117,15 +117,15 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-15:
-typecheck clean, lint clean, **384 tests across 25 files**, build succeeds.
+typecheck clean, lint clean, **390 tests across 26 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed, 361 before the warm-up ramp, 371 before stall detection.)
+were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~989 kB (300 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~991 kB (300 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,202 kB (194 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -359,7 +359,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 384 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 390 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -505,8 +505,14 @@ started.
    first session on a different weight, so a deload and return is two short runs. The notice
    renders ABOVE the suggestion: when it fires the suggestion is usually saying "(hold)" again,
    and the stall line has to be read first for that repetition to land as context.
-2. **PR log.** `bestFor` / `isPR` / `prCountAllTime` all exist and a PR fires confetti, then
-   vanishes — no screen lists what you have hit and when. Entirely derived, no storage.
+2. ~~**PR log.**~~ **Built 2026-09-16** — `prHistory` in `domain.ts`, shown as Progress → PRs.
+   Entirely derived; nothing stored. Two things found while building it, both worth keeping in
+   mind: `prCountAllTime` and `isPR` DISAGREED on bodyweight variations (the count included them,
+   the celebration did not), and `Stats.prCount` was computed but never rendered anywhere, so the
+   count was dead data. `prCountAllTime` now delegates to `prHistory`, which uses `isPR`'s filter
+   — the list and the confetti can no longer drift apart, and the existing tests confirmed the
+   count's value did not move. Progress went to five tabs and needed `TrainPage`'s
+   overflow-x scroller; without it the strip pushes the page sideways at 375px.
 3. **Session duration.** There is NO Workout/session entity — entries are loose sets keyed by
    date, so two workouts in one day are indistinguishable and `FinishWorkoutModal` has nothing
    to finish. Building the entity is expensive (legacy migration, and the legacy schema is a

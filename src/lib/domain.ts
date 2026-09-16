@@ -546,23 +546,70 @@ export function isPR(
 }
 
 /** Every chronological new max per exercise counts (first log counts as a PR). */
-export function prCountAllTime(entries: Entry[]): number {
-  const seen: Record<string, number> = {};
-  let count = 0;
+export interface PersonalRecord {
+  exercise: string;
+  /** STORED lbs — format with fmtStoredWeight. */
+  weight: number;
+  reps: number;
+  date: string;
+  variation?: string;
+  /** Gain over the previous best for this lift; 0 for a first-ever log. */
+  gain: number;
+}
+
+/**
+ * Every PR you have ever hit, newest first.
+ *
+ * A PR is a working set heavier than anything logged for that exercise before
+ * it, so the first log of a lift counts. Filtered exactly like `isPR`: warm-up,
+ * assisted and drop sets are not records, and bodyweight variations are
+ * excluded because their "weight" is not a load you chose.
+ *
+ * Chronological by necessity — a PR is defined against what came before, so the
+ * walk must go oldest-first even though the result reads newest-first.
+ */
+export function prHistory(entries: Entry[]): PersonalRecord[] {
+  const best: Record<string, number> = {};
+  const out: PersonalRecord[] = [];
   const sorted = entries
     .filter(
       (e): e is LiftSetEntry =>
-        isLiftSet(e) && Boolean(e.weight) && !e.warmupSet && !e.assistedPullup && !e.dropSet,
+        isLiftSet(e) &&
+        Boolean(e.weight) &&
+        !e.warmupSet &&
+        !e.assistedPullup &&
+        !e.dropSet &&
+        e.variation !== 'Bodyweight' &&
+        e.variation !== 'Bodyweight Lunges',
     )
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  sorted.forEach((e) => {
-    const prevMax = seen[e.exercise];
-    if (prevMax === undefined || e.weight > prevMax) {
-      seen[e.exercise] = e.weight;
-      count++;
-    }
-  });
-  return count;
+    .sort((a, b) => {
+      const byDate = new Date(a.date).getTime() - new Date(b.date).getTime();
+      // Two PRs on one day resolve by log order, so the lighter one lands first.
+      return byDate !== 0 ? byDate : (a.createdAt ?? 0) - (b.createdAt ?? 0);
+    });
+
+  for (const e of sorted) {
+    const prev = best[e.exercise];
+    if (prev !== undefined && e.weight <= prev) continue;
+    best[e.exercise] = e.weight;
+    out.push({
+      exercise: e.exercise,
+      weight: e.weight,
+      reps: e.reps,
+      date: e.date,
+      ...(e.variation ? { variation: e.variation } : {}),
+      gain: prev === undefined ? 0 : e.weight - prev,
+    });
+  }
+  return out.reverse();
+}
+
+/**
+ * Count of the above. Delegates so the number and the list can never disagree —
+ * they were separate walks with subtly different filters before.
+ */
+export function prCountAllTime(entries: Entry[]): number {
+  return prHistory(entries).length;
 }
 
 // ---------------------------------------------------------------------------

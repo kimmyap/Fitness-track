@@ -57,6 +57,7 @@ import {
   warmupRamp,
   type WeightEntryContext,
   detectStall,
+  prHistory,
 } from './domain';
 import { DAYS } from './program';
 import type { CustomExercise, Entry, EquipmentWeights, LiftSetEntry } from './types';
@@ -988,5 +989,76 @@ describe('detectStall', () => {
       set('2026-08-15', 135, 8),
     ];
     expect(detectStall(entries, 'Sumo Squats')).toMatchObject({ sessions: 3, weight: 135 });
+  });
+});
+
+describe('prHistory', () => {
+  const s = (id: string, exercise: string, weight: number, date: string, over: Partial<LiftSetEntry> = {}): LiftSetEntry => ({
+    id,
+    exercise,
+    weight,
+    sets: 1,
+    reps: 5,
+    date,
+    ...over,
+  });
+
+  it('records every chronological new max, first log included', () => {
+    const prs = prHistory([
+      s('a', 'Sumo Squats', 135, '2026-08-01'),
+      s('b', 'Sumo Squats', 145, '2026-08-08'),
+      s('c', 'Sumo Squats', 140, '2026-08-15'),
+    ]);
+    // Newest first, and the 140 is not a record.
+    expect(prs.map((p) => p.weight)).toEqual([145, 135]);
+    expect(prs.map((p) => p.date)).toEqual(['2026-08-08', '2026-08-01']);
+  });
+
+  it('reports the gain, and zero for a first-ever log', () => {
+    const prs = prHistory([s('a', 'Deadlifts', 185, '2026-08-01'), s('b', 'Deadlifts', 205, '2026-08-08')]);
+    expect(prs[0]).toMatchObject({ weight: 205, gain: 20 });
+    expect(prs[1]).toMatchObject({ weight: 185, gain: 0 });
+  });
+
+  it('tracks each exercise independently', () => {
+    const prs = prHistory([
+      s('a', 'Sumo Squats', 135, '2026-08-01'),
+      s('b', 'Bench Press', 95, '2026-08-02'),
+      s('c', 'Sumo Squats', 145, '2026-08-03'),
+    ]);
+    expect(prs).toHaveLength(3);
+    expect(new Set(prs.map((p) => p.exercise))).toEqual(new Set(['Sumo Squats', 'Bench Press']));
+  });
+
+  /** Same filter as isPR, so the list and the confetti agree. */
+  it('excludes warm-up, assisted, drop and bodyweight sets', () => {
+    const prs = prHistory([
+      s('a', 'Pullups', 200, '2026-08-01', { warmupSet: true }),
+      s('b', 'Pullups', 200, '2026-08-02', { assistedPullup: true }),
+      s('c', 'Pullups', 200, '2026-08-03', { dropSet: true }),
+      s('d', 'Pullups', 200, '2026-08-04', { variation: 'Bodyweight' }),
+      s('e', 'Pullups', 10, '2026-08-05'),
+    ]);
+    expect(prs.map((p) => p.weight)).toEqual([10]);
+  });
+
+  /** Two PRs on one day resolve by log order, so the heavier reads as latest. */
+  it('orders same-day records by when they were logged', () => {
+    const prs = prHistory([
+      s('a', 'Rows', 95, '2026-08-01', { createdAt: 200 }),
+      s('b', 'Rows', 85, '2026-08-01', { createdAt: 100 }),
+    ]);
+    expect(prs.map((p) => p.weight)).toEqual([95, 85]);
+  });
+
+  /** The count is the list's length by construction — they cannot drift apart. */
+  it('agrees with prCountAllTime', () => {
+    const entries = [
+      s('a', 'Sumo Squats', 135, '2026-08-01'),
+      s('b', 'Sumo Squats', 145, '2026-08-08'),
+      s('c', 'Bench Press', 95, '2026-08-09'),
+    ];
+    expect(prCountAllTime(entries)).toBe(prHistory(entries).length);
+    expect(prHistory([])).toEqual([]);
   });
 });
