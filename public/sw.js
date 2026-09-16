@@ -11,11 +11,14 @@
  * exercise-library chunk that CLAUDE.md and the handoff both say must stay
  * lazy, so it would pull the whole library down on first visit.
  *
- * Instead, install fetches the built index.html and precaches only the assets
- * it actually references. That is precisely the first-paint set: the lazy
- * chunk is reached through a dynamic import and never appears in the HTML, so
- * it stays lazy by construction and is cached only once the user opens the
- * picker. It also needs no build step and no generated manifest to go stale.
+ * Instead, install fetches the built index.html and precaches the assets it
+ * references, plus the lazy ROUTE chunks named in the JSON block that
+ * vite-plugin-sw-precache.ts injects into it. That block lists each route
+ * chunk and its STATIC imports only, so the 1.2 MB library — a dynamic import
+ * of a route chunk — is absent by construction rather than by an exclusion
+ * list that could go stale. Routes have to be in there: they are dynamic
+ * imports too, so the attribute scan cannot see them, and a route you had
+ * never opened online would 503 offline.
  *
  * Precaching (rather than caching as requests fly by) is what makes the FIRST
  * online visit enough. A worker does not control the page that registers it
@@ -41,8 +44,8 @@
  * the current one. There is no skipWaiting, so a new worker takes over once
  * the app is fully closed rather than swapping assets under a live page.
  */
-/* v2: self-hosted fonts joined STATIC_SHELL, so the v1 cache is incomplete. */
-const VERSION = 'v2';
+/* v3: lazy route chunks joined the precache, so the v2 cache is incomplete. */
+const VERSION = 'v3';
 const CACHE = `fitness-track-${VERSION}`;
 
 /** Scope root, e.g. "/Fitness-track/" — derived so no path is hardcoded. */
@@ -63,6 +66,36 @@ const STATIC_SHELL = [
   `${BASE}fonts/dm-sans-latin.woff2`,
   `${BASE}fonts/space-grotesk-latin.woff2`,
 ];
+
+/**
+ * The lazy ROUTE chunks, read out of the JSON block that
+ * vite-plugin-sw-precache.ts injects into the shell.
+ *
+ * Routes are lazy, so their chunks are dynamic imports and appear nowhere in
+ * the HTML's src/href attributes — the scan below cannot see them. Left at
+ * that they would fall to cacheFirst and 503 for a route never opened ONLINE,
+ * which is the offline guarantee this worker exists to provide.
+ *
+ * The block lists each route chunk and its STATIC imports only, so the 1.2 MB
+ * exercise library (a dynamic import of a route chunk) is absent by
+ * construction rather than by an exclusion list that could go stale.
+ *
+ * Reading it costs nothing at first paint: the browser ignores a JSON script
+ * tag, so these are fetched by the worker during install, not by the page.
+ */
+function routeChunks(html) {
+  const match = html.match(
+    /<script[^>]*id="sw-precache"[^>]*>([\s\S]*?)<\/script>/,
+  );
+  if (!match) return [];
+  try {
+    const files = JSON.parse(match[1]);
+    return Array.isArray(files) ? files.map((f) => `${BASE}${f}`) : [];
+  } catch {
+    // A malformed block must not fail the install; the shell still caches.
+    return [];
+  }
+}
 
 /**
  * The hashed first-paint assets, read out of the shell HTML. Filenames change
@@ -95,9 +128,8 @@ self.addEventListener('install', (event) => {
       if (shell.ok) {
         const html = await shell.clone().text();
         await cache.put(BASE, shell);
-        await Promise.all(
-          firstPaintAssets(html).map((url) => cache.add(url).catch(() => undefined)),
-        );
+        const assets = new Set([...firstPaintAssets(html), ...routeChunks(html)]);
+        await Promise.all([...assets].map((url) => cache.add(url).catch(() => undefined)));
       }
       // Individually, so one missing icon cannot fail the whole install.
       await Promise.all(STATIC_SHELL.map((url) => cache.add(url).catch(() => undefined)));

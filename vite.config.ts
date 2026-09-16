@@ -2,9 +2,10 @@
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { swPrecache } from './vite-plugin-sw-precache';
 
 export default defineConfig({
-  plugins: [react({ jsxImportSource: '@emotion/react' })],
+  plugins: [react({ jsxImportSource: '@emotion/react' }), swPrecache()],
   resolve: {
     // must match tsconfig.app.json "paths" — "@/..." → "./src/..."
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },

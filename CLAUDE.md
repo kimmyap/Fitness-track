@@ -121,7 +121,9 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   `docs/HANDOFF.md` §2 for the table. `warmupProgress` is the one deliberate omission.
 - **`exerciseLibrary.json` (1.2 MB) must stay a DYNAMIC import**, gated on the user opening the
   thing that needs it — not on mount. Re-check with: 0 requests for the chunk on the Train page,
-  1 after expanding a card.
+  1 after expanding a card. Since routes went lazy this is also enforced at build time:
+  `vite-plugin-sw-precache.ts` walks each route chunk's STATIC imports only, so the library
+  cannot enter the service worker's precache without someone making it a static import.
 - **Word-boundary your name-matching regexes.** `/arm/` matched inside **"Warm-up"** — a real
   `DAY_PLAN` tab — and served the wrong warm-up block. Every token in `warmupFocusForDay` is
   `\b`-anchored for this reason.
@@ -178,6 +180,17 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   worker's HTML scan cannot see them, since the woff2 URLs are inside `fonts.css` rather than the
   shell. Changing `STATIC_SHELL` means bumping `VERSION`, or existing clients keep an incomplete
   cache.
+- **A substring is not an identity.** `offline.spec.ts` asserted the 1.2 MB library was NOT
+  precached with `u.includes('exerciseLibrary')`. Once routes went lazy the 1.67 kB
+  `exerciseLibraryService` wrapper became a static import of a route and was precached correctly
+  — and the test failed, reading as a regression when nothing had regressed. Match the artifact,
+  not the substring: `/\/exerciseLibrary-[^/]*\.js$/`.
+- **Block service workers in tests that measure what the PAGE fetches.** A route-split test
+  injected a 1200ms delay with `page.route` and passed in 886ms: the worker had precached the
+  chunk, so the request never reached the network and the delay never applied. It was asserting
+  a pending state it had not actually observed. `test.use({ serviceWorkers: 'block' })` for
+  page-behaviour specs; leave worker behaviour to `offline.spec.ts`. A test faster than the
+  delay it injects is not passing, it is not running.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

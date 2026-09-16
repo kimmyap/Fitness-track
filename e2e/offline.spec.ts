@@ -39,18 +39,38 @@ test.describe('offline shell', () => {
     expect(cached).toContain('/Fitness-track/');
     expect(cached.some((u) => u.startsWith('/Fitness-track/assets/'))).toBe(true);
 
-    // The 1.2 MB exercise library is a deliberate lazy chunk. Precaching it
-    // would undo that, so its absence is the assertion.
-    expect(cached.some((u) => u.includes('exerciseLibrary'))).toBe(false);
+    /*
+     * The 1.2 MB exercise library is a deliberate lazy chunk. Precaching it
+     * would undo that, so its absence is the assertion — but it has to name the
+     * DATA chunk, not the substring. Since routes went lazy, the 1.67 kB
+     * `exerciseLibraryService` wrapper is precached too (it is a static import
+     * of a route), and a substring match on "exerciseLibrary" caught that and
+     * read as a regression when nothing had regressed.
+     */
+    const isLibraryData = (u: string) => /\/exerciseLibrary-[^/]*\.js$/.test(u);
+    expect(cached.some(isLibraryData)).toBe(false);
+    expect(cached.some((u) => u.includes('exerciseLibraryService'))).toBe(true);
+
+    // Every lazy ROUTE chunk, by contrast, MUST be precached — that is the
+    // whole point of the injected manifest.
+    for (const route of ['TodayPage', 'TrainPage', 'CalendarPage', 'ProgressPage', 'MorePage']) {
+      expect(cached.some((u) => u.includes(route))).toBe(true);
+    }
 
     await context.setOffline(true);
 
     await page.goto('./', { waitUntil: 'commit' });
     await expect(page.locator('#root')).not.toBeEmpty({ timeout: 15_000 });
 
-    // A route never visited online: the cached shell must answer for it.
+    /*
+     * A route never visited online. Since routes are lazy this is the sharp
+     * case: the shell answering is not enough, the route's own chunk has to
+     * come from the cache too or the page renders an error instead.
+     */
     await page.goto('./progress', { waitUntil: 'commit' });
     await expect(page.locator('#root')).not.toBeEmpty({ timeout: 15_000 });
     await expect(page.locator('#root')).not.toContainText('404');
+    // Real Progress content, not just a shell that booted.
+    await expect(page.getByRole('tab', { name: /PRs/i })).toBeVisible({ timeout: 15_000 });
   });
 });

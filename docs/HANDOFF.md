@@ -117,9 +117,10 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-16:
-typecheck clean, lint clean, **412 tests across 28 files**, build succeeds (993.51 kB / 301.30 kB gzip).
-The JS bundle is unchanged by the self-hosted fonts: they are two separate woff2 assets
-(59.2 kB total, all weights) that replaced seven CDN downloads.
+typecheck clean, lint clean, **412 tests across 28 files**, build succeeds. Since routes went
+lazy the headline number is the ENTRY chunk, **282.39 kB / 89.98 kB gzip** — not the whole
+bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
+The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).
 (The previous revision said "401 across 27"; the file count was one high — there were 26. The
 counts here are compared against by later sessions, so a wrong one is worse than none.)
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
@@ -246,38 +247,40 @@ otherwise discover the hard way.
    no account, no automatic export. The README warns the user, and there is save-retry with an
    emergency backup download on failure — but cleared site data or a lost phone is total
    history loss, and nothing prompts a periodic export.
-9. **No route-level code splitting.** `docs/plan.md` called it "optional"; it was not done. The
-   ~987 kB main bundle ships all five routes on first paint. **Measured 2026-09-13** on a
-   throwaway branch (built, driven in a browser, then reverted — nothing was committed), so the
-   numbers below are real rather than estimated. Bytes of JS actually fetched per route:
+9. **FIXED 2026-09-16 — routes are lazy.** The main bundle used to ship all five routes on
+   first paint. `src/app/router.tsx` now uses react-router's `lazy` (not React.lazy + Suspense:
+   with a data router the navigation stays pending and the page you are leaving stays on screen,
+   so nothing flashes a skeleton over the destination). Main entry **993.51 kB -> 282.39 kB raw,
+   301.30 -> 89.98 kB gzip**. Re-measured in a browser the same day, JS bytes actually fetched
+   per route, service workers blocked:
 
-   | Route | Now | Lazy routes | Change |
+   | Route | Before | After | Change |
    |---|---|---|---|
-   | Today | 956 KiB (1 file) | **423 KiB** (3 files) | **-56%** |
-   | Train | 956 KiB | 526 KiB (8 files) | -45% |
-   | Progress | 956 KiB | 825 KiB (5 files) | -14% |
+   | Today | 970 KiB (1 file) | **417 KiB** (6 files) | **-57%** |
+   | Train | 970 KiB | 515 KiB (10 files) | -47% |
+   | Progress | 970 KiB | 824 KiB (6 files) | -15% |
 
-   First paint in gzip terms: **297 kB -> 140 kB, a 157 kB saving**. The chunk table says why —
-   `ProgressPage` alone is 410 kB raw / 118 kB gzip (Recharts, imported by three files all in
-   `features/progress`), and `TrainPage` 96.6 kB (dnd-kit). Every route comes out lighter,
-   Progress included, because it no longer carries Train, More and Calendar.
+   **Both blockers this gap recorded were handled, and the second differently than predicted:**
+   - The pending state is a 3px bar in `AppLayout` driven by `useNavigation()`, gated on
+     `prefers-reduced-motion`, with an e2e test that holds the chunk for 1200ms and asserts both
+     the bar AND that the previous page is still on screen.
+   - The offline regression is prevented by `vite-plugin-sw-precache.ts`, which injects the route
+     chunks' hashed filenames into index.html as an inert JSON block that `sw.js` reads. It walks
+     each route chunk's STATIC imports only, so the 1.2 MB library — a dynamic import of a route
+     chunk — is absent **by construction**. The gap predicted this would cost "an explicit
+     exclusion for the library, losing the no-exclusion-list property"; it does not. The plugin
+     hard-fails the build if a route in its `ROUTES` list has no matching chunk, because the
+     symptom of a silent miss is a 503 offline on a route nobody thought to test.
 
-   **Two things stop this being a one-line change, and the second is the reason it is still
-   open:**
-   - `fallback={null}` leaves the previous page on screen while a chunk loads. It needs the
-     existing `Skeleton`, or a slow tap looks dead.
-   - **It would break offline on unvisited routes.** `public/sw.js` precaches only the assets
-     `index.html` references — that is exactly the mechanism keeping the 1.2 MB library lazy.
-     Lazy route chunks are not in `index.html` either, so they fall to `cacheFirst`, which
-     returns a 503 for a route you have not opened online. All five routes work offline today
-     after one visit; splitting naively regresses gap #6, which was explicitly fixed. The fix is
-     to have the worker precache route chunks too (first paint still only EXECUTES index +
-     stores, so the saving survives) — which means a build manifest and an explicit exclusion
-     for the library, losing the "no exclusion list" property `sw.js` currently documents.
+   **What the win actually is:** total bytes downloaded are UNCHANGED, because the worker
+   precaches the route chunks during install. The gain is that first paint parses and executes
+   one route instead of five. Real, but it is time-to-interactive, not bandwidth.
 
-   `e2e/offline.spec.ts` already asserts the failing case ("A route never visited online"), so
-   the regression would be caught rather than shipped. Do not attempt this without running it.
-10. **Partly fixed 2026-09-12.** 28 vitest files plus a Playwright suite in `e2e/` (15 specs), run by
+   `sw.js` `VERSION` bumped to `v3`. `e2e/offline.spec.ts` now asserts a never-visited route
+   renders real Progress content offline, not merely that the shell booted;
+   `e2e/route-split.spec.ts` asserts Today fetches no other route's chunk.
+
+10. **Partly fixed 2026-09-12.** 28 vitest files plus a Playwright suite in `e2e/` (18 specs), run by
     `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
     it builds the app and drives a browser. `npm run test:e2e` locally — but see the Chromium
     note below before you conclude the suite is broken. It exists because three
@@ -374,7 +377,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 412 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 412 passing, build with a chunk-size warning (the lazy library chunk). If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -511,9 +514,8 @@ timer is deliberately outside the gate. No storage key, shape or default changed
 
 Not done, and each needs a decision rather than an implementation: nutrition targets (the Daily
 hints are averages of your own history, because no target is stored and inventing one would be
-health advice), and route-level code splitting (gap #9, still open — now measured, see the table
-there). Persisting warm-up ticks was on this list and is now done — `gymlog:warmupProgress`,
-described above.
+health advice). Persisting warm-up ticks was on this list and is now done —
+`gymlog:warmupProgress`, described above; so is route-level code splitting (gap #9, 2026-09-16).
 
 ## 12. Backlog — product gaps, with the finding that matters for each
 
@@ -580,8 +582,9 @@ bug fix.
 
 **If you have budget for exactly one thing**, these two lists rank different currencies and do
 not compete. For a change the user FEELS, take backlog #1 (stall detection) — it is the only
-item that changes a training decision rather than a display. For infrastructure, gap **#7** (self-hosting the
-fonts) is now done — it finished #6, so the app is genuinely offline-complete rather than
-offline-but-in-fallback-fonts. Next infrastructure item is gap #9 (route splitting): the biggest
-measured win, but the one with a real regression risk attached — read its offline note before
-starting.
+item that changes a training decision rather than a display. For infrastructure, both of the items that used to
+be named here are done: gap **#7** (self-hosted fonts, which finished #6, so the app is
+offline-complete rather than offline-but-in-fallback-fonts) and gap **#9** (lazy routes, entry
+chunk 993 -> 282 kB). No infrastructure item is now the obvious next one — pick from the
+remaining gaps on their merits, and note that #8 (single-device data) is the largest by
+consequence and the one needing a product decision rather than an implementation.

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useNavigation } from 'react-router';
 import { CalendarDays, Dumbbell, House, MoreHorizontal, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { BarbellIcon, Toaster } from '@/components';
@@ -140,10 +140,53 @@ const SideLink = styled(NavLink)`
   }
 `;
 
+/**
+ * Thin progress bar while a lazy route chunk is in flight.
+ *
+ * Routes are lazy, so a tap on a page you have not opened yet has to fetch its
+ * chunk before anything can change. A data router keeps the CURRENT page on
+ * screen while that happens, which without this reads as a dead tap. It is
+ * deliberately a bar rather than a skeleton over the destination: the old page
+ * is still the true state until the new one is ready.
+ *
+ * Under prefers-reduced-motion it holds a static bar instead of sliding.
+ */
+const RouteProgress = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 100;
+  background: ${({ theme }) => theme.colors.primary};
+  transform-origin: 0 50%;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: routeProgressSlide 1.2s ease-in-out infinite;
+  }
+
+  @keyframes routeProgressSlide {
+    0% {
+      transform: scaleX(0.05);
+      opacity: 0.6;
+    }
+    50% {
+      transform: scaleX(0.7);
+      opacity: 1;
+    }
+    100% {
+      transform: scaleX(1);
+      opacity: 0.6;
+    }
+  }
+`;
+
 /** Responsive shell: bottom nav <1024px, sidebar ≥1024px. */
 export function AppLayout() {
+  const navigating = useNavigation().state !== 'idle';
   return (
     <Shell>
+      {navigating ? <RouteProgress role="status" aria-label="Loading page" /> : null}
       <Sidebar aria-label="Primary">
         <Brand>
           <BarbellIcon size={22} aria-hidden="true" />
