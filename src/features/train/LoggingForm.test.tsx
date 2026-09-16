@@ -235,3 +235,53 @@ describe('LoggingForm warm-up ramp', () => {
     expect(logged.weight).toBeGreaterThanOrEqual(45);
   });
 });
+
+/**
+ * `perSide` is a LABEL, not a modifier — it records what the reps mean and no
+ * domain logic reads it. Volume deliberately does not double; see the field's
+ * doc comment in types.ts for why.
+ */
+describe('LoggingForm per-side reps', () => {
+  const toggle = () => screen.getByRole('button', { name: /reps are per side/i });
+
+  it('is off by default and stores nothing', () => {
+    renderForm();
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    // Absent, not false — the data rule for every optional flag.
+    expect(liftEntries()[0]).not.toHaveProperty('perSide');
+  });
+
+  it('stores perSide when on, without touching the volume inputs', () => {
+    renderForm();
+    fireEvent.click(toggle());
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    const logged = liftEntries()[0] as LiftSetEntry;
+    expect(logged.perSide).toBe(true);
+    // reps and weight are exactly what was typed — nothing is doubled.
+    expect(logged.reps).toBe(10);
+    expect(logged.weight).toBe(135);
+  });
+
+  it('works on a warm-up set too — it is orthogonal to set kind', () => {
+    renderForm();
+    fireEvent.click(toggle());
+    fireEvent.click(screen.getByRole('button', { name: /^Warm-up$/i }));
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '20' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    const logged = liftEntries()[0] as LiftSetEntry;
+    expect(logged.perSide).toBe(true);
+    expect(logged.warmupSet).toBe(true);
+  });
+});

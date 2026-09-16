@@ -33,6 +33,8 @@ export interface NewLiftSetInput {
   dropSet?: boolean;
   /** NEW: taken to failure — a label only; counts exactly like a normal set. */
   toFailure?: boolean;
+  /** NEW: the reps are PER SIDE — a label only, volume is unchanged. */
+  perSide?: boolean;
   /** When false, omit createdAt (legacy one-off logs). Default true. */
   withCreatedAt?: boolean;
 }
@@ -53,6 +55,7 @@ export function buildLiftSetEntry(input: NewLiftSetInput): LiftSetEntry {
   if (input.assistedPullup) entry.assistedPullup = true;
   if (input.dropSet) entry.dropSet = true;
   if (input.toFailure) entry.toFailure = true;
+  if (input.perSide) entry.perSide = true;
   return entry;
 }
 
@@ -86,6 +89,7 @@ export interface EntriesState {
       assistedPullup?: boolean;
       dropSet?: boolean;
       toFailure?: boolean;
+      perSide?: boolean;
     },
   ) => void;
   /** Remove an entry. Returns the removed entry so callers can offer Undo. */
@@ -147,6 +151,8 @@ export const useEntriesStore = create<EntriesState>((set, get) => {
         else delete next.dropSet;
         if (patch.toFailure) next.toFailure = true;
         else delete next.toFailure;
+        if (patch.perSide) next.perSide = true;
+        else delete next.perSide;
         return next;
       });
       persist(entries);

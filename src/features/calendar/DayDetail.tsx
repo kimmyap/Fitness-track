@@ -132,9 +132,11 @@ const NoteBlock = styled.div`
 `;
 
 function liftSetLabel(entries: Entry[], e: LiftSetEntry): string {
-  if (e.warmupSet) return `Warm-up · ${e.reps} reps`;
-  if (e.sets && e.sets > 1) return `${e.sets}x${e.reps}`;
-  return `Set ${setNumberInDay(entries, e)} · ${e.reps} reps`;
+  /* `perSide` is a label only — it changes what the reps MEAN, never the maths. */
+  const per = e.perSide ? ' per side' : '';
+  if (e.warmupSet) return `Warm-up · ${e.reps} reps${per}`;
+  if (e.sets && e.sets > 1) return `${e.sets}x${e.reps}${per}`;
+  return `Set ${setNumberInDay(entries, e)} · ${e.reps} reps${per}`;
 }
 
 export interface DayDetailProps {

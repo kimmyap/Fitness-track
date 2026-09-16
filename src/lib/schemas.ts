@@ -47,6 +47,7 @@ export const liftSetSchema = z.looseObject({
   assistedPullup: trueOnly,
   dropSet: trueOnly,
   toFailure: trueOnly,
+  perSide: trueOnly,
 });
 
 export const activitySchema = z.looseObject({

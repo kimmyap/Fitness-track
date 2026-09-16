@@ -205,7 +205,7 @@ export function HistoryList({
                 : !r.weight && (r.variation === 'Bodyweight' || r.variation === 'Bodyweight Lunges')
                   ? 'Bodyweight'
                   : fmtStoredWeight(r.weight, unit);
-              const loadText = `${weightText} × ${r.reps}${r.rpe ? ` @${r.rpe}` : ''}`;
+              const loadText = `${weightText} × ${r.reps}${r.perSide ? '/side' : ''}${r.rpe ? ` @${r.rpe}` : ''}`;
               const rowName = `${setLabel}, ${loadText}`;
               const isOpen = openRowId === r.id;
               return (

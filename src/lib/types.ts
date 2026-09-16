@@ -47,6 +47,19 @@ export interface LiftSetEntry {
    * for history, not a modifier, so no domain logic reads it.
    */
   toFailure?: true;
+  /**
+   * NEW (not legacy). Only present when true. The reps recorded are PER SIDE —
+   * 10 on a Bulgarian split squat means 10 each leg, not 10 in total.
+   *
+   * A LABEL, not a modifier: no domain logic reads it, exactly like
+   * `toFailure`. Volume deliberately does NOT double for it. Doubling would be
+   * more accurate going forward and would permanently fracture the volume
+   * history, because sets logged before this field existed cannot be
+   * retroactively identified as unilateral — weekly/monthly totals, volume
+   * trend and the volume-threshold achievements would all step up on a units
+   * change rather than on real work. Considered and deferred; see HANDOFF §12.
+   */
+  perSide?: true;
 }
 
 export type ActivityName = 'Pilates' | 'Volleyball';

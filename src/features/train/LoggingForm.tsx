@@ -18,6 +18,7 @@
 import { useId, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import styled from '@emotion/styled';
+import { Check } from 'lucide-react';
 import { Button, Field, FieldLabel, NumberInput, toast } from '@/components';
 import {
   modeForExercise,
@@ -431,6 +432,12 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
    */
   const setTypeLabelId = useId();
 
+  /*
+   * Orthogonal to set kind on purpose: a warm-up can be per side just as a
+   * working set can, so this is its own control rather than a fifth Set Type.
+   */
+  const [perSide, setPerSide] = useState(false);
+
   const setSetKind = (kind: SetKind) => {
     setSetKindState(kind);
     sessionSetType[exercise.name] = kind;
@@ -511,6 +518,7 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
         assistedPullup: isAssisted,
         dropSet: isDrop,
         toFailure: isFailure,
+        perSide,
       });
       onFinishEdit();
       return;
@@ -528,6 +536,7 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
       assistedPullup: isAssisted,
       dropSet: isDrop,
       toFailure: isFailure,
+      perSide,
     });
 
     if (logDate === todayIso) autoStartRestTimer();
@@ -716,6 +725,18 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
           ))}
         </RampDetails>
       ) : null}
+
+      <Row>
+        <SetTypeButton
+          type="button"
+          active={perSide}
+          aria-pressed={perSide}
+          onClick={() => setPerSide((v) => !v)}
+        >
+          {perSide ? <Check size={14} aria-hidden="true" /> : null} Reps are per side
+        </SetTypeButton>
+        <Muted as="span">{perSide ? 'e.g. 10 each leg' : 'tap if this is a single-side movement'}</Muted>
+      </Row>
 
       <Row>
         <Button variant="secondary" aria-label={`Decrease weight by ${stepAmount}`} onClick={() => nudgeWeight(-stepAmount)}>

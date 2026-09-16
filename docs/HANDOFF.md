@@ -117,15 +117,15 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-15:
-typecheck clean, lint clean, **398 tests across 27 files**, build succeeds.
+typecheck clean, lint clean, **401 tests across 27 files**, build succeeds.
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans.)
+were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~991 kB (300 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~991 kB (301 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,202 kB (194 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -359,7 +359,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 398 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 401 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -523,9 +523,20 @@ started.
    workouts in one day, which read as ONE span with the gap included. That last one is the
    missing Workout entity showing through; building the entity remains expensive (legacy
    migration against a schema `CLAUDE.md` makes a hard constraint) and is still not done.
-4. **Per-side (unilateral) logging.** The exercise library carries `is_unilateral` on every
-   entry and the app ignores it, so "10 reps" on a split squat is ambiguous and volume maths
-   silently treats it as total. The only item here needing a NEW entry field.
+4. ~~**Per-side (unilateral) logging.**~~ **Built 2026-09-16** — `perSide?: true` on
+   `LiftSetEntry`, toggled beside the inputs, rendered in HistoryList and DayDetail.
+   **It is a LABEL, not a modifier** — no domain logic reads it, exactly like `toFailure`, and
+   VOLUME DELIBERATELY DOES NOT DOUBLE. That looks like the obvious missing half and is not:
+   sets logged before the field existed cannot be retroactively identified as unilateral, so
+   doubling would permanently fracture the volume history — weekly and monthly totals,
+   `volumeTrend` and the volume-THRESHOLD achievements would all step up on a units change
+   rather than on real work, and an achievement could unlock off that. The ambiguity this
+   fixes is "what did 10 reps mean", which is what was actually costing anything. If the
+   doubling is ever wanted, it needs a decision about the discontinuity first, not a one-line
+   change to `entryVolume`.
+
+   The toggle is deliberately NOT a fifth Set Type: per-side is orthogonal to kind, so a
+   warm-up can be per side just as a working set can. Asserted in `LoggingForm.test.tsx`.
 5. **Set-by-set history search.** Lower than it first looks: `ChartsTab` already gives a
    per-exercise est-1RM and top-set trend, so this is the log view, not the trend view.
 
