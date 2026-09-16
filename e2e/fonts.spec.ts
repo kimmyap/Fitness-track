@@ -60,6 +60,18 @@ test('fonts survive going offline on the FIRST visit', async ({ page, context })
 
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded' });
+
+  /*
+   * Wait for real TEXT before asking about fonts. A face is requested only when
+   * something needs it to render, so `document.fonts.ready` on a page with no
+   * content yet resolves immediately reporting nothing loaded. Since routes
+   * went lazy that gap widened — the route chunk has to resolve before anything
+   * renders — and this assertion started failing in CI while passing locally,
+   * purely because CI is slower. The app was fine; the test was racing.
+   */
+  await expect(page.getByRole('heading', { name: 'Today', level: 1 })).toBeVisible({
+    timeout: 15_000,
+  });
   await page.evaluate(() => document.fonts.ready);
 
   const offlineLoaded = await page.evaluate(() =>

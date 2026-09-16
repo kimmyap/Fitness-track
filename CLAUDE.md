@@ -191,6 +191,16 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   a pending state it had not actually observed. `test.use({ serviceWorkers: 'block' })` for
   page-behaviour specs; leave worker behaviour to `offline.spec.ts`. A test faster than the
   delay it injects is not passing, it is not running.
+- **`reuseExistingServer` makes a stale preview server lie to you.** A manually started
+  `npm run preview` from earlier in the session was still up, so Playwright reused it and served
+  the PREVIOUS build — a negative test (strip the fonts from `STATIC_SHELL`, expect failure)
+  passed, which read as "the assertion proves nothing". It proved plenty; the edit had simply
+  never reached the browser. Before trusting a negative result, check nothing is on :4173.
+- **Ask about fonts only once text exists.** A face is requested when something needs it to
+  render, so `document.fonts.ready` on a page with no content resolves immediately reporting
+  nothing loaded. Lazy routes widened that window — the route chunk must resolve before anything
+  renders — and the offline font test started failing in CI while passing locally, purely on
+  speed. Wait for a real heading, then ask.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 
