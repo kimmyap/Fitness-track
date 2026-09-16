@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithTheme } from '@/test/renderWithTheme';
-import { useEntriesStore, useWeightModesStore } from '@/stores';
+import { useAchievementsStore, useEntriesStore, useWeightModesStore } from '@/stores';
+import { useToastStore } from '@/components';
 import { DAYS } from '@/lib/program';
 import type { ProgramExercise } from '@/lib/types';
 import { LoggingForm } from './LoggingForm';
@@ -20,26 +21,39 @@ vi.mock('@/lib/storage', async (importOriginal) => ({
 
 const sumoSquats = (DAYS['Lower A'] as ProgramExercise[])[0] as ProgramExercise;
 
+function renderForm(onConfetti = vi.fn()) {
+  renderWithTheme(
+    <LoggingForm
+      exercise={sumoSquats}
+      logDate="2026-01-02"
+      todayIso="2026-08-28"
+      editingEntry={null}
+      onFinishEdit={() => {}}
+      onConfetti={onConfetti}
+    />,
+  );
+  return onConfetti;
+}
+
+/** A first-ever set at this weight would be a PR if it were stored. */
+function logOne() {
+  fireEvent.click(screen.getByRole('button', { name: /^Working$/i }));
+  fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+  fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '10' } });
+  fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+}
+
 beforeEach(() => {
   useEntriesStore.setState({ entries: [] });
   useWeightModesStore.setState({ modes: {} });
+  useToastStore.setState({ toasts: [] });
+  useAchievementsStore.setState({ seenAchievements: [] });
 });
 
 describe('LoggingForm when the write does not reach storage', () => {
   it('replaces the confirmation with a failure the user can act on', async () => {
-    renderWithTheme(
-      <LoggingForm
-        exercise={sumoSquats}
-        logDate="2026-01-02"
-        todayIso="2026-08-28"
-        editingEntry={null}
-        onFinishEdit={() => {}}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: /^Working$/i }));
-    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
-    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+    renderForm();
+    logOne();
 
     // Optimistic first — the good case is synchronous and must not flicker.
     expect(screen.getByRole('button', { name: /^Logged$/ })).toBeInTheDocument();
@@ -51,5 +65,29 @@ describe('LoggingForm when the write does not reach storage', () => {
       expect(screen.getByRole('button', { name: /Not saved — see the warning above/ })).toBeInTheDocument(),
     );
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/could not be saved/i));
+  });
+});
+
+/**
+ * Celebrating a set that was never stored is the app congratulating you for
+ * something it just lost — and checkAchievements PERSISTS, so an eager call
+ * would also bank an achievement off that set.
+ */
+describe('LoggingForm celebrations are gated on the write', () => {
+  it('fires no confetti, no PR toast and no achievement when the write fails', async () => {
+    const onConfetti = renderForm();
+    logOne();
+
+    // Let the rejected write settle — the failure state is the signal it has.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Not saved — see the warning above/ })).toBeInTheDocument(),
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(onConfetti).not.toHaveBeenCalled();
+    expect(useToastStore.getState().toasts).toHaveLength(0);
+    expect(useAchievementsStore.getState().seenAchievements).toHaveLength(0);
   });
 });

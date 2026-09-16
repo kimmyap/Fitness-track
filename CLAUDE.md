@@ -159,6 +159,15 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   — opacity collapsed the contrast to 2.09:1). That turned the new "Logged" confirmation into a
   dead grey button, because it is disabled during the 800ms lock. The `success` variant is
   exempt from that repaint for exactly this reason.
+- **Celebrate after the write, not after the intent.** Confetti, the PR toast and
+  `checkAchievements` fired synchronously on log, so a set lost to a failed write was still
+  celebrated — and `checkAchievements` PERSISTS, banking an achievement off a row that was never
+  stored. They now run in the `saved.then` success branch. The rest timer deliberately does NOT
+  wait: it is about your body, not your data.
+- **Check a store's real field name before asserting on it.** `useAchievementsStore.setState({
+  seen: [] })` merged a junk key and `getState().seen` then read back `[]`, so the assertion
+  passed without testing anything. The field is `seenAchievements`. Zustand merges unknown keys
+  silently, so a typo in a test fixture is a false green, not an error.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

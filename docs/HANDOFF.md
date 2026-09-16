@@ -117,7 +117,7 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-16:
-typecheck clean, lint clean, **410 tests across 28 files**, build succeeds (993.50 kB / 301.29 kB gzip).
+typecheck clean, lint clean, **412 tests across 28 files**, build succeeds (993.51 kB / 301.30 kB gzip).
 (The previous revision said "401 across 27"; the file count was one high — there were 26. The
 counts here are compared against by later sessions, so a wrong one is worse than none.)
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
@@ -361,7 +361,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 410 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 412 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -492,7 +492,9 @@ still ignores its write with an explicit `void`, so this changed no behaviour ou
 form. It exists because the failed-save flag's only reader lived on the More page, which meant a
 set lost to quota looked logged on the page you log on. `SyncWarningBanner` is now also mounted
 in the Train sticky stack, so the global failure signal is visible wherever writes happen.
-No storage key, shape or default changed.
+Confetti, the PR toast and `checkAchievements` now run inside that promise's success branch
+rather than synchronously on log, so nothing celebrates a set that was not stored. The rest
+timer is deliberately outside the gate. No storage key, shape or default changed.
 
 Not done, and each needs a decision rather than an implementation: nutrition targets (the Daily
 hints are averages of your own history, because no target is stored and inventing one would be

@@ -9,8 +9,11 @@
  * - RPE pills 6–10 with tap-for-description
  * - live weight helper text per variation math (per-side / per-dumbbell / sled…)
  * - >40% typo guard requiring a second tap (4s window)
- * - 800ms log lock + "Saving..." state
- * - PR detection → confetti + hype toast; rest-timer auto-start (today only)
+ * - 800ms log lock + a green "Logged" confirmation, and a "Not saved" state
+ *   when the write did not reach storage
+ * - PR detection → confetti + hype toast, both GATED on the write succeeding;
+ *   rest-timer auto-start (today only) is not, because that one is about your
+ *   body rather than your data
  *
  * NOTE: mount with a key of `${logDate}|${editingEntry?.id ?? 'new'}` so the
  * form re-prefills when the edit target or logging date changes.
@@ -612,21 +615,15 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
       perSide,
     });
 
+    /*
+     * Not gated on the write, unlike the celebrations below: the rest timer is
+     * about your body, not your data. You still need the 90 seconds whether or
+     * not the row reached disk, and making you wait a round trip for it would
+     * be the one delay here you would actually feel.
+     */
     if (logDate === todayIso) autoStartRestTimer();
 
-    if (!isWarmup && !isAssisted && !isDrop && !isBodyweightVar && stored > prevBest) {
-      onConfetti?.();
-      const totalDisplay = computeTotalDisplayWeightWithMode(mode, varVal, wRaw, ctx);
-      const perNote =
-        varVal === 'Barbell' || varVal === 'Trap Bar'
-          ? ` (${wRaw} per side)`
-          : varVal === 'Dumbbell'
-            ? ` (${wRaw} per dumbbell)`
-            : '';
-      toast(`New PR on ${exercise.name}! ${totalDisplay}${unitLabel(unit)}${perNote} — ${randomHype()}`);
-    }
-
-    celebrateAchievements(useAchievementsStore.getState().checkAchievements(), onConfetti);
+    const isPr = !isWarmup && !isAssisted && !isDrop && !isBodyweightVar && stored > prevBest;
 
     /*
      * Legacy re-render behavior: re-prefill from the (now updated) log.
@@ -665,10 +662,34 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
      * on this page also now says.
      */
     void saved.then((ok) => {
-      if (ok) return;
-      if (confirmTimer.current) clearTimeout(confirmTimer.current);
-      setLogResult('failed');
-      setAnnouncement('That set could not be saved. Check the warning at the top of the page.');
+      if (!ok) {
+        if (confirmTimer.current) clearTimeout(confirmTimer.current);
+        setLogResult('failed');
+        setAnnouncement('That set could not be saved. Check the warning at the top of the page.');
+        return;
+      }
+
+      /*
+       * Celebrations wait for the write. Confetti and a PR banner over a set
+       * that is not on disk is the app congratulating you for something it
+       * just lost — and checkAchievements PERSISTS, so firing it here rather
+       * than eagerly also stops an achievement being marked earned off a set
+       * that was never stored. In the good case the write is synchronous, so
+       * this resolves a microtask later and the burst looks immediate.
+       */
+      if (isPr) {
+        onConfetti?.();
+        const totalDisplay = computeTotalDisplayWeightWithMode(mode, varVal, wRaw, ctx);
+        const perNote =
+          varVal === 'Barbell' || varVal === 'Trap Bar'
+            ? ` (${wRaw} per side)`
+            : varVal === 'Dumbbell'
+              ? ` (${wRaw} per dumbbell)`
+              : '';
+        toast(`New PR on ${exercise.name}! ${totalDisplay}${unitLabel(unit)}${perNote} — ${randomHype()}`);
+      }
+
+      celebrateAchievements(useAchievementsStore.getState().checkAchievements(), onConfetti);
     });
   };
 

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithTheme } from '@/test/renderWithTheme';
 import { useEntriesStore, useWeightModesStore } from '@/stores';
+import { useToastStore } from '@/components';
 import { DAYS } from '@/lib/program';
 import type { LiftSetEntry, ProgramExercise } from '@/lib/types';
 import { isLiftSet } from '@/lib/types';
@@ -35,6 +36,7 @@ beforeEach(() => {
   // Module-level store: a test that picks an input mode would otherwise hand
   // that mode to every test after it, in file order.
   useWeightModesStore.setState({ modes: {} });
+  useToastStore.setState({ toasts: [] });
 });
 
 afterEach(() => {
@@ -389,5 +391,26 @@ describe('LoggingForm confirms an ordinary set', () => {
     const status = screen.getByRole('status');
     expect(status).toHaveTextContent('Logged warm-up 85lbs for 5 reps.');
     expect(status).not.toHaveTextContent('sets this session');
+  });
+});
+
+/**
+ * The other side of the gate: a set that IS stored must still celebrate, and
+ * the delay must be invisible — the write is synchronous in the good case, so
+ * this resolves a microtask later.
+ */
+describe('LoggingForm celebrations on a successful write', () => {
+  it('still fires confetti and the PR toast', async () => {
+    const onConfetti = vi.fn();
+    renderForm({ onConfetti });
+    fireEvent.click(screen.getByRole('button', { name: /^Working$/i }));
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    await waitFor(() => expect(onConfetti).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts.some((t) => /New PR on Sumo Squats/.test(t.message))).toBe(true),
+    );
   });
 });

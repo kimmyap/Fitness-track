@@ -71,6 +71,16 @@ test('a set that cannot be stored says so on the page you log on', async ({ page
   await page.getByRole('button', { name: /^log set$/i }).first().click();
 
   await expect(page.getByRole('button', { name: /Not saved — see the warning above/ })).toBeVisible();
+
+  /*
+   * A first-ever set is a PR, so before the celebrations were gated on the
+   * write this screen showed a confetti burst and "New PR on Sumo Squats!"
+   * directly above "Not saved" — the app congratulating you for a set it had
+   * just lost.
+   */
+  await expect(page.getByText(/New PR on/)).toHaveCount(0);
+  await expect(page.getByText(/Achievement unlocked/)).toHaveCount(0);
+
   const banner = page.getByRole('alert');
   await expect(banner).toContainText('Storage had trouble saving recently');
   // It is pinned at the top of the page, above the card being logged into.
