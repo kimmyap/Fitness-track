@@ -555,8 +555,18 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
 
     celebrateAchievements(useAchievementsStore.getState().checkAchievements(), onConfetti);
 
-    // Legacy re-render behavior: re-prefill from the (now updated) log
-    const p = computePrefill(exercise, null, useEntriesStore.getState().entries, unit);
+    /*
+     * Legacy re-render behavior: re-prefill from the (now updated) log.
+     *
+     * The mode/equipment/bar arguments are NOT optional here even though they
+     * have defaults. Omitting them made this call re-prefill with mode 'auto'
+     * and a standard bar while the visible toggle still said whatever you had
+     * chosen, so the number in the box silently changed meaning after every
+     * set: 225 logged in Total mode came back as 90, and a Trap Bar set in
+     * perSide mode came back as the total (auto has no Trap Bar branch), which
+     * the next tap would have logged as 525.
+     */
+    const p = computePrefill(exercise, null, useEntriesStore.getState().entries, unit, mode, equipment, barWeightLbs);
     setVariation(p.variation ?? varVal);
     setValues(p.values);
   };

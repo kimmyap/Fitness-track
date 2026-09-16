@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { renderWithTheme } from '@/test/renderWithTheme';
-import { useEntriesStore } from '@/stores';
+import { useEntriesStore, useWeightModesStore } from '@/stores';
 import { DAYS } from '@/lib/program';
 import type { LiftSetEntry, ProgramExercise } from '@/lib/types';
 import { isLiftSet } from '@/lib/types';
@@ -32,6 +32,9 @@ function liftEntries(): LiftSetEntry[] {
 beforeEach(() => {
   useEntriesStore.setState({ entries: [] });
   useRestTimerStore.getState().reset();
+  // Module-level store: a test that picks an input mode would otherwise hand
+  // that mode to every test after it, in file order.
+  useWeightModesStore.setState({ modes: {} });
 });
 
 afterEach(() => {
@@ -283,5 +286,50 @@ describe('LoggingForm per-side reps', () => {
     const logged = liftEntries()[0] as LiftSetEntry;
     expect(logged.perSide).toBe(true);
     expect(logged.warmupSet).toBe(true);
+  });
+});
+
+/**
+ * The post-log re-prefill used to be called without the mode/equipment/bar
+ * arguments, so it fell back to mode 'auto' (variation-driven legacy math) and
+ * a standard bar while the visible toggle still read whatever you had chosen.
+ * The number in the box therefore changed MEANING after every set, and the
+ * next tap would have logged it under the label on screen.
+ */
+describe('LoggingForm re-prefill keeps the chosen input mode', () => {
+  const totalButton = () => screen.getByRole('button', { name: /^Total weight$/i });
+
+  /**
+   * `sessionSetType` is module-private and survives between tests, so a
+   * preceding test that logged a warm-up leaves this form on Warm-up — and a
+   * warm-up never feeds the prefill, which hides the bug under test.
+   */
+  const startWorking = () => fireEvent.click(screen.getByRole('button', { name: /^Working$/i }));
+
+  it('leaves the total in the box after logging in Total mode', () => {
+    renderForm();
+    startWorking();
+    fireEvent.click(totalButton());
+
+    const weight = () => screen.getByLabelText('Total weight (lbs)');
+    fireEvent.change(weight(), { target: { value: '225' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    expect(liftEntries()[0]?.weight).toBe(225);
+    // Was 90 — (225 - 45) / 2, the per-side reading of a field labelled Total.
+    expect(weight()).toHaveValue(225);
+    expect(totalButton()).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('leaves the per-side number in the box in perSide mode', () => {
+    renderForm();
+    startWorking();
+    fireEvent.change(screen.getByLabelText('Weight per side (lbs)'), { target: { value: '90' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '5' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    expect(liftEntries()[0]?.weight).toBe(225);
+    expect(screen.getByLabelText('Weight per side (lbs)')).toHaveValue(90);
   });
 });

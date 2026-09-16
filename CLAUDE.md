@@ -135,6 +135,21 @@ These are recorded because each was a live bug or a false premise, not a hypothe
 - **Unit tests do not catch layout.** A Shuffle button overlapping a tab at 375px, a bar
   covering the card it described, and a blank offline page all shipped past a green suite.
   Drive a real browser at 375px in both themes before committing UI.
+- **A defaulted argument is a silent mode switch.** `computePrefill` takes `mode`/`equipment`/
+  `barWeightLbs` with defaults; the post-log call omitted them, so after every set the weight box
+  was re-filled with legacy `auto` math and a standard bar while the toggle still read the mode
+  you picked. 225 logged as Total came back as 90; a Trap Bar set in perSide came back as the
+  total, and the next tap would have logged 525. When a function has a context parameter, pass
+  the context at EVERY call site — a default that is right at mount is not right later.
+- **A copy action must forward every label.** `handleRepeat` forwarded only `warmupSet` and
+  `assistedPullup`, so `dropSet`/`toFailure`/`perSide` fell off: repeating a drop set produced a
+  working set that could take a PB. Adding a flag to `LiftSetEntry` means auditing every writer,
+  not just the form.
+- **Module-level state outlives a test file.** `sessionSetType` (per-exercise set kind) and the
+  `useWeightModesStore` singleton leak in file order — a test that logs a warm-up leaves the next
+  test's form on Warm-up, which silently excludes it from the prefill and hides the bug under
+  test. Reset the store in `beforeEach`; for module-private maps, set the state explicitly in the
+  test instead of relying on the default.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

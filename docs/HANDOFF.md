@@ -116,8 +116,10 @@ history (the one PR, #1, was Dependabot's). See §8 for why that is a gap.
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-All four must pass before a commit. Verified green on 2026-09-15:
-typecheck clean, lint clean, **401 tests across 27 files**, build succeeds.
+All four must pass before a commit. Verified green on 2026-09-16:
+typecheck clean, lint clean, **406 tests across 27 files**, build succeeds.
+(The previous revision said "401 across 27"; the file count was one high — there were 26. The
+counts here are compared against by later sessions, so a wrong one is worse than none.)
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
@@ -262,7 +264,7 @@ otherwise discover the hard way.
 
    `e2e/offline.spec.ts` already asserts the failing case ("A route never visited online"), so
    the regression would be caught rather than shipped. Do not attempt this without running it.
-10. **Partly fixed 2026-09-12.** 22 vitest files plus a Playwright suite in `e2e/`, run by
+10. **Partly fixed 2026-09-12.** 27 vitest files plus a Playwright suite in `e2e/`, run by
     `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
     it builds the app and drives a browser. `npm run test:e2e` locally — but see the Chromium
     note below before you conclude the suite is broken. It exists because three
@@ -359,7 +361,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 401 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 406 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:

@@ -314,6 +314,11 @@ export function ExerciseCard({
       ...(source.variation ? { variation: source.variation } : {}),
       warmupSet: Boolean(source.warmupSet),
       assistedPullup: Boolean(source.assistedPullup),
+      // Every label the source carried, or Repeat quietly relabels the set:
+      // repeating a drop set produced a working set that could take a PB.
+      dropSet: Boolean(source.dropSet),
+      toFailure: Boolean(source.toFailure),
+      perSide: Boolean(source.perSide),
     });
     if (logDate === todayIso) autoStartRestTimer();
     toast(`Repeated: ${fmtStoredWeight(source.weight, unit)} x ${source.reps}`);
