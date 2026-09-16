@@ -59,14 +59,28 @@ export function buildLiftSetEntry(input: NewLiftSetInput): LiftSetEntry {
   return entry;
 }
 
+/**
+ * What a write returned: the entry, and whether it actually reached storage.
+ *
+ * `saved` exists because a localStorage write can fail (quota, a locked-down
+ * private window) and `setRawWithRetry` only records that globally, on a flag
+ * the Train page did not read — so a set could fail to persist with the form
+ * showing nothing at all. Callers that confirm a write to the user await this.
+ * It resolves false only after the retries have given up.
+ */
+export interface LoggedSet {
+  entry: LiftSetEntry;
+  saved: Promise<boolean>;
+}
+
 export interface EntriesState {
   entries: Entry[];
   /** Replace the whole array (import/merge). Persists. */
   setEntries: (entries: Entry[]) => void;
   /** Append a pre-built entry (lift set, activity, warmup, core). Persists. */
   addEntry: (entry: Entry) => void;
-  /** Convenience: log a lift set from input fields. Returns the created entry. */
-  logSet: (input: NewLiftSetInput) => LiftSetEntry;
+  /** Convenience: log a lift set from input fields. See LoggedSet. */
+  logSet: (input: NewLiftSetInput) => LoggedSet;
   /** Quick-log Pilates/Volleyball for a date (defaults to today). */
   logActivity: (activity: ActivityName, date?: string) => void;
   /**
@@ -101,27 +115,30 @@ export interface EntriesState {
 }
 
 export const useEntriesStore = create<EntriesState>((set, get) => {
-  const persist = (entries: Entry[]) => {
+  /**
+   * Returns the write's outcome rather than swallowing it. Callers that do not
+   * surface failure still ignore it with `void`, exactly as before.
+   */
+  const persist = (entries: Entry[]): Promise<boolean> => {
     set({ entries });
-    void saveEntries(entries);
+    return saveEntries(entries);
   };
 
   return {
     entries: getEntries(),
 
-    setEntries: (entries) => persist(entries),
+    setEntries: (entries) => void persist(entries),
 
-    addEntry: (entry) => persist([...get().entries, entry]),
+    addEntry: (entry) => void persist([...get().entries, entry]),
 
     logSet: (input) => {
       const entry = buildLiftSetEntry(input);
-      persist([...get().entries, entry]);
-      return entry;
+      return { entry, saved: persist([...get().entries, entry]) };
     },
 
     logActivity: (activity, date) => {
       const entry = { id: generateId(), type: 'activity' as const, activity, date: date ?? isoDate() };
-      persist([...get().entries, entry]);
+      void persist([...get().entries, entry]);
     },
 
     toggleCompletion: (type, date) => {
@@ -129,10 +146,10 @@ export const useEntriesStore = create<EntriesState>((set, get) => {
       const { entries } = get();
       const existing = entries.find((e) => 'type' in e && e.type === type && e.date === d);
       if (existing) {
-        persist(entries.filter((e) => e !== existing));
+        void persist(entries.filter((e) => e !== existing));
         return false;
       }
-      persist([...entries, { id: generateId(), type, date: d }]);
+      void persist([...entries, { id: generateId(), type, date: d }]);
       return true;
     },
 
@@ -155,20 +172,20 @@ export const useEntriesStore = create<EntriesState>((set, get) => {
         else delete next.perSide;
         return next;
       });
-      persist(entries);
+      void persist(entries);
     },
 
     deleteEntry: (id) => {
       const { entries } = get();
       const removed = entries.find((e) => e.id === id);
       if (!removed) return undefined;
-      persist(entries.filter((e) => e.id !== id));
+      void persist(entries.filter((e) => e.id !== id));
       return removed;
     },
 
-    restoreEntry: (entry) => persist([...get().entries, entry]),
+    restoreEntry: (entry) => void persist([...get().entries, entry]),
 
-    resetAll: () => persist([]),
+    resetAll: () => void persist([]),
   };
 });
 

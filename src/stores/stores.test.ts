@@ -29,7 +29,7 @@ beforeEach(() => {
 
 describe('entries store', () => {
   it('logSet writes through with legacy shape (optional fields ABSENT)', () => {
-    const entry = useEntriesStore.getState().logSet({ exercise: 'Sumo Squats', weight: 135, reps: 10, rpe: 8, variation: 'Barbell' });
+    const { entry } = useEntriesStore.getState().logSet({ exercise: 'Sumo Squats', weight: 135, reps: 10, rpe: 8, variation: 'Barbell' });
     expect(entry.sets).toBe(1);
     const stored = read<LiftSetEntry[]>('entries');
     expect(stored).toHaveLength(1);
@@ -64,7 +64,7 @@ describe('entries store', () => {
   });
 
   it('updateSet deletes cleared optional fields (legacy edit semantics)', () => {
-    const entry = useEntriesStore.getState().logSet({ exercise: 'Rows', weight: 90, reps: 10, rpe: 8, warmupSet: true });
+    const { entry } = useEntriesStore.getState().logSet({ exercise: 'Rows', weight: 90, reps: 10, rpe: 8, warmupSet: true });
     useEntriesStore.getState().updateSet(entry.id, { weight: 95, reps: 12 });
     const stored = read<LiftSetEntry[]>('entries')[0]!;
     expect(stored.weight).toBe(95);
@@ -74,7 +74,7 @@ describe('entries store', () => {
   });
 
   it('deleteEntry returns the removed entry for Undo; restoreEntry puts it back', () => {
-    const entry = useEntriesStore.getState().logSet({ exercise: 'Rows', weight: 90, reps: 10 });
+    const { entry } = useEntriesStore.getState().logSet({ exercise: 'Rows', weight: 90, reps: 10 });
     const removed = useEntriesStore.getState().deleteEntry(entry.id);
     expect(removed?.id).toBe(entry.id);
     expect(read<Entry[]>('entries')).toHaveLength(0);

@@ -150,6 +150,15 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   test's form on Warm-up, which silently excludes it from the prefill and hides the bug under
   test. Reset the store in `beforeEach`; for module-private maps, set the state explicitly in the
   test instead of relying on the default.
+- **A write's failure has to reach the page you wrote on.** `setRawWithRetry` recorded a failed
+  save on a global flag whose only reader, `SyncWarningBanner`, was mounted on the More page —
+  so a set lost to quota looked logged on Train. `logSet` now returns `{ entry, saved }` and the
+  banner is in the Train sticky stack. A global status flag is not feedback unless something on
+  the current screen subscribes to it.
+- **Disabled is not the same as done.** `Button`'s `:disabled` repaints to `muted` (deliberately
+  — opacity collapsed the contrast to 2.09:1). That turned the new "Logged" confirmation into a
+  dead grey button, because it is disabled during the 800ms lock. The `success` variant is
+  exempt from that repaint for exactly this reason.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

@@ -15,7 +15,7 @@
  * NOTE: mount with a key of `${logDate}|${editingEntry?.id ?? 'new'}` so the
  * form re-prefills when the edit target or logging date changes.
  */
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import styled from '@emotion/styled';
 import { Check } from 'lucide-react';
@@ -45,6 +45,7 @@ import {
   trapBarWeight,
   warmupRamp,
   fromDisplayWeight,
+  toDisplayWeight,
   fmtNum,
 } from '@/lib/domain';
 import type { WeightEntryContext, WeightEntryMode } from '@/lib/domain';
@@ -380,6 +381,51 @@ const RampRow = styled.button`
   }
 `;
 
+/**
+ * How long the button holds its "Logged" state. It replaces the old
+ * "Saving..." text rather than following it: a localStorage write is
+ * synchronous, so "Saving..." described a write that had already finished,
+ * and an ordinary set had no confirmation at all — only a PR did.
+ */
+const LOG_CONFIRM_MS = 1000;
+
+/**
+ * Announcement target for the logged set. The Log button used to carry
+ * aria-live itself, which meant the only thing ever announced was the word
+ * "Saving..." — never what had been logged.
+ */
+const LiveRegion = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+`;
+
+/** Pulses once per logged set, so the count is visibly the thing that moved. */
+const SetCount = styled.strong`
+  font-variant-numeric: tabular-nums;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: setCountBump 420ms ease-out;
+  }
+
+  @keyframes setCountBump {
+    0% {
+      color: ${({ theme }) => theme.colors.accentText};
+      transform: scale(1.35);
+    }
+    100% {
+      color: inherit;
+      transform: scale(1);
+    }
+  }
+`;
+
 export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinishEdit, onConfetti }: LoggingFormProps) {
   const unit = useSettingsStore((s) => s.unit);
   const equipment = useSettingsStore((s) => s.equipmentWeights);
@@ -419,9 +465,24 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
   );
   const [rpeHint, setRpeHint] = useState(DEFAULT_RPE_HINT);
   const [typoArmed, setTypoArmed] = useState(false);
+  /** Spells out the comparison the guard made — see armTypoGuard. */
+  const [typoPrompt, setTypoPrompt] = useState('');
   const [saving, setSaving] = useState(false);
+  /** Confirmation state of the LAST log: idle, held briefly, or failed. */
+  const [logResult, setLogResult] = useState<'idle' | 'logged' | 'failed'>('idle');
+  const [announcement, setAnnouncement] = useState('');
   const lockRef = useRef(false);
   const typoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // A card can be collapsed mid-countdown; neither timer may outlive it.
+  useEffect(
+    () => () => {
+      if (typoTimer.current) clearTimeout(typoTimer.current);
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    },
+    [],
+  );
 
   const varSelectId = useId();
   /*
@@ -494,6 +555,18 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
       const last = lastLoggedWorkingSet(allEntries, exercise.name);
       if (last && isBigJump(stored, last.weight)) {
         lockRef.current = false;
+        /*
+         * Name both numbers. "That's a big jump" alone gave you nothing to
+         * check it against, so the only way through was to tap again — which
+         * is exactly what the guard is asking you not to do reflexively.
+         */
+        const u = unitLabel(unit);
+        const from = toDisplayWeight(last.weight, unit);
+        const to = toDisplayWeight(stored, unit);
+        const delta = Math.round((to - from) * 10) / 10;
+        setTypoPrompt(
+          `${fmtNum(to)}${u} is ${delta > 0 ? '+' : ''}${fmtNum(delta)} on your last ${fmtNum(from)}${u} — tap again`,
+        );
         setTypoArmed(true);
         if (typoTimer.current) clearTimeout(typoTimer.current);
         typoTimer.current = setTimeout(() => setTypoArmed(false), TYPO_GUARD_CONFIRM_MS);
@@ -525,7 +598,7 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
     }
 
     const prevBest = bestFor(allEntries, exercise.name)?.weight ?? 0;
-    useEntriesStore.getState().logSet({
+    const { saved } = useEntriesStore.getState().logSet({
       exercise: exercise.name,
       weight: stored,
       reps: r,
@@ -569,6 +642,34 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
     const p = computePrefill(exercise, null, useEntriesStore.getState().entries, unit, mode, equipment, barWeightLbs);
     setVariation(p.variation ?? varVal);
     setValues(p.values);
+
+    /*
+     * Confirm the ordinary set. Confetti and the hype toast fire on a PR only,
+     * so every other set — almost all of them — landed with nothing but a row
+     * appearing above the fold.
+     */
+    const kindNote = isWarmup ? ' warm-up' : isDrop ? ' drop' : isFailure ? ' set to failure' : '';
+    const loggedTotal = computeTotalDisplayWeightWithMode(mode, varVal, wRaw, ctx);
+    setAnnouncement(
+      `Logged${kindNote} ${fmtNum(loggedTotal)}${unitLabel(unit)} for ${r} reps${perSide ? ' per side' : ''}.` +
+        (isWarmup ? '' : ` ${setsToday + 1} of ${exercise.targetSets} sets this session.`),
+    );
+    setLogResult('logged');
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    confirmTimer.current = setTimeout(() => setLogResult('idle'), LOG_CONFIRM_MS);
+
+    /*
+     * Optimistic, then corrected: the write is synchronous in the good case,
+     * and only a failing one takes long enough to retry. A false here means
+     * the retries gave up and the set is NOT on disk, which the sticky banner
+     * on this page also now says.
+     */
+    void saved.then((ok) => {
+      if (ok) return;
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+      setLogResult('failed');
+      setAnnouncement('That set could not be saved. Check the warning at the top of the page.');
+    });
   };
 
   /*
@@ -606,13 +707,21 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
     toast(`Warm-up logged: ${set.weight}${unitLabel(unit)} x ${set.reps}`);
   };
 
+  /*
+   * Order matters: the failure state outranks the confirmation, and the
+   * confirmation outranks the lock. "Saving..." is gone on purpose — it
+   * described a synchronous write that had already completed, and it was the
+   * only thing the button's aria-live ever announced.
+   */
   const buttonText = typoArmed
-    ? "That's a big jump, tap again to confirm"
-    : saving
-      ? 'Saving...'
-      : isEditing
-        ? 'Save'
-        : 'Log Set';
+    ? typoPrompt || "That's a big jump, tap again to confirm"
+    : logResult === 'failed'
+      ? 'Not saved — see the warning above'
+      : logResult === 'logged'
+        ? 'Logged'
+        : isEditing
+          ? 'Save'
+          : 'Log Set';
 
   const showPlateToggle = isPlateLoaded(variation);
   const visibleMode = effectiveMode(mode, variation);
@@ -779,14 +888,26 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
       </Row>
       <Muted>{rpeHint}</Muted>
 
-      <Button fullWidth disabled={saving} onClick={handleLog} aria-live="polite">
+      <Button
+        fullWidth
+        disabled={saving}
+        onClick={handleLog}
+        variant={logResult === 'logged' ? 'success' : logResult === 'failed' ? 'destructive' : 'primary'}
+      >
+        {logResult === 'logged' ? <Check size={16} aria-hidden="true" /> : null}
         {buttonText}
       </Button>
 
+      {/* Announces what was logged, which the button never could. */}
+      <LiveRegion role="status" aria-live="polite">
+        {announcement}
+      </LiveRegion>
+
       {!isEditing ? (
         <Muted>
-          {setsToday} of {exercise.targetSets} sets logged for this session · target{' '}
-          {exercise.targetSets} x {exercise.targetReps}
+          {/* Keyed by the count so the pulse re-runs on each logged set. */}
+          <SetCount key={setsToday}>{setsToday}</SetCount> of {exercise.targetSets} sets logged for this
+          session · target {exercise.targetSets} x {exercise.targetReps}
         </Muted>
       ) : (
         <TextButton onClick={onFinishEdit}>Cancel edit</TextButton>

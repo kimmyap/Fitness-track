@@ -117,7 +117,7 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-16:
-typecheck clean, lint clean, **406 tests across 27 files**, build succeeds.
+typecheck clean, lint clean, **410 tests across 28 files**, build succeeds (993.50 kB / 301.29 kB gzip).
 (The previous revision said "401 across 27"; the file count was one high — there were 26. The
 counts here are compared against by later sessions, so a wrong one is worse than none.)
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
@@ -127,7 +127,7 @@ were completed, 361 before the warm-up ramp, 371 before stall detection, 384 bef
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
-The build emits a chunk-size warning: main bundle ~991 kB (301 kB gzip) plus a lazy
+The build emits a chunk-size warning: main bundle ~993 kB (301 kB gzip) plus a lazy
 `exerciseLibrary` chunk of ~1,202 kB (194 kB gzip). **The warning is expected, not a
 regression.** The library is dynamically imported in `src/services/exerciseLibraryService.ts:131`
 and only fetched when the exercise picker opens. If you change that import to a static one you
@@ -264,7 +264,7 @@ otherwise discover the hard way.
 
    `e2e/offline.spec.ts` already asserts the failing case ("A route never visited online"), so
    the regression would be caught rather than shipped. Do not attempt this without running it.
-10. **Partly fixed 2026-09-12.** 27 vitest files plus a Playwright suite in `e2e/`, run by
+10. **Partly fixed 2026-09-12.** 28 vitest files plus a Playwright suite in `e2e/` (13 specs), run by
     `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
     it builds the app and drives a browser. `npm run test:e2e` locally — but see the Chromium
     note below before you conclude the suite is broken. It exists because three
@@ -361,7 +361,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 406 passing, build with a chunk-size warning. If tests are red, find out
+Expect: clean, clean, 410 passing, build with a chunk-size warning. If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -484,6 +484,15 @@ Two invariants worth not breaking:
    the first pattern.
 2. **Nothing is written back as a result of a read.** A malformed row stays on disk rather than
    being erased by looking at it. Tests assert the raw string is byte-identical after a read.
+
+**Write outcomes are now observable (2026-09-16).** `useEntriesStore.logSet` returns
+`{ entry, saved }` rather than the entry alone; `saved` is the `Promise<boolean>` from
+`setRawWithRetry`, resolving false only once the retries have given up. Every other store method
+still ignores its write with an explicit `void`, so this changed no behaviour outside the logging
+form. It exists because the failed-save flag's only reader lived on the More page, which meant a
+set lost to quota looked logged on the page you log on. `SyncWarningBanner` is now also mounted
+in the Train sticky stack, so the global failure signal is visible wherever writes happen.
+No storage key, shape or default changed.
 
 Not done, and each needs a decision rather than an implementation: nutrition targets (the Daily
 hints are averages of your own history, because no target is stored and inventing one would be

@@ -37,6 +37,7 @@ import { RestTimerBar } from './RestTimerBar';
 import { FinishWorkoutModal } from './FinishWorkoutModal';
 import { SortableExerciseCard } from './SortableExerciseCard';
 import { ActiveSetBar } from './ActiveSetBar';
+import { SyncWarningBanner } from '@/features/more/SaveStatus';
 import { AddExerciseSection } from './AddExerciseSection';
 import type { AddExerciseMode, SwapPrefill } from './AddExerciseSection';
 
@@ -165,6 +166,10 @@ export function WorkoutDayView({ day, logDate, todayIso, onLogDateChange }: Work
       {/* One sticky stack: two independently-sticky bars with the same `top`
           pin to the same spot and overlap each other. */}
       <StickyStack data-sticky-stack>
+        {/* A failed write used to be announced only on the More page, so a set
+            that never reached storage looked logged on the page you log on.
+            It renders nothing until a save has actually failed. */}
+        <SyncWarningBanner />
         <RestTimerBar />
         {activeExercise ? (
           <ActiveSetBar

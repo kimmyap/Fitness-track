@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type { Theme } from '@emotion/react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'success';
 
 function variantStyles(theme: Theme, variant: ButtonVariant) {
   switch (variant) {
@@ -21,6 +21,18 @@ function variantStyles(theme: Theme, variant: ButtonVariant) {
       return {
         background: theme.colors.destructive,
         color: theme.colors.onDestructive,
+        border: '1px solid transparent',
+      };
+    /*
+     * The design system's "completed" fill (accent / onAccent) — the same pair
+     * the finished-set and PR blocks use. Light mode is a documented 3.30:1
+     * exception, so this is never the only signal: callers pair it with an
+     * icon and a word.
+     */
+    case 'success':
+      return {
+        background: theme.colors.accent,
+        color: theme.colors.onAccent,
         border: '1px solid transparent',
       };
     case 'primary':
@@ -71,11 +83,21 @@ export const Button = styled.button<{ variant?: ButtonVariant; fullWidth?: boole
    * contrast between them collapses — measured 2.09:1 in dark and 1.49:1 in
    * light on a disabled primary button, which is illegible rather than merely
    * inactive. Muted-on-muted still reads as inert, and stays legible.
+   *
+   * The success variant is exempt: a disabled confirmation is not inert, it is
+   * DONE, and repainting it muted made a logged set read as a dead button.
+   * Object form rather than a nested template literal, because a backtick
+   * anywhere inside this one breaks the build.
    */
   &:disabled {
-    background: ${({ theme }) => theme.colors.muted};
-    color: ${({ theme }) => theme.colors.mutedForeground};
-    border-color: ${({ theme }) => theme.colors.border};
-    cursor: not-allowed;
+    ${({ theme, variant }) =>
+      variant === 'success'
+        ? { cursor: 'not-allowed' }
+        : {
+            background: theme.colors.muted,
+            color: theme.colors.mutedForeground,
+            borderColor: theme.colors.border,
+            cursor: 'not-allowed',
+          }};
   }
 `;

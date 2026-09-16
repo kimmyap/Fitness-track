@@ -92,18 +92,23 @@ describe('LoggingForm typo guard (>40% jump)', () => {
     });
   });
 
-  it('requires a second tap when the new weight jumps more than 40%', () => {
+  /**
+   * The prompt names both numbers. It used to read only "That's a big jump",
+   * which gave you nothing to check the guard against — so the only way past
+   * it was the reflex tap it exists to interrupt.
+   */
+  const armedButton = () => screen.getByRole('button', { name: /165lbs is \+65 on your last 100lbs — tap again/ });
+
+  it('requires a second tap when the new weight jumps more than 40%, naming both weights', () => {
     renderForm();
     // per-side 60 → 60*2+45 = 165 stored, a 65% jump from 100
     fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '60' } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Log Set' }));
-    expect(
-      screen.getByRole('button', { name: "That's a big jump, tap again to confirm" }),
-    ).toBeInTheDocument();
+    expect(armedButton()).toBeInTheDocument();
     expect(liftEntries()).toHaveLength(1); // nothing logged yet
 
-    fireEvent.click(screen.getByRole('button', { name: "That's a big jump, tap again to confirm" }));
+    fireEvent.click(armedButton());
     const sets = liftEntries();
     expect(sets).toHaveLength(2);
     expect(sets[1]?.weight).toBe(165);
@@ -115,9 +120,7 @@ describe('LoggingForm typo guard (>40% jump)', () => {
       renderForm();
       fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '60' } });
       fireEvent.click(screen.getByRole('button', { name: 'Log Set' }));
-      expect(
-        screen.getByRole('button', { name: "That's a big jump, tap again to confirm" }),
-      ).toBeInTheDocument();
+      expect(armedButton()).toBeInTheDocument();
 
       act(() => {
         vi.advanceTimersByTime(4000);
@@ -138,8 +141,14 @@ describe('LoggingForm typo guard (>40% jump)', () => {
   });
 });
 
-describe('LoggingForm log lock (800ms) + Saving state', () => {
-  it('blocks double-taps and shows Saving... until the lock releases', () => {
+/**
+ * The lock window now CONFIRMS instead of claiming to be working: a
+ * localStorage write is synchronous, so "Saving..." described a write that had
+ * already finished, and an ordinary set had no confirmation at all — confetti
+ * and the hype toast fire on a PR only.
+ */
+describe('LoggingForm log lock (800ms) + Logged state', () => {
+  it('blocks double-taps and confirms the set until the lock releases', () => {
     vi.useFakeTimers();
     try {
       renderForm();
@@ -147,18 +156,24 @@ describe('LoggingForm log lock (800ms) + Saving state', () => {
       fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '10' } });
 
       fireEvent.click(screen.getByRole('button', { name: 'Log Set' }));
-      const savingBtn = screen.getByRole('button', { name: 'Saving...' });
-      expect(savingBtn).toBeDisabled();
+      const loggedBtn = screen.getByRole('button', { name: /^Logged$/ });
+      expect(loggedBtn).toBeDisabled();
       expect(liftEntries()).toHaveLength(1);
 
       // a frantic double-tap within the lock window logs nothing extra
-      fireEvent.click(savingBtn);
+      fireEvent.click(loggedBtn);
       expect(liftEntries()).toHaveLength(1);
 
       act(() => {
         vi.advanceTimersByTime(800);
       });
-      expect(screen.getByRole('button', { name: 'Log Set' })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: /^Logged$/ })).not.toBeDisabled();
+
+      // ...and it hands the button back once the confirmation has been seen.
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByRole('button', { name: 'Log Set' })).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
@@ -331,5 +346,48 @@ describe('LoggingForm re-prefill keeps the chosen input mode', () => {
 
     expect(liftEntries()[0]?.weight).toBe(225);
     expect(screen.getByLabelText('Weight per side (lbs)')).toHaveValue(90);
+  });
+});
+
+/**
+ * Confetti and the hype toast fire on a PR only, so an ordinary set — almost
+ * every set — used to land with nothing but a row appearing above the fold.
+ * The Log button carried aria-live itself, which meant the only word ever
+ * announced was "Saving...".
+ */
+describe('LoggingForm confirms an ordinary set', () => {
+  it('announces what was logged and where it puts you in the session', () => {
+    renderForm();
+    fireEvent.click(screen.getByRole('button', { name: /^Working$/i }));
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    // Sumo Squats is 4 x 8-12; 45 per side + the 45lb bar is 135 total.
+    expect(screen.getByRole('status')).toHaveTextContent('Logged 135lbs for 8 reps. 1 of 4 sets this session.');
+  });
+
+  it('says a set is per side when it was logged that way', () => {
+    renderForm();
+    fireEvent.click(screen.getByRole('button', { name: /^Working$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reps are per side/i }));
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('for 8 reps per side');
+  });
+
+  /** A warm-up does not count toward the target, so it must not claim to. */
+  it('names the set kind and omits the session count for a warm-up', () => {
+    renderForm();
+    fireEvent.click(screen.getByRole('button', { name: /^Warm-up$/i }));
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '20' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '5' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('Logged warm-up 85lbs for 5 reps.');
+    expect(status).not.toHaveTextContent('sets this session');
   });
 });
