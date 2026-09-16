@@ -118,6 +118,8 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 
 All four must pass before a commit. Verified green on 2026-09-16:
 typecheck clean, lint clean, **412 tests across 28 files**, build succeeds (993.51 kB / 301.30 kB gzip).
+The JS bundle is unchanged by the self-hosted fonts: they are two separate woff2 assets
+(59.2 kB total, all weights) that replaced seven CDN downloads.
 (The previous revision said "401 across 27"; the file count was one high — there were 26. The
 counts here are compared against by later sessions, so a wrong one is worse than none.)
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
@@ -226,9 +228,20 @@ otherwise discover the hard way.
    `Vary: Origin` while Vite's module script tag carries `crossorigin`, so cache lookups must
    pass `ignoreVary: true` or every precached asset is invisible to the request that needs it
    and the app 503s offline. Both were caught only by driving a real browser.
-7. **Fonts are a runtime CDN dependency.** Space Grotesk and DM Sans load from
-   `fonts.googleapis.com` in `index.html`. Flaky gym Wi-Fi means a font swap on every cold load,
-   and offline means fallback fonts. Self-hosting them would fix this and help with #6.
+7. **FIXED 2026-09-16 — fonts are self-hosted.** They used to load from `fonts.googleapis.com`,
+   so flaky gym Wi-Fi meant a font swap on every cold load and offline meant fallback fonts; the
+   service worker could not help, because a worker must not touch cross-origin requests. Now:
+   two VARIABLE woff2 files in `public/fonts/` (DM Sans 36.9 kB covering 400-700, Space Grotesk
+   22.3 kB covering 300-700) replacing the seven static weights the CDN link requested, declared
+   in `public/fonts/fonts.css` with relative `url()`s so the file resolves its own siblings at
+   any `base`. They live in `public/` rather than `src/` on purpose: the filenames stay unhashed,
+   which is what lets `sw.js` precache them BY NAME in `STATIC_SHELL`. The HTML scan cannot find
+   them — the woff2 URLs are inside `fonts.css`, not the shell — so without that list they would
+   only be cached on the second visit. `index.html` preloads both (with `crossorigin`, which
+   fonts require even same-origin). SW `VERSION` bumped to `v2` so the incomplete v1 cache is
+   evicted. Both upstream OFL-1.1 licences ship verbatim beside the binaries. `e2e/fonts.spec.ts`
+   asserts no request reaches Google, both faces report `loaded`, and both still load with the
+   network off on the FIRST visit.
 8. **Data lives in one browser, on one device, with manual backup only.** localStorage, no sync,
    no account, no automatic export. The README warns the user, and there is save-retry with an
    emergency backup download on failure — but cleared site data or a lost phone is total
@@ -264,7 +277,7 @@ otherwise discover the hard way.
 
    `e2e/offline.spec.ts` already asserts the failing case ("A route never visited online"), so
    the regression would be caught rather than shipped. Do not attempt this without running it.
-10. **Partly fixed 2026-09-12.** 28 vitest files plus a Playwright suite in `e2e/` (13 specs), run by
+10. **Partly fixed 2026-09-12.** 28 vitest files plus a Playwright suite in `e2e/` (15 specs), run by
     `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
     it builds the app and drives a browser. `npm run test:e2e` locally — but see the Chromium
     note below before you conclude the suite is broken. It exists because three
@@ -567,9 +580,8 @@ bug fix.
 
 **If you have budget for exactly one thing**, these two lists rank different currencies and do
 not compete. For a change the user FEELS, take backlog #1 (stall detection) — it is the only
-item that changes a training decision rather than a display. For infrastructure, take gap **#7**
-(self-host the fonts): it is what finishes #6, since the app now loads offline but Space Grotesk
-and DM Sans still come from the Google CDN, so an offline or flaky-Wi-Fi load falls back to
-system fonts. Self-hosting puts them in the precache with everything else. Gap #9 (route
-splitting) is the biggest measured win but the one with a real regression risk attached — read
-its offline note before starting.
+item that changes a training decision rather than a display. For infrastructure, gap **#7** (self-hosting the
+fonts) is now done — it finished #6, so the app is genuinely offline-complete rather than
+offline-but-in-fallback-fonts. Next infrastructure item is gap #9 (route splitting): the biggest
+measured win, but the one with a real regression risk attached — read its offline note before
+starting.

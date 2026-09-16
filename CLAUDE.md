@@ -71,7 +71,9 @@ are **derived** from each achievement's existing `metric` and `threshold` (see `
 Rest timers use the inverted bar (`foreground` background) with a Timer icon; the
 digits turn `accentText` green only once a countdown finishes.
 
-Fonts: Space Grotesk (display/stats) + DM Sans (body, `tabular-nums` for numerals). Spacing scale 4/8/12/16/24/32.
+Fonts: Space Grotesk (display/stats) + DM Sans (body, `tabular-nums` for numerals). SELF-HOSTED
+from `public/fonts/` as two variable woff2 files — never re-point these at the Google CDN, see
+`docs/HANDOFF.md` gap #7. Spacing scale 4/8/12/16/24/32.
 
 **Known contrast gaps in this palette** (kept deliberately — the look was chosen over strict AA;
 fix by darkening the token if it ever matters): light-mode `primary` as text or with white text on it
@@ -168,6 +170,14 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   seen: [] })` merged a junk key and `getState().seen` then read back `[]`, so the assertion
   passed without testing anything. The field is `seenAchievements`. Zustand merges unknown keys
   silently, so a typo in a test fixture is a false green, not an error.
+- **A service worker cannot rescue a cross-origin asset.** Fonts came from
+  `fonts.googleapis.com`, so `sw.js` (which deliberately leaves cross-origin requests alone) left
+  the app in fallback fonts offline. Self-hosting is not a preference here, it is the only thing
+  that puts an asset within the worker's reach. They now live in `public/fonts/` — `public/`, not
+  `src/`, because an unhashed filename is what lets `STATIC_SHELL` precache them by name; the
+  worker's HTML scan cannot see them, since the woff2 URLs are inside `fonts.css` rather than the
+  shell. Changing `STATIC_SHELL` means bumping `VERSION`, or existing clients keep an incomplete
+  cache.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

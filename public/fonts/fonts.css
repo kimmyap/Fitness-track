@@ -1,0 +1,42 @@
+/*
+ * Self-hosted webfonts. Previously these came from fonts.googleapis.com, which
+ * made every cold load on gym Wi-Fi a font swap and left the app in fallback
+ * fonts offline (HANDOFF gap #7) — the service worker deliberately does not
+ * touch cross-origin requests, so it could not help.
+ *
+ * VARIABLE fonts, one file per family: the old link requested seven separate
+ * static weights (DM Sans 400/500/700, Space Grotesk 400/500/600/700) and
+ * these two files cover every weight in those ranges, and any between.
+ *
+ * The url()s are relative, so this file resolves its own siblings whatever
+ * `base` Vite is built with. It lives in public/ rather than src/ precisely so
+ * the filenames stay stable: the service worker precaches them by name in
+ * STATIC_SHELL, which is what makes the FIRST offline visit render correctly.
+ *
+ * unicode-range is kept from the upstream CSS so anything outside latin falls
+ * through to the system stack rather than rendering tofu.
+ *
+ * Both families are SIL Open Font License 1.1. Each upstream OFL.txt is shipped
+ * verbatim beside this file (OFL-DMSans.txt, OFL-SpaceGrotesk.txt) rather than
+ * merged, because redistributing the binaries carries the notice requirement.
+ * Fetched from the Google Fonts CDN: DM Sans v17, Space Grotesk v22.
+ */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./dm-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('./space-grotesk-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

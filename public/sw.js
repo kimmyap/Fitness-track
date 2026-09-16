@@ -30,14 +30,19 @@
  *   (the router resolves the path once the shell boots).
  * - same-origin assets → cache-first. Vite content-hashes filenames, so a
  *   cached asset can never be stale; a changed file is a different URL.
- * - cross-origin → untouched. Google Fonts and the hotlinked demo images stay
- *   on the network, so fonts still fall back offline (handoff gap #7).
+ * - cross-origin → untouched. The hotlinked demo images stay on the network.
+ *   Fonts USED to be here: they came from fonts.googleapis.com, and because a
+ *   worker must not touch cross-origin requests it could do nothing about it —
+ *   the app rendered in fallback fonts offline (handoff gap #7, now fixed).
+ *   They are self-hosted and precached below, so they work on the first
+ *   offline visit rather than the second.
  *
  * Bump VERSION to evict everything; `activate` deletes any cache that is not
  * the current one. There is no skipWaiting, so a new worker takes over once
  * the app is fully closed rather than swapping assets under a live page.
  */
-const VERSION = 'v1';
+/* v2: self-hosted fonts joined STATIC_SHELL, so the v1 cache is incomplete. */
+const VERSION = 'v2';
 const CACHE = `fitness-track-${VERSION}`;
 
 /** Scope root, e.g. "/Fitness-track/" — derived so no path is hardcoded. */
@@ -48,6 +53,15 @@ const STATIC_SHELL = [
   `${BASE}icons/icon-192.png`,
   `${BASE}icons/icon-512.png`,
   `${BASE}icons/apple-touch-icon.png`,
+  /*
+   * Listed by name, which only works because these live in public/ and are
+   * copied verbatim — an unhashed filename is the point. The scan below reads
+   * hashed asset URLs out of the shell HTML, but the woff2 URLs appear inside
+   * fonts.css rather than the HTML, so nothing would find them there.
+   */
+  `${BASE}fonts/fonts.css`,
+  `${BASE}fonts/dm-sans-latin.woff2`,
+  `${BASE}fonts/space-grotesk-latin.woff2`,
 ];
 
 /**
