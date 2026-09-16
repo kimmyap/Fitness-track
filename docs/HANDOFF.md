@@ -280,6 +280,16 @@ otherwise discover the hard way.
    renders real Progress content offline, not merely that the shell booted;
    `e2e/route-split.spec.ts` asserts Today fetches no other route's chunk.
 
+   **Caveat on how "offline" is tested.** Those specs use `context.setOffline(true)`, which does
+   NOT cut off service-worker requests — measured: during an "offline" navigation the old cache
+   gained a route chunk, and `cacheFirst` only stores on a successful fetch. Their cache-CONTENT
+   assertions are sound (verified by a negative control: stripping the fonts from `STATIC_SHELL`
+   makes the fonts spec fail), but "renders offline" does not by itself prove the network was
+   severed. Verified separately on 2026-09-16 by killing the preview server outright: after ONE
+   online visit to Today, with the server confirmed dead from inside the page, all five routes
+   render. Hardening the specs to sever the network for real is not done — see the pitfall list
+   in `CLAUDE.md` for how to do it correctly if you take it on.
+
 10. **Partly fixed 2026-09-12.** 28 vitest files plus a Playwright suite in `e2e/` (18 specs), run by
     `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
     it builds the app and drives a browser. `npm run test:e2e` locally — but see the Chromium

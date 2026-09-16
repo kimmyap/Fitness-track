@@ -201,6 +201,19 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   nothing loaded. Lazy routes widened that window — the route chunk must resolve before anything
   renders — and the offline font test started failing in CI while passing locally, purely on
   speed. Wait for a real heading, then ask.
+- **`context.setOffline()` does not cut off the SERVICE WORKER.** Proof: during an "offline"
+  navigation the v2 cache GAINED a route chunk, and `cacheFirst` only stores on a successful
+  fetch — so the worker reached the network while the context was offline. This makes
+  `offline.spec.ts` and `fonts.spec.ts` weaker than they read: their cache-CONTENT assertions are
+  sound (a negative control proved it), but "renders offline" does not prove the network was
+  severed. To verify offline for real, kill the server and confirm it is dead from inside the
+  page first — probing a path OUTSIDE the worker's BASE scope, since a probe under BASE gets the
+  worker's own 503 and `fetch` RESOLVES for that, reading as "reachable".
+- **Killing a dev server via `npx` kills the wrapper, not the server.** Two offline runs looked
+  like passes while the server was still up, because `spawn('npx', ['vite', ...])` makes the
+  listener a grandchild. Spawn the binary directly (`node node_modules/vite/bin/vite.js preview`)
+  so the pid you kill is the listener, and assert the port is actually dead before trusting
+  anything that follows.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 
