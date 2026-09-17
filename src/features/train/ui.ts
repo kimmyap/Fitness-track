@@ -269,7 +269,7 @@ export const TrendUp = styled.span`
 
 /** Negative trend text. */
 export const TrendDown = styled.span`
-  color: ${({ theme }) => theme.colors.destructive};
+  color: ${({ theme }) => theme.colors.destructiveText};
   font-weight: 600;
 `;
 

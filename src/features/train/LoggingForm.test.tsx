@@ -413,4 +413,44 @@ describe('LoggingForm celebrations on a successful write', () => {
       expect(useToastStore.getState().toasts.some((t) => /New PR on Sumo Squats/.test(t.message))).toBe(true),
     );
   });
+
+  /**
+   * The PR toast restates the RAW INPUT as "per side", which is only true when
+   * the input WAS per side. Logging 140 in Total mode used to announce
+   * "140lbs (140 per side)" — the total printed as a per-side figure, at the
+   * one moment the number is most likely to be read and remembered.
+   */
+  it('omits the per-side note when the weight was typed as a total', async () => {
+    renderForm();
+    fireEvent.click(screen.getByRole('button', { name: /^Total weight$/i }));
+    fireEvent.change(screen.getByLabelText(/total weight/i), { target: { value: '140' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '9' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    const pr = async () => {
+      let message = '';
+      await waitFor(() => {
+        const t = useToastStore.getState().toasts.find((x) => /New PR on Sumo Squats/.test(x.message));
+        expect(t).toBeDefined();
+        message = t!.message;
+      });
+      return message;
+    };
+    const message = await pr();
+    expect(message).toContain('140lbs');
+    expect(message).not.toContain('per side');
+  });
+
+  /** The other half: a per-side input still says so, and names the input, not the total. */
+  it('keeps the per-side note when the weight was typed per side', async () => {
+    renderForm();
+    fireEvent.change(screen.getByLabelText(/weight per side/i), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Reps'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Log Set$/i }));
+
+    await waitFor(() => {
+      const t = useToastStore.getState().toasts.find((x) => /New PR on Sumo Squats/.test(x.message));
+      expect(t?.message).toContain('135lbs (45 per side)');
+    });
+  });
 });

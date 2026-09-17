@@ -680,8 +680,17 @@ export function LoggingForm({ exercise, logDate, todayIso, editingEntry, onFinis
       if (isPr) {
         onConfetti?.();
         const totalDisplay = computeTotalDisplayWeightWithMode(mode, varVal, wRaw, ctx);
-        const perNote =
-          varVal === 'Barbell' || varVal === 'Trap Bar'
+        /*
+         * The note restates the RAW INPUT, so it is only true when the input
+         * was per side. In `total` mode it is the whole number, and printing
+         * "140lbs (140 per side)" is a straight lie at the one moment the user
+         * is most likely to read the figure. `auto` keeps the note: legacy
+         * barbell/dumbbell math also takes the input as per side.
+         */
+        const inputIsPerSide = mode !== 'total';
+        const perNote = !inputIsPerSide
+          ? ''
+          : varVal === 'Barbell' || varVal === 'Trap Bar'
             ? ` (${wRaw} per side)`
             : varVal === 'Dumbbell'
               ? ` (${wRaw} per dumbbell)`

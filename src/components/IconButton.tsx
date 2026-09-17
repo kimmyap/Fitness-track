@@ -11,7 +11,7 @@ const IconButtonBase = styled.button<{ tone?: 'default' | 'destructive' }>`
   border: 1px solid transparent;
   border-radius: ${({ theme }) => theme.radii.md};
   background: transparent;
-  color: ${({ theme, tone }) => (tone === 'destructive' ? theme.colors.destructive : theme.colors.foreground)};
+  color: ${({ theme, tone }) => (tone === 'destructive' ? theme.colors.destructiveText : theme.colors.foreground)};
   cursor: pointer;
   transition: opacity ${({ theme }) => `${theme.motion.duration.fast} ${theme.motion.easing.out}`};
 

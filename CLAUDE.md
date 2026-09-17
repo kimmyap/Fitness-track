@@ -57,6 +57,8 @@ Dark-first, "Vibrant & Block-based". Components consume **theme tokens only — 
 | Text on primary | `colors.onPrimary` | `#0F172A` | `#FFFFFF` |
 | Completed sets / PRs (fill) | `colors.accent` + `colors.onAccent` | `#22C55E` + `#0F172A` | `#16A34A` + `#FFFFFF` |
 | Green text / icons / chart strokes | `colors.accentText` | `#22C55E` | `#16A34A` |
+| Red FILLS and borders (destructive buttons, invalid input outline) | `colors.destructive` + `colors.onDestructive` | `#EF4444` + `#000000` | `#DC2626` + `#FFFFFF` |
+| Red TEXT and icons (validation messages, failed-save warning, backup nag, negative trend) | `colors.destructiveText` | `#FB9393` | `#CC1F1F` |
 | Achievement tier — bronze | `colors.tierBronze` | `#D9A06B` | `#8A4F21` |
 | Achievement tier — silver | `colors.tierSilver` | `#C3CEDD` | `#5A6B80` |
 | Achievement tier — gold | `colors.tierGold` | `#F0C24B` | `#8A6100` |
@@ -68,6 +70,12 @@ tier higher). The tier is always spelled out beside the colour — never colour 
 are **derived** from each achievement's existing `metric` and `threshold` (see `achievementTier` /
 `achievementCategory` in `domain.ts`), not stored per definition, so a new achievement classifies itself.
 
+`destructive` and `destructiveText` are the same split as `accent`/`accentText`: the first is
+tuned to be sat ON (it carries `onDestructive`), the second to be READ. Never use `destructive`
+as a text colour — it measures 3.18:1 on `card` in dark. `src/theme.contrast.test.ts` enforces
+this for every text token on `card`, `background` and `muted`, and pins each documented exception
+below to its exact ratio, so changing one fails the gate until this table is updated with it.
+
 Rest timers use the inverted bar (`foreground` background) with a Timer icon; the
 digits turn `accentText` green only once a countdown finishes.
 
@@ -77,7 +85,8 @@ from `public/fonts/` as two variable woff2 files — never re-point these at the
 
 **Known contrast gaps in this palette** (kept deliberately — the look was chosen over strict AA;
 fix by darkening the token if it ever matters): light-mode `primary` as text or with white text on it
-is 3.56:1, light-mode `accent` likewise 3.30:1, and dark-mode `primary` as text on a card is 4.27:1.
+is 3.56:1, light-mode `accent` likewise 3.30:1 — which means light-mode `accentText`, the same hex,
+is 3.30:1 as GREEN TEXT on a white card — and dark-mode `primary` as text on a card is 4.27:1.
 Everything else clears 4.5:1. Dark-mode fills (`onAccent` on `accent` 7.83:1, `onPrimary` on
 `primary` 6.37:1) are fine.
 
@@ -221,6 +230,27 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   test proving each correct proves nothing about the pair. The RPE stall verdict could have
   stacked "add weight" directly on "nail your reps first" — caught by rendering both and reading
   them, not by the suite. `detectStall` takes `targetReps` purely to keep them in agreement.
+- **A token tuned as a FILL is not a text colour.** `destructive` exists to be sat on (it is
+  paired with `onDestructive`), and it was also used for validation messages, the failed-save
+  warning, the backup nag and the negative trend figure — **3.18:1 on `card` in dark**, below the
+  floor this file sets, and never a decision anybody made. `accentText` already existed as the
+  readable twin of `accent`; there was simply no `destructiveText`. When you reach for a colour
+  as text, check which half of the pair it is.
+- **A seeded fixture can pin the very thing you are varying.** The first light-mode pass of the
+  QA sweep was vacuous: `legacySeed` sets `gymlog:theme` to `dark` (correctly — it reproduces a
+  real profile), so seeding after setting `colorScheme: 'light'` silently rendered dark twice and
+  reported the dark palette's ratios under both labels. Write the theme key explicitly AFTER
+  seeding. The tell was rgb values that did not belong to the theme being reported.
+- **The per-side note on the PR toast ignored the input mode.** It restates the RAW input, so in
+  `total` mode "140lbs (140 per side)" printed the total as the per-side figure — a wrong number
+  at the single most memorable moment in the app. Same shape as the `computePrefill` bug above: a
+  value whose meaning depends on `mode`, read at a call site that never asked. `mode` was even in
+  scope, used on the line directly above.
+- **Locate a control by what it says NOW.** The typo guard replaces the log button's own label
+  with "415lbs is +280 on your last 135lbs — tap again", so a second `getByRole('button', {name:
+  /^Log Set$/})` no longer matches it. Two separate sweep runs read that as "the guard's second
+  tap never logs", i.e. a fabricated bug in working code. A button whose label is the feedback
+  cannot be re-found by its resting label.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

@@ -30,6 +30,16 @@ export interface ThemeColors {
   border: string;
   destructive: string;
   onDestructive: string;
+  /**
+   * Red for TEXT / icons, split from `destructive` the way `accentText` is
+   * split from `accent`. `destructive` is tuned as a FILL (it carries
+   * `onDestructive` on top of it) and fails as text on `card`: measured
+   * 3.18:1 in dark. These values clear 4.5:1 on `card`, `background` AND
+   * `muted` in their own theme — dark 5.52 / 6.78 / 4.77, light 5.55 / 5.31 /
+   * 5.07. Validation messages, the failed-save warning and the backup nag all
+   * read through this, so it is the one that must stay legible.
+   */
+  destructiveText: string;
   /** Focus ring (2–4px, never removed). */
   ring: string;
   /** Modal/scrim backdrop. */
@@ -63,6 +73,7 @@ const darkColors: ThemeColors = {
   border: '#374151',
   destructive: '#EF4444',
   onDestructive: '#000000',
+  destructiveText: '#FB9393',
   ring: '#F97316',
   overlay: 'rgba(0, 0, 0, 0.6)',
   tierBronze: '#D9A06B',
@@ -88,6 +99,7 @@ const lightColors: ThemeColors = {
   border: '#E2E8F0',
   destructive: '#DC2626',
   onDestructive: '#FFFFFF',
+  destructiveText: '#CC1F1F',
   ring: '#EA580C',
   overlay: 'rgba(15, 23, 42, 0.5)',
   tierBronze: '#8A4F21',

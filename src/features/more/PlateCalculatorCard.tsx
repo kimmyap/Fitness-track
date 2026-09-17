@@ -91,7 +91,7 @@ const Shortfall = styled.p`
   margin: 0;
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
   font-weight: 600;
-  color: ${({ theme }) => theme.colors.destructive};
+  color: ${({ theme }) => theme.colors.destructiveText};
 `;
 
 function barLabel(bar: number, index: number, unit: Unit): string {

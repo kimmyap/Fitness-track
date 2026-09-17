@@ -23,14 +23,14 @@ const StrongNote = styled.p`
   margin: 0;
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
   font-weight: 600;
-  color: ${({ theme }) => theme.colors.destructive};
+  color: ${({ theme }) => theme.colors.destructiveText};
 `;
 
 const PendingNote = styled.p`
   margin: 0;
   font-size: ${({ theme }) => theme.typography.fontSizes.xs};
   font-weight: 600;
-  color: ${({ theme }) => theme.colors.destructive};
+  color: ${({ theme }) => theme.colors.destructiveText};
 `;
 
 interface PendingImport {
@@ -47,7 +47,7 @@ const BackupStatus = styled.p<{ stale: boolean }>`
   margin: 0;
   font-size: ${({ theme }) => theme.typography.fontSizes.sm};
   font-weight: ${({ stale }) => (stale ? 600 : 500)};
-  color: ${({ theme, stale }) => (stale ? theme.colors.destructive : theme.colors.accentText)};
+  color: ${({ theme, stale }) => (stale ? theme.colors.destructiveText : theme.colors.accentText)};
 
   svg {
     flex-shrink: 0;

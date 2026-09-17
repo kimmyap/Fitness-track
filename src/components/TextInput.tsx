@@ -38,7 +38,7 @@ const HelperText = styled.span`
 
 const ErrorText = styled.span`
   font-size: ${({ theme }) => theme.typography.fontSizes.xs};
-  color: ${({ theme }) => theme.colors.destructive};
+  color: ${({ theme }) => theme.colors.destructiveText};
 `;
 
 export interface TextInputProps extends ComponentPropsWithoutRef<'input'> {

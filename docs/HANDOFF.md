@@ -120,9 +120,9 @@ history (the one PR, #1, was Dependabot's). See §8 for why that is a gap.
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-All four must pass before a commit. Verified green on 2026-09-16:
-typecheck clean, lint clean, **430 tests across 29 files**, build succeeds. Since routes went
-lazy the headline number is the ENTRY chunk, **282.39 kB / 89.98 kB gzip** — not the whole
+All four must pass before a commit. Verified green on 2026-09-17:
+typecheck clean, lint clean, **455 tests across 30 files**, build succeeds. Since routes went
+lazy the headline number is the ENTRY chunk, **282.43 kB / 90.00 kB gzip** — not the whole
 bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
 The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).
 (The previous revision said "401 across 27"; the file count was one high — there were 26. The
@@ -130,7 +130,7 @@ counts here are compared against by later sessions, so a wrong one is worse than
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps.)
+were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps, 430 before the first full QA sweep.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
@@ -198,11 +198,38 @@ otherwise discover the hard way.
 1. **No branch or PR discipline, and `main` auto-deploys.** Every change has landed as a direct
    commit to `main`, which immediately ships to the live URL. A bad commit is live before CI
    finishes. There is no rollback procedure written anywhere.
-2. **No record of QA ever being completed.** `docs/plan.md` Phase 3 lists a real checklist —
+2. **RUN 2026-09-17, and it found three things.** `docs/plan.md` Phase 3 lists a real checklist —
    375px and desktop, both themes, keyboard pass, legacy-data smoke test, design review against
-   the top-10 UX rules. Individual commits claim browser verification of *their* changes, but
-   nothing records the full sweep being run, and nothing triggers re-running it. It has almost
-   certainly gone stale across the last four commits.
+   the top-10 UX rules. Until now individual commits claimed browser verification of *their*
+   changes and nothing recorded the full sweep. The first sweep covered all five routes at 375px
+   and 1280px in both themes, driven against the legacy seed, and is reproducible from the
+   method below (the scripts were throwaway — nothing is committed that re-runs it, which is the
+   part of this gap that stays open).
+
+   **Method.** Build, serve `dist` on :4173, drive real Chromium with `serviceWorkers: 'block'`
+   (a page-behaviour test must measure what the PAGE fetches). Per route: full-page screenshot,
+   `scrollWidth - clientWidth` for sideways scroll, console/pageerror capture, then a DOM audit
+   computing WCAG contrast for every visible text node against its nearest opaque ancestor
+   background, plus touch-target sizes, accessible names, placeholder-only labels and
+   `inputmode` on numeric fields. Then a tab-order walk asserting a visible focus indicator on
+   every stop, a `reducedMotion: 'reduce'` pass asserting nothing still animates, and a
+   legacy-data smoke test through Calendar → day detail → Progress tabs.
+
+   **Results.** No horizontal overflow and no console errors on any of the 20 route/width/theme
+   combinations. 42 tab stops on the Train page, all with a visible focus ring, and a set logs
+   by keyboard alone. Nothing animates under reduced motion. All six form fields are labelled
+   (none placeholder-only), carry `inputmode="decimal"` where numeric, and are ≥44px tall.
+   Legacy data renders everywhere: 8/24 shows 3 exercises · 8,760lbs · 25 min, the PR tab derives
+   6 all-time PRs, muscle-volume bars draw.
+
+   **Found and fixed:** the PR toast printed the raw input as "per side" regardless of input mode
+   (§11), and `destructive` was used as text at 3.18:1 in dark (gap #11 below).
+   **Found and left:** calendar day cells are 41px wide against the repo's own ≥44px rule — seven
+   columns cannot be 44px inside the card's padding at 375px, so closing it is a layout decision,
+   not a fix. Light-mode `accentText` is 3.30:1, which is inside the accepted-exceptions set.
+
+   Nothing triggers a re-run. Re-run it after any change that touches layout, the palette, or a
+   form.
 3. ~~**The "seeded legacy-shaped data" fixture is not in the repo.**~~ **Fixed 2026-09-11.**
    The seed is `src/lib/fixtures/legacySeed.ts`: the 13 legacy keys with their exact
    double-prefixed names and raw-vs-JSON encoding, and deliberately none of the four keys the
@@ -358,7 +385,18 @@ otherwise discover the hard way.
     The version suffix moves with the image, so read it rather than pasting the path above.
     CI needs none of this — `playwright install` there puts the matching build in place, and
     the variable is unset, which is why this only ever bites locally.
-11. **Accepted contrast failures with no tracking.** `CLAUDE.md` documents ratios below AA
+11. **Accepted contrast failures — now tracked by a test (2026-09-17).** `src/theme.contrast.test.ts`
+    asserts every text-carrying token clears 4.5:1 on `card`, `background` AND `muted` in its own
+    theme, and pins each documented exception to the exact ratio `CLAUDE.md` states, so a silent
+    drift in either direction fails the gate. It was written because the sweep found a gap that
+    was never a decision: `destructive` is tuned as a FILL (paired with `onDestructive`) but was
+    also the colour of validation messages, the failed-save warning, the backup nag and the
+    negative trend figure — **3.18:1 on `card` in dark**. Split into `destructiveText`
+    (dark `#FB9393` 5.52:1, light `#CC1F1F` 5.55:1 on card), exactly as `accentText` is split
+    from `accent`. `destructive` itself is unchanged and still correct for fills and borders.
+    The original text of this gap follows, and still stands for the exceptions:
+
+    **Accepted contrast failures with no tracking.** `CLAUDE.md` documents ratios below AA
     (light `primary` 3.56:1, light `accent` 3.30:1, dark `primary`-as-text 4.27:1) as deliberate.
     That is a legitimate call, but there is no issue, no `@todo`, and no condition that would
     trigger revisiting them. If the app ever has a second user, this resurfaces with no owner.
@@ -564,6 +602,17 @@ Not done, and each needs a decision rather than an implementation: nutrition tar
 hints are averages of your own history, because no target is stored and inventing one would be
 health advice). Persisting warm-up ticks was on this list and is now done —
 `gymlog:warmupProgress`, described above; so is route-level code splitting (gap #9, 2026-09-16).
+
+**The PR toast printed a total as a per-side figure (fixed 2026-09-17).** On a PR the toast
+appends `(N per side)` for Barbell/Trap Bar and `(N per dumbbell)` for Dumbbell, restating the
+RAW INPUT. It did that for every mode, so logging 140 in **Total** mode announced
+"140lbs (140 per side)" — the total printed as the per-side number, at the one moment the figure
+is most likely to be read and remembered (the real per-side value there is 47.5 with a 45lb bar).
+The note now appears only when the input really was per side (`mode !== 'total'`; `auto` keeps it,
+because legacy barbell/dumbbell math also takes the input as per side). No storage change — the
+stored total was always correct, only the sentence was wrong. This is the same shape as the
+`computePrefill` bug in `CLAUDE.md`: a value that means different things per mode, consumed at a
+call site that did not ask which mode it was in.
 
 ## 12. Backlog — product gaps, with the finding that matters for each
 

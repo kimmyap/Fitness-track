@@ -29,7 +29,7 @@ const TitleRow = styled.div`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.space[2]};
-  color: ${({ theme }) => theme.colors.destructive};
+  color: ${({ theme }) => theme.colors.destructiveText};
 `;
 
 export function BackupReminderCard() {

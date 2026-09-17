@@ -72,7 +72,7 @@ const Banner = styled.div`
 `;
 
 const BannerIcon = styled(TriangleAlert)`
-  color: ${({ theme }) => theme.colors.destructive};
+  color: ${({ theme }) => theme.colors.destructiveText};
   flex-shrink: 0;
 `;
 
