@@ -118,7 +118,9 @@ These are recorded because each was a live bug or a false premise, not a hypothe
 - **Reading never writes.** A malformed row stays byte-identical on disk. Tests assert this.
 - **Adding a key touches TWO payloads** (`buildBackupPayload` in `storage.ts`, and
   `src/features/more/backup.ts`). Six keys are currently outside both and it is unowned — see
-  `docs/HANDOFF.md` §2 for the table. `warmupProgress` is the one deliberate omission.
+  `docs/HANDOFF.md` §2 for the table. TWO keys are deliberate omissions: `warmupProgress`
+  (scratch state that expires at midnight) and `lastBackupAt` (carrying it would let a restored
+  file tell a brand-new phone it was already backed up).
 - **`exerciseLibrary.json` (1.2 MB) must stay a DYNAMIC import**, gated on the user opening the
   thing that needs it — not on mount. Re-check with: 0 requests for the chunk on the Train page,
   1 after expanding a card. Since routes went lazy this is also enforced at build time:

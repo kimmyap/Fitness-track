@@ -60,6 +60,9 @@ import {
   prHistory,
   sessionSpanMinutes,
   fmtSessionSpan,
+  daysSinceBackup,
+  backupIsStale,
+  BACKUP_NUDGE_DAYS,
 } from './domain';
 import { DAYS } from './program';
 import type { CustomExercise, Entry, EquipmentWeights, LiftSetEntry } from './types';
@@ -1178,5 +1181,41 @@ describe('sessionSpanMinutes', () => {
     expect(fmtSessionSpan(60)).toBe('1h');
     expect(fmtSessionSpan(95)).toBe('1h 35m');
     expect(fmtSessionSpan(125)).toBe('2h 05m');
+  });
+});
+
+/**
+ * The backup staleness nudge (HANDOFF gap #8). This is the only thing between
+ * a cleared browser and losing everything, so the two states it can get wrong
+ * are "never backed up" reading as fine, and a clock skew hiding the warning.
+ */
+describe('daysSinceBackup / backupIsStale', () => {
+  const now = new Date('2026-09-17T10:00:00Z');
+
+  it('counts whole days since the recorded export', () => {
+    expect(daysSinceBackup('2026-09-17', now)).toBe(0);
+    expect(daysSinceBackup('2026-09-16', now)).toBe(1);
+    expect(daysSinceBackup('2026-09-03', now)).toBe(14);
+  });
+
+  /** null and 0 are opposite states; conflating them hides the worst one. */
+  it('returns null when this device has never exported', () => {
+    expect(daysSinceBackup(null, now)).toBeNull();
+    expect(backupIsStale(null)).toBe(true);
+    expect(backupIsStale(0)).toBe(false);
+  });
+
+  it('treats an unparseable stored value as never, not as fresh', () => {
+    expect(daysSinceBackup('not-a-date', now)).toBeNull();
+  });
+
+  /** A clock set backwards would otherwise read negative and hide the nudge. */
+  it('clamps a future date to zero rather than going negative', () => {
+    expect(daysSinceBackup('2026-12-25', now)).toBe(0);
+  });
+
+  it('warns at the threshold, not after it', () => {
+    expect(backupIsStale(BACKUP_NUDGE_DAYS - 1)).toBe(false);
+    expect(backupIsStale(BACKUP_NUDGE_DAYS)).toBe(true);
   });
 });

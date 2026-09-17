@@ -1310,6 +1310,39 @@ export function weeksSinceReview(lastProgramReviewAt: string | null, now: Date =
 /** Weeks threshold for the program-review nudge. */
 export const PROGRAM_REVIEW_NUDGE_WEEKS = 6;
 
+/**
+ * Days since the last backup EXPORT, or null when there has never been one.
+ *
+ * Null and 0 mean opposite things and the caller must not conflate them: null
+ * is "this device has never exported", which is the worst state and the one
+ * worth shouting about, while 0 is "exported today".
+ */
+export function daysSinceBackup(lastBackupAt: string | null, now: Date = new Date()): number | null {
+  if (!lastBackupAt) return null;
+  const then = new Date(lastBackupAt).getTime();
+  if (Number.isNaN(then)) return null;
+  const days = Math.floor((now.getTime() - then) / 86400000);
+  // A clock set backwards would otherwise read as a negative age and hide the
+  // nudge; treat anything in the future as "just now" rather than as a warning.
+  return Math.max(0, days);
+}
+
+/**
+ * Days before the backup nudge turns from a note into a warning.
+ *
+ * Fourteen, not the six WEEKS the program-review nudge uses: that one asks you
+ * to reconsider a plan, and being late costs a slightly stale program. This one
+ * is the only thing standing between a cleared browser and losing everything,
+ * and at roughly three sessions a week a fortnight is about six sessions of
+ * history — enough to hurt, short enough that the warning is not constant.
+ */
+export const BACKUP_NUDGE_DAYS = 14;
+
+/** Whether the backup is old enough, or absent, to warrant a warning. */
+export function backupIsStale(days: number | null): boolean {
+  return days === null || days >= BACKUP_NUDGE_DAYS;
+}
+
 /** Legacy hardcoded bodyweight goal (lbs) — surfaced as a constant for the rebuild. */
 export const BODYWEIGHT_GOAL_LBS = 120;
 

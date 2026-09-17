@@ -291,6 +291,9 @@ describe('warm-up progress (scratch state)', () => {
     // A present key proves the payload was really built; the absent one is the point.
     expect(body).toContain('dailyMetrics');
     expect(body).not.toContain('warmupProgress');
+    // The second deliberate omission: a restored file must not import another
+    // device's backup date and claim this one is covered.
+    expect(body).not.toContain('lastBackupAt');
 
     /*
      * Everything else must be in there. This dump fires when a save has just

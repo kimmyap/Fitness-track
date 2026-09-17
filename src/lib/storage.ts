@@ -87,6 +87,12 @@ export const STORAGE_KEYS = {
    * from both backup payloads — see getWarmupProgress.
    */
   warmupProgress: 'gymlog:warmupProgress',
+  /**
+   * NEW: ISO date "YYYY-MM-DD" of the last backup EXPORT, for the staleness
+   * nudge. The SECOND key deliberately absent from both payloads — see
+   * getLastBackupAt for why carrying it would be actively misleading.
+   */
+  lastBackupAt: 'gymlog:lastBackupAt',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
@@ -508,6 +514,25 @@ export function getLastProgramReview(): string | null {
 }
 export function saveLastProgramReview(isoDate: string): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.lastProgramReview, isoDate, 'Program review');
+}
+
+/**
+ * When this DEVICE last exported a backup. RAW ISO date, null when never.
+ *
+ * Deliberately absent from both backup payloads, and unlike `warmupProgress`
+ * (scratch state that expires) the reason here is that carrying it would LIE.
+ * Restoring a file onto a new phone would import the old phone's backup date,
+ * so a device that has never exported anything would claim it was covered —
+ * and the whole point of the key is to tell you when you are not.
+ *
+ * Day granularity matches `lastProgramReview`: the nudge is measured in days,
+ * so a finer timestamp would be precision the feature never uses.
+ */
+export function getLastBackupAt(): string | null {
+  return getRaw(STORAGE_KEYS.lastBackupAt);
+}
+export function saveLastBackupAt(isoDay: string): Promise<boolean> {
+  return setRawWithRetry(STORAGE_KEYS.lastBackupAt, isoDay, 'Backup date');
 }
 
 export function getCoreOverrides(): CoreOverridesMap {

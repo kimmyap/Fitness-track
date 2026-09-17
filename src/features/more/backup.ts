@@ -30,6 +30,7 @@ import {
   useWeightModesStore,
 } from '@/stores';
 import { generateId, isoDate, mergeById } from '@/lib/domain';
+import { saveLastBackupAt } from '@/lib/storage';
 import type {
   BackupPayload,
   BodyweightEntry,
@@ -97,7 +98,19 @@ export function backupFilename(now: Date = new Date()): string {
   return `gymlog-backup-${isoDate(now)}.json`;
 }
 
-/** Build + download the backup JSON (legacy anchor-click dance). */
+/**
+ * Build + download the backup JSON (legacy anchor-click dance), and record the
+ * day so the staleness nudge has something to count from.
+ *
+ * The date is recorded for a download that was STARTED, which is the most this
+ * can honestly know: the browser owns the save dialog from here, and nothing
+ * reports back whether the file was written or the sheet was dismissed. The
+ * nudge therefore measures "last time you asked for a backup", and a cancelled
+ * save silences it for a fortnight. The alternative — never recording, so the
+ * warning never clears — makes the feature noise you learn to ignore, which is
+ * worse. Called for its side effect only; the write is fire-and-forget because
+ * a failed write leaves the nudge showing, which is the safe direction.
+ */
 export function downloadBackup(): void {
   const payload = buildBackupPayload();
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -109,6 +122,7 @@ export function downloadBackup(): void {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  void saveLastBackupAt(isoDate());
 }
 
 // ---------------------------------------------------------------------------

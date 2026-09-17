@@ -48,13 +48,17 @@ and UX-rule sections are still good.
   `applyImport` in `src/features/more/backup.ts` (manual export/import) both list their fields by
   hand. A key missing from either is silently absent from that export — which is gap #8, the
   standing data-loss risk, arriving by omission. `dailyMetrics` and `cardio` are wired into both.
-  **`warmupProgress` is out of both ON PURPOSE**: today's tick marks expire at midnight and
-  describe a plan drawn for one device on one day, so exporting them would be noise rather than
-  safety. That exception is commented at both payload sites — without the comments its absence
-  looks exactly like the failure this rule warns about.
+  **TWO keys are out of both ON PURPOSE**, for different reasons, and both are commented at the
+  payload sites — without the comments their absence looks exactly like the failure this rule
+  warns about. `warmupProgress`: today's tick marks expire at midnight and describe a plan drawn
+  for one device on one day, so exporting them would be noise rather than safety.
+  `lastBackupAt` (added 2026-09-17): carrying it would be worse than noise, it would LIE —
+  restoring a file onto a brand-new phone would import the old phone's backup date, so a device
+  that has never exported anything would report itself covered, which is the exact claim the
+  staleness nudge exists to contradict.
 - ~~**But it is NOT the only key outside the payloads.**~~ **Fixed 2026-09-14.** An audit the
   day before found seven keys outside the manual export and thirteen outside the emergency
-  auto-backup. Both payloads now carry every key except `warmupProgress`, and the emergency dump
+  auto-backup. Both payloads now carry every key except the two deliberate omissions above, and the emergency dump
   uses the SAME field names as the manual export, so a quota-failure file imports through the
   same `applyImport` path — it did not before. Merge semantics for the six that were added:
   `days` UNIONs (see §11), `exerciseOrder` / `weightInputModes` spread per key with incoming
@@ -117,7 +121,7 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-16:
-typecheck clean, lint clean, **419 tests across 28 files**, build succeeds. Since routes went
+typecheck clean, lint clean, **424 tests across 28 files**, build succeeds. Since routes went
 lazy the headline number is the ENTRY chunk, **282.39 kB / 89.98 kB gzip** — not the whole
 bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
 The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).
@@ -246,7 +250,27 @@ otherwise discover the hard way.
 8. **Data lives in one browser, on one device, with manual backup only.** localStorage, no sync,
    no account, no automatic export. The README warns the user, and there is save-retry with an
    emergency backup download on failure — but cleared site data or a lost phone is total
-   history loss, and nothing prompts a periodic export.
+   history loss.
+
+   **Partly addressed 2026-09-17 — the export is now dated and nagged.** Sync options were
+   surveyed (File System Access API, GitHub API to a private repo, Dropbox/Drive OAuth,
+   Supabase); the user confirmed PHONE ONLY, which makes multi-device sync imaginary and leaves
+   durability as the whole problem. So: `gymlog:lastBackupAt` (RAW ISO day, the `lastProgramReview`
+   pattern) is written when an export is STARTED, and Settings → Data shows "Last backup: N days
+   ago" with a red warning past `BACKUP_NUDGE_DAYS` (14). `daysSinceBackup` returns null for
+   never-exported — null and 0 are opposite states and the caller must not conflate them — and
+   clamps a future date to 0 so a backwards clock cannot hide the nudge.
+
+   Two things it deliberately cannot do. It records an export that was STARTED, because the
+   browser owns the save sheet and nothing reports back whether the file was written, so a
+   cancelled save silences it for a fortnight; the alternative, never clearing, makes it noise.
+   And the key is absent from BOTH backup payloads — unlike `warmupProgress`, which is scratch
+   state, this one would actively LIE, telling a brand-new phone it was already covered.
+
+   **Still open, and the reason this is "partly":** the nudge lives inside a COLLAPSED accordion
+   on the More page, so it is two taps deep on a screen you rarely open. As a status when you go
+   to export it works; as a nag it will not be seen. Surfacing it on Today, where the checklist
+   and program-review nudges already live, is the change that would actually close #8.
 9. **FIXED 2026-09-16 — routes are lazy.** The main bundle used to ship all five routes on
    first paint. `src/app/router.tsx` now uses react-router's `lazy` (not React.lazy + Suspense:
    with a data router the navigation stays pending and the page you are leaving stays on screen,
@@ -387,7 +411,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 419 passing, build with a chunk-size warning (the lazy library chunk). If tests are red, find out
+Expect: clean, clean, 424 passing, build with a chunk-size warning (the lazy library chunk). If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:

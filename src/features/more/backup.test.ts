@@ -96,6 +96,13 @@ describe('export payload', () => {
     expect(payload.equipmentWeights).toEqual({ trapBar: 55, legPressSled: 0 });
     // No auto-backup reason on manual exports
     expect(payload).not.toHaveProperty('reason');
+    /*
+     * Deliberately absent. Restoring this file onto a new phone must not import
+     * the old phone's backup date: a device that has never exported anything
+     * would then claim it was covered, which is the exact thing the nudge
+     * exists to contradict.
+     */
+    expect(payload).not.toHaveProperty('lastBackupAt');
   });
 
   it('names the file gymlog-backup-YYYY-MM-DD.json (local date)', () => {
