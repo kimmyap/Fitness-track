@@ -11,6 +11,7 @@ import { useConfetti } from './celebrate';
 import { DayPlanCard } from './DayPlanCard';
 import { TodayProgressCard } from './TodayProgressCard';
 import { ProgramReviewCard } from './ProgramReviewCard';
+import { BackupReminderCard } from './BackupReminderCard';
 import { MonthlyRecapCard } from './MonthlyRecapCard';
 import { TodayChecklist } from './TodayChecklist';
 import { TodayStatsStrip } from './StatsStrip';
@@ -28,6 +29,8 @@ export function TodayPage() {
       <Stack gap={3}>
         <DayPlanCard now={now} />
         {liftingTab ? <TodayProgressCard dayTab={liftingTab} todayIso={todayIso} /> : null}
+        {/* Above the program nudge: losing the history outranks refreshing the plan. */}
+        <BackupReminderCard />
         <ProgramReviewCard />
         <MonthlyRecapCard />
         <TodayChecklist todayIso={todayIso} onConfetti={confetti.fire} />

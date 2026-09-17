@@ -121,7 +121,7 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-16:
-typecheck clean, lint clean, **424 tests across 28 files**, build succeeds. Since routes went
+typecheck clean, lint clean, **430 tests across 29 files**, build succeeds. Since routes went
 lazy the headline number is the ENTRY chunk, **282.39 kB / 89.98 kB gzip** — not the whole
 bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
 The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).
@@ -247,7 +247,7 @@ otherwise discover the hard way.
    evicted. Both upstream OFL-1.1 licences ship verbatim beside the binaries. `e2e/fonts.spec.ts`
    asserts no request reaches Google, both faces report `loaded`, and both still load with the
    network off on the FIRST visit.
-8. **Data lives in one browser, on one device, with manual backup only.** localStorage, no sync,
+8. **MOSTLY FIXED 2026-09-17 — data still lives in one browser, but you are told when it is at risk.** localStorage, no sync,
    no account, no automatic export. The README warns the user, and there is save-retry with an
    emergency backup download on failure — but cleared site data or a lost phone is total
    history loss.
@@ -267,10 +267,24 @@ otherwise discover the hard way.
    And the key is absent from BOTH backup payloads — unlike `warmupProgress`, which is scratch
    state, this one would actively LIE, telling a brand-new phone it was already covered.
 
-   **Still open, and the reason this is "partly":** the nudge lives inside a COLLAPSED accordion
-   on the More page, so it is two taps deep on a screen you rarely open. As a status when you go
-   to export it works; as a nag it will not be seen. Surfacing it on Today, where the checklist
-   and program-review nudges already live, is the change that would actually close #8.
+   **Completed the same day with `BackupReminderCard` on Today.** The Settings status alone was
+   two taps deep inside a collapsed accordion — a status you can look up, not a reminder that
+   reaches you. The card follows `ProgramReviewCard` exactly: returns null until it has something
+   to say, so Today carries no standing reassurance to learn to skip. It renders ABOVE the
+   program nudge (losing the history outranks refreshing the plan), is bordered `destructive`
+   rather than `primary`, and exports IN PLACE rather than linking to Settings. After exporting
+   it re-reads the key rather than assuming — a failed write leaves the card up, which is the
+   safe direction, and a test pins that.
+
+   Bundle cost of importing `backup.ts` into a Today-route component: TodayPage 7.34 -> 8.29 kB
+   raw (+0.34 kB gzip), and MorePage went DOWN 24.23 -> 20.27 kB because Rollup hoisted
+   `backup.ts` into a chunk both routes share. The sw-precache plugin picks that shared chunk up
+   automatically, since it follows each route's static imports.
+
+   **What is still not solved:** a cancelled save sheet still silences the nudge for a fortnight
+   (the browser never reports back), and there is still no automatic off-device copy — the file
+   only leaves the phone if you put it somewhere that syncs. Real sync was surveyed and
+   deliberately not built; see the options in this session's history if it ever becomes worth it.
 9. **FIXED 2026-09-16 — routes are lazy.** The main bundle used to ship all five routes on
    first paint. `src/app/router.tsx` now uses react-router's `lazy` (not React.lazy + Suspense:
    with a data router the navigation stays pending and the page you are leaving stays on screen,
@@ -314,7 +328,7 @@ otherwise discover the hard way.
    render. Hardening the specs to sever the network for real is not done — see the pitfall list
    in `CLAUDE.md` for how to do it correctly if you take it on.
 
-10. **Partly fixed 2026-09-12.** 28 vitest files plus a Playwright suite in `e2e/` (18 specs), run by
+10. **Partly fixed 2026-09-12.** 29 vitest files plus a Playwright suite in `e2e/` (18 specs), run by
     `.github/workflows/e2e.yml` on push and PR — separate from the four-command gate, because
     it builds the app and drives a browser. `npm run test:e2e` locally — but see the Chromium
     note below before you conclude the suite is broken. It exists because three
@@ -411,7 +425,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 424 passing, build with a chunk-size warning (the lazy library chunk). If tests are red, find out
+Expect: clean, clean, 430 passing, build with a chunk-size warning (the lazy library chunk). If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
