@@ -117,7 +117,7 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-16:
-typecheck clean, lint clean, **412 tests across 28 files**, build succeeds. Since routes went
+typecheck clean, lint clean, **419 tests across 28 files**, build succeeds. Since routes went
 lazy the headline number is the ENTRY chunk, **282.39 kB / 89.98 kB gzip** — not the whole
 bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
 The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).
@@ -387,7 +387,7 @@ npm ci
 npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
-Expect: clean, clean, 412 passing, build with a chunk-size warning (the lazy library chunk). If tests are red, find out
+Expect: clean, clean, 419 passing, build with a chunk-size warning (the lazy library chunk). If tests are red, find out
 what changed before writing code — the suite was green when this was written.
 
 Then:
@@ -543,6 +543,23 @@ started.
    first session on a different weight, so a deload and return is two short runs. The notice
    renders ABOVE the suggestion: when it fires the suggestion is usually saying "(hold)" again,
    and the stall line has to be read first for that repetition to land as context.
+
+   **Extended 2026-09-17 — the verdict now reads RPE.** A stuck weight is the OPPOSITE problem
+   depending on where effort went, and `rpe` was already stored on every set while being read in
+   exactly one place (`suggestedNextWeight`'s last-session average) plus an achievement counter.
+   `StallReport` gained `trend` / `rpeFrom` / `rpeTo`: falling effort across the run says the load
+   stopped being a stimulus (add weight), rising says fatigue is winning (deload), and anything
+   under `STALL_RPE_DELTA` (a FULL point — RPE is typed as whole numbers, so half a point is
+   noise) is flat. Two silences: both ends of the run need an RPE, or `trend` is null and the card
+   keeps its original wording; and the mean uses only sets at the TOP weight, or a light back-off
+   set drags it down and reads as the lift getting easier.
+
+   The `targetReps` argument is what stops it contradicting the suggestion box directly beneath.
+   `suggestedNextWeight` holds on missed reps ("nail your reps first"), which is independent of
+   RPE, so without the gate stopping a set early at a low RPE stacks "add weight" on top of it.
+   The other hold it issues (RPE >= 9) cannot collide arithmetically: `easier` needs the newest
+   RPE a full point BELOW the oldest, so both would need oldest 10 and newest 9. Verified in a
+   browser rather than reasoned about — all three pairings agree on screen.
 2. ~~**PR log.**~~ **Built 2026-09-16** — `prHistory` in `domain.ts`, shown as Progress → PRs.
    Entirely derived; nothing stored. Two things found while building it, both worth keeping in
    mind: `prCountAllTime` and `isPR` DISAGREED on bodyweight variations (the count included them,

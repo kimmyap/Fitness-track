@@ -31,6 +31,7 @@ import {
   detectStall,
   displayDate,
 } from '@/lib/domain';
+import type { StallReport } from '@/lib/domain';
 import { ALTERNATIVES, EXERCISE_INFO, EXERCISE_VARIATIONS, iconForExercise } from '@/lib/program';
 import type { AlternativeExercise } from '@/lib/program';
 import type { AnyExercise, LiftSetEntry } from '@/lib/types';
@@ -220,6 +221,26 @@ export interface ExerciseCardProps {
   onAssignDay?: (toDay: string) => void;
 }
 
+/**
+ * What a stuck weight MEANS, which depends on where effort went.
+ *
+ * The same three sessions at 135 are the opposite problem depending on RPE:
+ * dropping effort says the load stopped being a stimulus, rising effort says
+ * fatigue is winning. Without RPE across the run there is nothing to tell them
+ * apart, so it falls back to the original wording rather than picking one.
+ */
+function stallAdvice(stall: StallReport): string {
+  const from = fmtNum(stall.rpeFrom);
+  const to = fmtNum(stall.rpeTo);
+  if (stall.trend === 'easier') {
+    return `Effort is dropping though (RPE ${from} to ${to}) — the weight is no longer the limiter, so add some.`;
+  }
+  if (stall.trend === 'harder') {
+    return `And it is getting harder (RPE ${from} to ${to}) — take a lighter week before pushing again.`;
+  }
+  return 'Worth a lighter week, or swapping the movement.';
+}
+
 export function ExerciseCard({
   exercise,
   day,
@@ -270,7 +291,7 @@ export function ExerciseCard({
     : null;
 
   const suggestion = suggestedNextWeight(entries, exercise, unit);
-  const stall = detectStall(entries, exercise.name);
+  const stall = detectStall(entries, exercise.name, exercise.targetReps);
   const oneRM = estimated1RM(entries, exercise.name);
 
   const curatedAlts = ALTERNATIVES[exercise.name];
@@ -518,7 +539,7 @@ export function ExerciseCard({
               <span>
                 <TrendingDown size={16} aria-hidden="true" /> Held{' '}
                 <strong>{fmtStoredWeight(stall.weight, unit)}</strong> for {stall.sessions} sessions since{' '}
-                {displayDate(stall.since)}. Worth a lighter week, or swapping the movement.
+                {displayDate(stall.since)}. {stallAdvice(stall)}
               </span>
             </InfoBox>
           ) : null}

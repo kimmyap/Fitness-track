@@ -904,7 +904,16 @@ describe('detectStall', () => {
       [set('2026-08-01', 135, 8), set('2026-08-08', 135, 8), set('2026-08-15', 135, 8)],
       'Sumo Squats',
     );
-    expect(stall).toEqual({ sessions: 3, weight: 135, since: '2026-08-01' });
+    // Exact match, so adding a field to StallReport has to be acknowledged here.
+    // These sets carry no RPE, so the verdict stays silent rather than guessing.
+    expect(stall).toEqual({
+      sessions: 3,
+      weight: 135,
+      since: '2026-08-01',
+      trend: null,
+      rpeFrom: null,
+      rpeTo: null,
+    });
   });
 
   /**
@@ -953,6 +962,69 @@ describe('detectStall', () => {
       set('2026-08-22', 135, 8),
     ];
     expect(detectStall(entries, 'Sumo Squats')).toBeNull();
+  });
+
+  /**
+   * The effort verdict. The same stuck weight is the opposite problem depending
+   * on which way RPE moved, so these pin each direction and each silence.
+   */
+  describe('RPE trend', () => {
+    const run = (rpes: (number | undefined)[], reps = 10) =>
+      ['2026-08-01', '2026-08-08', '2026-08-15'].map((d, i) =>
+        set(d, 135, reps, rpes[i] === undefined ? {} : { rpe: rpes[i] }),
+      );
+
+    it('reads falling effort as room to add weight', () => {
+      // Target is "8-12" and reps are 10, so the rep gate passes.
+      expect(detectStall(run([9, 8, 7]), 'Sumo Squats', '8-12')).toMatchObject({
+        trend: 'easier',
+        rpeFrom: 9,
+        rpeTo: 7,
+      });
+    });
+
+    it('reads rising effort as a deload', () => {
+      expect(detectStall(run([7, 8, 9]), 'Sumo Squats', '8-12')).toMatchObject({
+        trend: 'harder',
+        rpeFrom: 7,
+        rpeTo: 9,
+      });
+    });
+
+    /** RPE is typed as whole numbers; half a point is noise, not a verdict. */
+    it('calls a sub-point move flat', () => {
+      expect(detectStall(run([8, 8, 7.5]), 'Sumo Squats', '8-12')).toMatchObject({ trend: 'flat' });
+    });
+
+    /** Comparing a number against an absent one is comparing it to a guess. */
+    it('stays silent when either end of the run has no RPE', () => {
+      expect(detectStall(run([undefined, 8, 7]), 'Sumo Squats', '8-12')).toMatchObject({ trend: null });
+      expect(detectStall(run([9, 8, undefined]), 'Sumo Squats', '8-12')).toMatchObject({ trend: null });
+    });
+
+    /**
+     * The gate that stops this contradicting the suggestion rendered below it:
+     * `suggestedNextWeight` says "nail your reps first" when reps were missed,
+     * and "add weight" stacked on top of that is the card arguing with itself.
+     */
+    it('will not say add weight when the newest session missed its rep target', () => {
+      expect(detectStall(run([9, 8, 7], 6), 'Sumo Squats', '8-12')).toMatchObject({ trend: 'flat' });
+    });
+
+    it('still says add weight when no rep target is supplied', () => {
+      expect(detectStall(run([9, 8, 7], 6), 'Sumo Squats')).toMatchObject({ trend: 'easier' });
+    });
+
+    /** A light back-off set at the same weight would drag the mean down. */
+    it('averages only the sets at the top weight', () => {
+      const entries = [
+        set('2026-08-01', 135, 10, { rpe: 9 }),
+        set('2026-08-08', 135, 10, { rpe: 8 }),
+        set('2026-08-15', 135, 10, { rpe: 9 }),
+        set('2026-08-15', 95, 12, { rpe: 5 }),
+      ];
+      expect(detectStall(entries, 'Sumo Squats', '8-12')).toMatchObject({ trend: 'flat', rpeTo: 9 });
+    });
   });
 
   it('counts sessions, not calendar gaps', () => {

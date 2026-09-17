@@ -214,6 +214,11 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   listener a grandchild. Spawn the binary directly (`node node_modules/vite/bin/vite.js preview`)
   so the pid you kill is the listener, and assert the port is actually dead before trusting
   anything that follows.
+- **Two features on the same card have to be read together.** The stall notice and the
+  progression suggestion render one above the other and are computed independently, so a unit
+  test proving each correct proves nothing about the pair. The RPE stall verdict could have
+  stacked "add weight" directly on "nail your reps first" — caught by rendering both and reading
+  them, not by the suite. `detectStall` takes `targetReps` purely to keep them in agreement.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

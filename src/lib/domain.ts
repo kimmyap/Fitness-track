@@ -1090,10 +1090,35 @@ export interface StallReport {
   weight: number;
   /** Date of the earliest session in the run, "YYYY-MM-DD". */
   since: string;
+  /**
+   * Which way EFFORT moved across the run, oldest session to newest.
+   *
+   * The same stuck weight means opposite things depending on this: falling
+   * effort says the load has stopped being a stimulus (add weight), rising
+   * effort says fatigue is accumulating (deload). `null` when the run does not
+   * carry enough RPE to tell, which is the common case and reads as the plain
+   * "stuck" notice rather than a guess.
+   */
+  trend: StallTrend;
+  /** Mean RPE of the top-weight sets in the OLDEST session of the run. */
+  rpeFrom: number | null;
+  /** Same for the NEWEST. Both are null exactly when `trend` is null. */
+  rpeTo: number | null;
 }
+
+export type StallTrend = 'easier' | 'harder' | 'flat' | null;
 
 /** Sessions at one weight before it counts as stuck rather than deliberate. */
 export const STALL_MIN_SESSIONS = 3;
+
+/**
+ * RPE movement across the run before it counts as a direction.
+ *
+ * A FULL point, because RPE is typed as an integer in practice — the input is
+ * whole-numbered and the pills offer 6-10. Treating 7.5 vs 8 as a trend would
+ * read noise as a verdict, and the verdict here tells you to change the weight.
+ */
+export const STALL_RPE_DELTA = 1;
 
 /**
  * Whether an exercise has stopped moving.
@@ -1117,8 +1142,15 @@ export const STALL_MIN_SESSIONS = 3;
  * Consecutive SESSIONS, not calendar days: a fortnight between sessions is a
  * gap, not a stall. A run ends at the first session on a different weight, so
  * a deload and return reads as two short runs rather than one long one.
+ *
+ * `targetReps` is what stops the RPE verdict contradicting the suggestion box
+ * rendered directly beneath this on the card. See the `trend` computation.
  */
-export function detectStall(entries: Entry[], exName: string): StallReport | null {
+export function detectStall(
+  entries: Entry[],
+  exName: string,
+  targetReps?: string,
+): StallReport | null {
   const working = entries.filter(
     (e): e is LiftSetEntry =>
       isLiftSet(e) &&
@@ -1141,7 +1173,17 @@ export function detectStall(entries: Entry[], exName: string): StallReport | nul
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
     .map(([date, rows]) => {
       const top = Math.max(...rows.map((r) => r.weight));
-      return { date, top, reps: Math.max(...rows.filter((r) => r.weight === top).map((r) => r.reps)) };
+      const atTop = rows.filter((r) => r.weight === top);
+      // Effort at the TOP weight only: an RPE 6 back-off set would otherwise
+      // drag the session's mean down and read as the lift getting easier.
+      const rpes = atTop.map((r) => r.rpe).filter((v): v is number => Boolean(v));
+      return {
+        date,
+        top,
+        reps: Math.max(...atTop.map((r) => r.reps)),
+        minReps: Math.min(...atTop.map((r) => r.reps)),
+        rpe: rpes.length ? rpes.reduce((a, b) => a + b, 0) / rpes.length : null,
+      };
     });
 
   const target = sessions[0]?.top;
@@ -1158,7 +1200,49 @@ export function detectStall(entries: Entry[], exName: string): StallReport | nul
   if (!newest || !oldest) return null;
   if (newest.reps > oldest.reps) return null; // reps are still climbing — working as intended
 
-  return { sessions: run.length, weight: target, since: oldest.date };
+  return {
+    sessions: run.length,
+    weight: target,
+    since: oldest.date,
+    ...stallTrend(newest, oldest, targetReps),
+  };
+}
+
+/**
+ * The effort verdict, and the two reasons it stays silent.
+ *
+ * 1. BOTH ends of the run need an RPE. Comparing a session that has one
+ *    against a session that does not is comparing a number to an assumption,
+ *    and the output of this tells you to change the weight on the bar.
+ *
+ * 2. `easier` additionally needs the NEWEST session to have met its rep
+ *    target. `suggestedNextWeight` holds the weight when you missed reps
+ *    ("nail your reps first"), and it renders directly BELOW this notice —
+ *    without the gate, stopping a set early at a low RPE produces "add
+ *    weight" stacked on top of "nail your reps first" on the same card.
+ *    The other hold it issues, RPE >= 9, cannot collide: `easier` needs the
+ *    newest RPE a full point BELOW the oldest, so both would require oldest
+ *    10 and newest 9, and at that point the effort really is dropping.
+ */
+function stallTrend(
+  newest: { rpe: number | null; minReps: number },
+  oldest: { rpe: number | null },
+  targetReps?: string,
+): Pick<StallReport, 'trend' | 'rpeFrom' | 'rpeTo'> {
+  const from = oldest.rpe;
+  const to = newest.rpe;
+  if (from === null || to === null) return { trend: null, rpeFrom: null, rpeTo: null };
+
+  const delta = to - from;
+  let trend: StallTrend = 'flat';
+  if (delta <= -STALL_RPE_DELTA) trend = 'easier';
+  else if (delta >= STALL_RPE_DELTA) trend = 'harder';
+
+  if (trend === 'easier') {
+    const targetMin = parseInt(targetReps ?? '') || 0;
+    if (targetMin && newest.minReps < targetMin) trend = 'flat';
+  }
+  return { trend, rpeFrom: from, rpeTo: to };
 }
 
 export interface WarmupRampSet {
