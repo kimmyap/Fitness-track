@@ -81,6 +81,43 @@ describe('RecoveryTab', () => {
     expect(absent.textContent).toMatch(/Neck/);
   });
 
+  /**
+   * The inference must be VISIBLE. Counting these silently would trade a gap
+   * the user can see for an error they cannot.
+   */
+  it('counts an inferred exercise and says so, with its reasoning', async () => {
+    useEntriesStore.setState({ entries: [set('Incline Press'), set('Incline Press')] });
+    renderWithTheme(<RecoveryTab />);
+
+    const summary = await screen.findByText(/1 matched automatically/i);
+    /*
+     * The card is collapsed, and a collapsed <details> keeps its content in the
+     * DOM — so asserting the text alone would pass without any of it being
+     * reachable. Open it the way a user must.
+     */
+    fireEvent.click(summary);
+    expect(summary.closest('details')).toBeTruthy();
+    expect(document.body.textContent).toMatch(/Counted as Chest/);
+    expect(document.body.textContent).toMatch(/matching exercises work Chest/);
+    // and it is NOT in the "not counted" warning
+    expect(screen.queryByText(/not counted/i)).not.toBeInTheDocument();
+  });
+
+  it('lets you override an inference, and the override wins', async () => {
+    useEntriesStore.setState({ entries: [set('Incline Press')] });
+    renderWithTheme(<RecoveryTab />);
+
+    fireEvent.click(await screen.findByText(/1 matched automatically/i));
+    const select = await screen.findByLabelText(/Incline Press/i);
+    fireEvent.change(select, { target: { value: 'Shoulders' } });
+
+    await waitFor(() =>
+      expect(useMuscleMapStore.getState().muscleMap).toEqual({ 'Incline Press': 'Shoulders' }),
+    );
+    // Once stored it is a mapping, not a guess, so it leaves the auto list.
+    await waitFor(() => expect(screen.queryByText(/matched automatically/i)).not.toBeInTheDocument());
+  });
+
   it('surfaces an unresolvable exercise instead of dropping its sets', async () => {
     useEntriesStore.setState({ entries: [set('Bulgarian Split Squat'), set('Bulgarian Split Squat')] });
     renderWithTheme(<RecoveryTab />);

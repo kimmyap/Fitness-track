@@ -31,6 +31,7 @@ import { isVolumeSet } from '@/lib/domain';
 import { MUSCLE_GROUPS } from '@/lib/types';
 import type { Entry, MuscleGroup, MuscleMap } from '@/lib/types';
 import type { MuscleLookup } from './chartData';
+import type { ResolvedMuscle } from './muscleResolve';
 
 /** Days in the rolling window. Seven because the benchmarks are per week. */
 export const BALANCE_WINDOW_DAYS = 7;
@@ -76,10 +77,26 @@ export interface UnmatchedExercise {
   sets: number;
 }
 
+/**
+ * An exercise the library could not name, attributed by the tiered resolver.
+ *
+ * Reported separately from the silent path ON PURPOSE. These sets DO count —
+ * leaving them out would under-report the very thing the user is reading — but
+ * an inference the user cannot see is an inference they cannot correct, so the
+ * caller is expected to show `basis`/`evidence` and offer an override.
+ */
+export interface AutoMatchedExercise extends UnmatchedExercise {
+  muscle: MuscleGroup;
+  basis: ResolvedMuscle['basis'];
+  evidence: string;
+}
+
 export interface MuscleBalance {
   rows: MuscleBalanceRow[];
   /** Exercises in the window that resolve to nothing, most sets first. */
   unmatched: UnmatchedExercise[];
+  /** Exercises attributed by inference rather than by name. Show these. */
+  autoMatched: AutoMatchedExercise[];
   /** Every set in the window that reached at least one muscle. */
   attributedSets: number;
   /** Every set in the window that reached none. The honesty number. */
@@ -120,11 +137,22 @@ function targetsFor(
   exercise: string,
   lookup: MuscleLookup,
   muscleMap: MuscleMap,
-): { primary: string[]; secondary: string[] } | undefined {
+  resolve?: MuscleResolver,
+): { primary: string[]; secondary: string[]; inferred?: ResolvedMuscle } | undefined {
   const override = muscleMap[exercise];
   if (override) return { primary: [override], secondary: [] };
-  return lookup(exercise);
+  const direct = lookup(exercise);
+  if (direct) return direct;
+  /*
+   * Last, and only last: the library said nothing, so an inference beats a
+   * silent zero. It is tagged `inferred` so the caller can surface it.
+   */
+  const guess = resolve?.(exercise);
+  return guess ? { primary: [guess.muscle], secondary: [], inferred: guess } : undefined;
 }
+
+/** Supplied by the caller so this file never reaches for the 1.2 MB library. */
+export type MuscleResolver = (exerciseName: string) => ResolvedMuscle | undefined;
 
 /**
  * Per-muscle balance over the last `BALANCE_WINDOW_DAYS` days.
@@ -139,6 +167,7 @@ export function muscleBalance(
   lookup: MuscleLookup,
   muscleMap: MuscleMap = {},
   now: Date = new Date(),
+  resolve?: MuscleResolver,
 ): MuscleBalance {
   const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   cutoff.setDate(cutoff.getDate() - (BALANCE_WINDOW_DAYS - 1));
@@ -147,6 +176,7 @@ export function muscleBalance(
   const secondarySets = new Map<string, number>();
   const lastPrimary = new Map<string, string>();
   const unmatched = new Map<string, number>();
+  const auto = new Map<string, AutoMatchedExercise>();
   let attributedSets = 0;
   let unattributedSets = 0;
 
@@ -160,7 +190,7 @@ export function muscleBalance(
      * under-report a migrated user's whole history against the benchmark.
      */
     const count = Math.max(1, Math.trunc(entry.sets ?? 1));
-    const target = targetsFor(entry.exercise, lookup, muscleMap);
+    const target = targetsFor(entry.exercise, lookup, muscleMap, resolve);
 
     if (!target || (!target.primary.length && !target.secondary.length)) {
       unmatched.set(entry.exercise, (unmatched.get(entry.exercise) ?? 0) + count);
@@ -169,6 +199,16 @@ export function muscleBalance(
     }
 
     attributedSets += count;
+    if (target.inferred) {
+      const existing = auto.get(entry.exercise);
+      auto.set(entry.exercise, {
+        exercise: entry.exercise,
+        sets: (existing?.sets ?? 0) + count,
+        muscle: target.inferred.muscle,
+        basis: target.inferred.basis,
+        evidence: target.inferred.evidence,
+      });
+    }
     for (const muscle of target.primary) {
       primarySets.set(muscle, (primarySets.get(muscle) ?? 0) + count);
       const previous = lastPrimary.get(muscle);
@@ -198,6 +238,9 @@ export function muscleBalance(
     unmatched: [...unmatched.entries()]
       .map(([exercise, sets]) => ({ exercise, sets }))
       .sort((a, b) => b.sets - a.sets || a.exercise.localeCompare(b.exercise)),
+    autoMatched: [...auto.values()].sort(
+      (a, b) => b.sets - a.sets || a.exercise.localeCompare(b.exercise),
+    ),
     attributedSets,
     unattributedSets,
   };
@@ -281,10 +324,11 @@ export function programMuscles(
   exerciseNames: string[],
   lookup: MuscleLookup,
   muscleMap: MuscleMap = {},
+  resolve?: MuscleResolver,
 ): Set<string> {
   const muscles = new Set<string>();
   for (const name of exerciseNames) {
-    const target = targetsFor(name, lookup, muscleMap);
+    const target = targetsFor(name, lookup, muscleMap, resolve);
     for (const muscle of target?.primary ?? []) muscles.add(muscle);
   }
   return muscles;

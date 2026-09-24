@@ -15,7 +15,7 @@ import { useMuscleMapStore } from '@/stores';
 import { MUSCLE_GROUPS } from '@/lib/types';
 import type { MuscleGroup } from '@/lib/types';
 import { SelectBase } from '@/features/train/ui';
-import type { UnmatchedExercise } from './muscleBalance';
+import type { AutoMatchedExercise, UnmatchedExercise } from './muscleBalance';
 
 const List = styled.ul`
   list-style: none;
@@ -43,35 +43,58 @@ const Count = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
+/** Why the app thinks it knows. Shown so the guess can be judged, not just taken. */
+const Evidence = styled.span`
+  color: ${({ theme }) => theme.colors.mutedForeground};
+  font-size: ${({ theme }) => theme.typography.fontSizes.sm};
+`;
+
 /** DOM ids must be stable and valid; exercise names contain spaces and slashes. */
 function fieldId(exercise: string): string {
   return `muscle-map-${exercise.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}`;
 }
 
-export function UnmatchedMapper({ unmatched }: { unmatched: UnmatchedExercise[] }) {
+type Row = UnmatchedExercise | AutoMatchedExercise;
+
+function isAuto(row: Row): row is AutoMatchedExercise {
+  return 'muscle' in row;
+}
+
+export function UnmatchedMapper({ unmatched }: { unmatched: Row[] }) {
   const muscleMap = useMuscleMapStore((s) => s.muscleMap);
   const setMuscle = useMuscleMapStore((s) => s.setMuscle);
   const clearMuscle = useMuscleMapStore((s) => s.clearMuscle);
 
   return (
     <List>
-      {unmatched.map(({ exercise, sets }) => {
+      {unmatched.map((row) => {
+        const { exercise, sets } = row;
         const id = fieldId(exercise);
+        /*
+         * An auto-matched row shows the inference as the SELECTED value even
+         * though nothing is stored yet, so the select states what is currently
+         * being counted. Choosing anything writes the override; choosing the
+         * blank clears it back to the inference.
+         */
+        const guess = isAuto(row) ? row.muscle : undefined;
         return (
           <Item key={exercise}>
             <Label htmlFor={id}>
               {exercise} <Count>· {sets} {sets === 1 ? 'set' : 'sets'}</Count>
             </Label>
+            {isAuto(row) ? <Evidence>Counted as {row.muscle} — {row.evidence}</Evidence> : null}
             <SelectBase
               id={id}
-              value={muscleMap[exercise] ?? ''}
+              value={muscleMap[exercise] ?? guess ?? ''}
               onChange={(e) => {
                 const value = e.target.value;
                 if (!value) clearMuscle(exercise);
                 else setMuscle(exercise, value as MuscleGroup);
               }}
             >
-              <option value="">Choose the muscle it works…</option>
+              <option value="">
+                {guess ? `Keep ${guess} (auto)` : 'Choose the muscle it works…'}
+              </option>
               {MUSCLE_GROUPS.map((m) => (
                 <option key={m} value={m}>
                   {m}

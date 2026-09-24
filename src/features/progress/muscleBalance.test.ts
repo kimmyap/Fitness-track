@@ -267,3 +267,40 @@ describe('programMuscles', () => {
     expect(programMuscles(['Bulgarian Split Squat'], lookup).size).toBe(0);
   });
 });
+
+describe('inference is reported, never silent', () => {
+  const resolve = (name: string) =>
+    name === 'Incline Press'
+      ? ({ muscle: 'Chest', basis: 'unanimous', evidence: 'all 6 work Chest' } as const)
+      : undefined;
+
+  it('counts an inferred exercise AND lists it as auto-matched', () => {
+    const b = muscleBalance([set('Incline Press', 1), set('Incline Press', 2)], lookup, {}, NOW, resolve);
+    expect(row(b, 'Chest').primarySets).toBe(2);
+    expect(b.unmatched).toEqual([]);
+    expect(b.autoMatched).toEqual([
+      { exercise: 'Incline Press', sets: 2, muscle: 'Chest', basis: 'unanimous', evidence: 'all 6 work Chest' },
+    ]);
+  });
+
+  it('leaves what the resolver cannot answer in unmatched', () => {
+    const b = muscleBalance([set('Bulgarian Split Squat', 1)], lookup, {}, NOW, resolve);
+    expect(b.autoMatched).toEqual([]);
+    expect(b.unmatched).toEqual([{ exercise: 'Bulgarian Split Squat', sets: 1 }]);
+  });
+
+  it('never infers over a name the library DOES resolve', () => {
+    const shouty = () => ({ muscle: 'Neck', basis: 'muscle-name', evidence: 'wrong' }) as const;
+    const b = muscleBalance([set('Bench Press', 1)], lookup, {}, NOW, shouty);
+    expect(row(b, 'Chest').primarySets).toBe(1);
+    expect(row(b, 'Neck').primarySets).toBe(0);
+    expect(b.autoMatched).toEqual([]);
+  });
+
+  it('never infers over the user mapping', () => {
+    const b = muscleBalance([set('Incline Press', 1)], lookup, { 'Incline Press': 'Shoulders' }, NOW, resolve);
+    expect(row(b, 'Shoulders').primarySets).toBe(1);
+    expect(row(b, 'Chest').primarySets).toBe(0);
+    expect(b.autoMatched).toEqual([]);
+  });
+});

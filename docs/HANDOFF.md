@@ -125,7 +125,7 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-17:
-typecheck clean, lint clean, **487 tests across 32 files**, build succeeds. Since routes went
+typecheck clean, lint clean, **510 tests across 33 files**, build succeeds. Since routes went
 lazy the headline number is the ENTRY chunk, **282.47 kB / 90.02 kB gzip** — not the whole
 bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
 The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).
@@ -134,7 +134,7 @@ counts here are compared against by later sessions, so a wrong one is worse than
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps, 430 before the first full QA sweep, 455 before muscle balance, 482 before the rest-week fix.)
+were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps, 430 before the first full QA sweep, 455 before muscle balance, 482 before the rest-week fix, 487 before tiered muscle resolution.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
@@ -647,6 +647,25 @@ built-ins, resolved through the same lookup and user mapping), so "Not trained t
 in your program" are separate sections with separate causes. With the built-in program that splits
 8 / 9. Found by opening the tab with data older than the window — the state a returning user lands
 in, which no happy-path fixture produces.
+
+**Tiered resolution for unmatched exercises (`muscleResolve.ts`, 2026-09-24).** Diagnosis first:
+of the 6 misses, 4 ("Incline Press", "Seated Row", "Leg Curl", "Tricep Pushdown") had 0 exact and
+0 prefix matches but 2-6 matches when every token merely had to be CONTAINED in the library name —
+and in all four, every candidate agreed on the primary muscle. So three tiers, strongest first:
+`notes` (the `Targets: <muscles>` line `AddExerciseSection.tsx:85` already writes when a custom
+exercise is created from the library, plus legacy hand-typed "quads, glutes" via an alias table),
+`unanimous` (token containment, committing ONLY when the candidates agree — otherwise nothing),
+and `muscle-name` (a muscle word inside the exercise name). Against the real library this resolves
+all 6 originally-missed names; "Bulgarian Split Squat" still needs asking unless it carries a note.
+
+Two invariants, each with a negative control: an inference NEVER outranks the library or the user's
+mapping (it runs last in `targetsFor`), and it is never silent — `muscleBalance` returns
+`autoMatched` with the tier and the evidence, and the tab lists them with an override. That is the
+condition under which CLAUDE.md's "never widen the matcher" rule permits widening at all: naming
+the muscle is a weaker claim than naming the exercise, and the claim is shown.
+
+The alias table hard-codes `abduction`/`adduction` because they differ by one character and name
+opposing muscles; stemming by common prefix silently inverts them.
 
 **Where it lives, and why not Today.** `RecoveryTab` is a 6th Progress tab. The muscle data is in
 the 1.2 MB library, and Progress is where that chunk already loads. A body-map card on Today would

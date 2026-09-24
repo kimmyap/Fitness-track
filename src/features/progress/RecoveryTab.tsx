@@ -16,10 +16,10 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import styled from '@emotion/styled';
-import { AlertTriangle, Activity, CheckCircle2, ChevronDown, CircleSlash, Flame, HelpCircle, Moon } from 'lucide-react';
+import { AlertTriangle, Activity, CheckCircle2, ChevronDown, CircleSlash, Flame, HelpCircle, Moon, Wand2 } from 'lucide-react';
 import { Badge, Button, Card, EmptyState } from '@/components';
 import { useCustomExercisesStore, useEntriesStore, useMuscleMapStore, useProgramStore } from '@/stores';
-import { getExerciseLibrary, lookupExercise } from '@/services/exerciseLibraryService';
+import { getExerciseLibrary, getLoadedLibrary, lookupExercise } from '@/services/exerciseLibraryService';
 import { CardTitle, Muted, Row, Stack } from '@/features/train/ui';
 import { exercisesForDay } from '@/lib/domain';
 import { DAYS } from '@/lib/program';
@@ -34,6 +34,7 @@ import {
   underworkedMuscles,
   type MuscleBalanceRow,
 } from './muscleBalance';
+import { resolveMuscle } from './muscleResolve';
 import { UnmatchedMapper } from './UnmatchedMapper';
 import { UnderworkedDrawer } from './UnderworkedDrawer';
 
@@ -239,14 +240,34 @@ export function RecoveryTab() {
     };
   }, []);
 
+  /*
+   * Notes by exercise name. `AddExerciseSection` writes "Targets: <muscles>"
+   * when a custom exercise is created from the library, so for those the answer
+   * was recorded at creation and the resolver needs to guess nothing.
+   */
+  const notesByExercise = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const list of Object.values(customExercises)) {
+      for (const ex of list) map.set(ex.name, ex.notes);
+    }
+    return map;
+  }, [customExercises]);
+
+  const resolve = useMemo(() => {
+    if (!ready) return undefined;
+    const library = getLoadedLibrary();
+    if (!library) return undefined;
+    return (name: string) => resolveMuscle(name, library, notesByExercise.get(name));
+  }, [notesByExercise, ready]);
+
   const balance = useMemo(() => {
     if (!ready) return null;
     const lookup: MuscleLookup = (name) => {
       const hit = lookupExercise(name);
       return hit ? { primary: hit.primary_muscles, secondary: hit.secondary_muscles } : undefined;
     };
-    return muscleBalance(entries, lookup, muscleMap);
-  }, [entries, muscleMap, ready]);
+    return muscleBalance(entries, lookup, muscleMap, new Date(), resolve);
+  }, [entries, muscleMap, ready, resolve]);
 
   /*
    * Which muscles the program COULD train. Derived from the real program, not
@@ -263,8 +284,8 @@ export function RecoveryTab() {
       const hit = lookupExercise(name);
       return hit ? { primary: hit.primary_muscles, secondary: hit.secondary_muscles } : undefined;
     };
-    return programMuscles(names, lookup, muscleMap);
-  }, [customExercises, excludedBuiltIns, muscleMap, order, programDays, ready]);
+    return programMuscles(names, lookup, muscleMap, resolve);
+  }, [customExercises, excludedBuiltIns, muscleMap, order, programDays, ready, resolve]);
 
   /* What the drawer may suggest: only equipment this history shows you use. */
   const familiar = useMemo(
@@ -362,6 +383,34 @@ export function RecoveryTab() {
               'This reads a rolling week, so it is empty after time off rather than wrong. Log a set and the balance fills in from that day.'
             }
           />
+        </Card>
+      ) : null}
+
+      {balance.autoMatched.length > 0 ? (
+        <Card as="section">
+          {/*
+            * Collapsed by default: this card CONFIRMS rather than asks. The red
+            * "not counted" card below stays open because it needs a decision;
+            * five entries of label + reasoning + select above the balance
+            * itself buries the thing the tab is for.
+            */}
+          <Collapsible>
+            <summary>
+              <Wand2 size={18} aria-hidden="true" />
+              <CardTitle>
+                {balance.autoMatched.length} matched automatically
+              </CardTitle>
+              <Chevron size={18} aria-hidden="true" />
+            </summary>
+            <Stack gap={2}>
+            <Muted>
+              These are not in the library by name, so the muscle was worked out from what you
+              logged. They ARE counted above. Change any that look wrong — your choice is stored
+              and wins from then on.
+            </Muted>
+            <UnmatchedMapper unmatched={balance.autoMatched} />
+            </Stack>
+          </Collapsible>
         </Card>
       ) : null}
 

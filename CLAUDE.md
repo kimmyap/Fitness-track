@@ -131,8 +131,14 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   unresolved exercise reaches no muscle, so a balance view calls a muscle untrained on the day you
   trained it and then tells you to train it again. Anything aggregating by exercise identity must
   surface what it could not resolve (`muscleBalance` returns `unmatched`) and let the user map it
-  (`gymlog:muscleMap`). Never widen the matcher to close the gap — assigning the WRONG muscle
-  silently is the failure `lookupExercise` already declines to make.
+  (`gymlog:muscleMap`). **Widening the matcher is allowed only where the result is SHOWN.**
+  `muscleResolve.ts` does exactly that, and the licence for it is that naming the MUSCLE is a
+  weaker claim than naming the exercise: diagnosis found four of the six misses had your words
+  mid-name ("Incline Press" -> "Incline Dumbbell Press"), and although the exercise stayed
+  ambiguous, every candidate agreed on the muscle. So it commits only on unanimity, tags every
+  result with the tier that produced it, and the Recovery tab lists them with their reasoning and
+  an override. `lookupExercise` itself is untouched — the picker, alternatives and MuscleWiki
+  links need real identity, where a near-miss IS wrong.
 - **Adding a key touches TWO payloads** (`buildBackupPayload` in `storage.ts`, and
   `src/features/more/backup.ts`). Six keys are currently outside both and it is unowned — see
   `docs/HANDOFF.md` §2 for the table. TWO keys are deliberate omissions: `warmupProgress`
@@ -281,6 +287,21 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   slightly off. "You did none" comes from the window; "nothing you do trains this" comes from the
   PROGRAM (`programMuscles`). Caught only by opening the tab with data older than the window —
   the state a returning user lands in, and the one the happy-path fixture never produces.
+- **One symptom, three causes — diagnose before widening.** Six names missed the exercise library
+  and it looked like one problem. Measured: four failed only because matching is by PREFIX and the
+  user's words sit mid-name; one because the user names by muscle ("Bicep Curls") and the library
+  names by equipment ("Barbell Curl"); one is genuinely absent. Each needs a different fix, and a
+  single fuzzier matcher would have papered over all three while inventing wrong answers for the
+  third. The diagnosis (exact / prefix / all-tokens-contained counts, plus whether the candidates
+  AGREE) took one throwaway test and decided the whole design.
+- **Stemming that collapses `abduction` and `adduction` inverts the answer.** They differ by one
+  character and name opposing muscles, so any common-prefix stemmer maps both to the same group.
+  `muscleResolve` stems trailing plurals only and lists both words explicitly in its alias table;
+  a test pins the pair. Watch for this in any gym vocabulary work.
+- **A collapsed `<details>` keeps its content in the DOM.** Two tests asserting "Counted as Chest"
+  kept passing after that card became collapsed-by-default, so they no longer proved the text was
+  reachable — only that React had rendered it. Click the summary in the test the way a user must,
+  or the assertion survives the content becoming invisible.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 
