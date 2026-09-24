@@ -16,11 +16,13 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import styled from '@emotion/styled';
-import { AlertTriangle, Activity, CheckCircle2, ChevronDown, CircleSlash, Flame, HelpCircle } from 'lucide-react';
+import { AlertTriangle, Activity, CheckCircle2, ChevronDown, CircleSlash, Flame, HelpCircle, Moon } from 'lucide-react';
 import { Badge, Button, Card, EmptyState } from '@/components';
-import { useEntriesStore, useMuscleMapStore } from '@/stores';
+import { useCustomExercisesStore, useEntriesStore, useMuscleMapStore, useProgramStore } from '@/stores';
 import { getExerciseLibrary, lookupExercise } from '@/services/exerciseLibraryService';
 import { CardTitle, Muted, Row, Stack } from '@/features/train/ui';
+import { exercisesForDay } from '@/lib/domain';
+import { DAYS } from '@/lib/program';
 import type { MuscleLookup } from './chartData';
 import {
   BALANCE_WINDOW_DAYS,
@@ -28,6 +30,7 @@ import {
   WEEKLY_SETS_MAX,
   WEEKLY_SETS_MIN,
   muscleBalance,
+  programMuscles,
   underworkedMuscles,
   type MuscleBalanceRow,
 } from './muscleBalance';
@@ -197,7 +200,10 @@ function MuscleLine({ row }: { row: MuscleBalanceRow }) {
       <span>
         <MuscleName>{row.muscle}</MuscleName>
         <Meta>
-          {row.primarySets} {row.primarySets === 1 ? 'set' : 'sets'} · {recoveryPhrase(row)}
+          {/* "0 sets · no working sets" said it twice. */}
+          {row.primarySets === 0
+            ? `No sets in the last ${BALANCE_WINDOW_DAYS} days`
+            : `${row.primarySets} ${row.primarySets === 1 ? 'set' : 'sets'} · ${recoveryPhrase(row)}`}
           {row.secondarySets > 0 ? ` · ${row.secondarySets} assisting` : ''}
         </Meta>
       </span>
@@ -209,6 +215,10 @@ function MuscleLine({ row }: { row: MuscleBalanceRow }) {
 export function RecoveryTab() {
   const entries = useEntriesStore((s) => s.entries);
   const muscleMap = useMuscleMapStore((s) => s.muscleMap);
+  const programDays = useProgramStore((s) => s.days);
+  const order = useProgramStore((s) => s.order);
+  const customExercises = useCustomExercisesStore((s) => s.customExercises);
+  const excludedBuiltIns = useCustomExercisesStore((s) => s.excludedBuiltIns);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -237,6 +247,24 @@ export function RecoveryTab() {
     };
     return muscleBalance(entries, lookup, muscleMap);
   }, [entries, muscleMap, ready]);
+
+  /*
+   * Which muscles the program COULD train. Derived from the real program, not
+   * from the window — "you did no sets" and "nothing you do trains this" are
+   * different answers, and reading the second off the first told a lifter with
+   * a week's rest that Chest was not in their program.
+   */
+  const covered = useMemo(() => {
+    if (!ready) return new Set<string>();
+    const names = programDays.flatMap((day) =>
+      exercisesForDay(day, DAYS, customExercises, excludedBuiltIns, order[day]).map((e) => e.name),
+    );
+    const lookup: MuscleLookup = (name) => {
+      const hit = lookupExercise(name);
+      return hit ? { primary: hit.primary_muscles, secondary: hit.secondary_muscles } : undefined;
+    };
+    return programMuscles(names, lookup, muscleMap);
+  }, [customExercises, excludedBuiltIns, muscleMap, order, programDays, ready]);
 
   /* What the drawer may suggest: only equipment this history shows you use. */
   const familiar = useMemo(
@@ -285,11 +313,17 @@ export function RecoveryTab() {
       rows: behind.filter((r) => r.primarySets > 0),
     },
     {
+      id: 'rested',
+      heading: 'Not trained this week',
+      blurb: `Your program trains these, but nothing in the last ${BALANCE_WINDOW_DAYS} days did.`,
+      rows: behind.filter((r) => r.primarySets === 0 && covered.has(r.muscle)),
+    },
+    {
       id: 'absent',
       heading: 'Not in your program',
       blurb:
-        'No working set has these as the primary mover. That may be deliberate — but if you want them, nothing in the current plan covers them.',
-      rows: behind.filter((r) => r.primarySets === 0),
+        'Nothing in your current plan has these as the primary mover. That may be deliberate — but if you want them, nothing covers them.',
+      rows: behind.filter((r) => r.primarySets === 0 && !covered.has(r.muscle)),
       collapsed: true,
     },
   ];
@@ -298,6 +332,7 @@ export function RecoveryTab() {
     over: Flame,
     optimal: CheckCircle2,
     behind: Activity,
+    rested: Moon,
     absent: CircleSlash,
   };
 
@@ -317,6 +352,18 @@ export function RecoveryTab() {
           </Row>
         </Stack>
       </Card>
+
+      {balance.attributedSets === 0 && balance.unattributedSets === 0 ? (
+        <Card as="section">
+          <EmptyState
+            icon={Moon}
+            title="Nothing logged in the last 7 days"
+            description={
+              'This reads a rolling week, so it is empty after time off rather than wrong. Log a set and the balance fills in from that day.'
+            }
+          />
+        </Card>
+      ) : null}
 
       {balance.unmatched.length > 0 ? (
         <WarnCard as="section">

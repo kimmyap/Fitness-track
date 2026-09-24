@@ -264,3 +264,28 @@ export function rankSuggestions<T extends RankableExercise>(options: T[], famili
       a.name.localeCompare(b.name),
   );
 }
+
+/**
+ * The muscles your CURRENT program can train, as primary movers.
+ *
+ * Exists because "zero sets this week" and "nothing you do trains this" are
+ * different facts, and the tab asserted the second from the first. Open the
+ * Recovery tab after a week off and every one of the 17 groups had zero sets,
+ * so all 17 were filed under "Not in your program" — including Chest and
+ * Quadriceps, which the program trains twice a week. The window says what you
+ * did; only the program says what you COULD do.
+ *
+ * Takes the resolved exercise names rather than the stores so it stays pure.
+ */
+export function programMuscles(
+  exerciseNames: string[],
+  lookup: MuscleLookup,
+  muscleMap: MuscleMap = {},
+): Set<string> {
+  const muscles = new Set<string>();
+  for (const name of exerciseNames) {
+    const target = targetsFor(name, lookup, muscleMap);
+    for (const muscle of target?.primary ?? []) muscles.add(muscle);
+  }
+  return muscles;
+}

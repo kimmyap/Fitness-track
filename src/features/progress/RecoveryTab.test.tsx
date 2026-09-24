@@ -60,6 +60,27 @@ describe('RecoveryTab', () => {
     expect(screen.getByText('Not in your program', { exact: false })).toBeInTheDocument();
   });
 
+  /**
+   * The bug this pins: after a week off, EVERY muscle has zero sets, and the
+   * zero bucket was labelled "Not in your program" — telling someone whose
+   * program squats twice a week that quads were not in it. Program coverage
+   * comes from the program, never from the window.
+   */
+  it('does not call a programmed muscle "not in your program" after a rest week', async () => {
+    useEntriesStore.setState({ entries: [set('Sumo Squats', 30)] }); // outside the window
+    renderWithTheme(<RecoveryTab />);
+
+    await waitFor(() => expect(screen.getByText(/Nothing logged in the last 7 days/i)).toBeInTheDocument());
+
+    const rested = screen.getByText('Not trained this week', { exact: false }).closest('section')!;
+    expect(rested.textContent).toMatch(/Quadriceps/);
+
+    const absent = screen.getByText('Not in your program', { exact: false }).closest('section')!;
+    expect(absent.textContent).not.toMatch(/Quadriceps/);
+    // Neck genuinely is not in the program, so it stays there.
+    expect(absent.textContent).toMatch(/Neck/);
+  });
+
   it('surfaces an unresolvable exercise instead of dropping its sets', async () => {
     useEntriesStore.setState({ entries: [set('Bulgarian Split Squat'), set('Bulgarian Split Squat')] });
     renderWithTheme(<RecoveryTab />);

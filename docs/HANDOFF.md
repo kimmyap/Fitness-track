@@ -125,7 +125,7 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-17:
-typecheck clean, lint clean, **482 tests across 32 files**, build succeeds. Since routes went
+typecheck clean, lint clean, **487 tests across 32 files**, build succeeds. Since routes went
 lazy the headline number is the ENTRY chunk, **282.47 kB / 90.02 kB gzip** — not the whole
 bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
 The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).
@@ -134,7 +134,7 @@ counts here are compared against by later sessions, so a wrong one is worse than
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps, 430 before the first full QA sweep, 455 before muscle balance.)
+were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps, 430 before the first full QA sweep, 455 before muscle balance, 482 before the rest-week fix.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
@@ -638,6 +638,15 @@ almost every muscle into "optimal". Legacy multi-set rows (`sets: 3`) expand to 
 Uses `isVolumeSet`, so drop sets are IN; that over-counts slightly against a SET benchmark, and is
 kept anyway because diverging would put the Recovery tab in open disagreement with the Muscle
 volume chart on the same page. Every unattributed set is returned in `unmatched` — never dropped.
+
+**Zero has two causes (fixed 2026-09-24, same day).** The first cut filed every muscle with no
+sets this week under "Not in your program", which is false for anything the plan trains — after a
+rest week all 17 groups landed there, including Quadriceps in a program that squats twice a week.
+`programMuscles` now derives coverage from the real program (days + custom exercises - excluded
+built-ins, resolved through the same lookup and user mapping), so "Not trained this week" and "Not
+in your program" are separate sections with separate causes. With the built-in program that splits
+8 / 9. Found by opening the tab with data older than the window — the state a returning user lands
+in, which no happy-path fixture produces.
 
 **Where it lives, and why not Today.** `RecoveryTab` is a 6th Progress tab. The muscle data is in
 the 1.2 MB library, and Progress is where that chunk already loads. A body-map card on Today would

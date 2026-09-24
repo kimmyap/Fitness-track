@@ -274,6 +274,13 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   saying it opened. If you flex a summary you owe it an explicit chevron. Verified by reading the
   computed transform — and the first probe read the heading icon instead of the chevron and
   reported "not rotating", which is the same wrong-element mistake as the "Log Set" locator above.
+- **An absence has more than one cause, and the label must say which.** The Recovery tab bucketed
+  every muscle with zero sets this week as "Not in your program" — so after a week off it told a
+  lifter whose program squats twice a week that Quadriceps was not in their program. All 17 groups
+  read that way, which is the tell: a label derived from the wrong source, not a threshold that was
+  slightly off. "You did none" comes from the window; "nothing you do trains this" comes from the
+  PROGRAM (`programMuscles`). Caught only by opening the tab with data older than the window —
+  the state a returning user lands in, and the one the happy-path fixture never produces.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

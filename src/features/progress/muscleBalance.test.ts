@@ -3,6 +3,7 @@ import type { Entry, MuscleMap } from '@/lib/types';
 import type { MuscleLookup } from './chartData';
 import {
   BALANCE_WINDOW_DAYS,
+  programMuscles,
   familiarEquipment,
   rankSuggestions,
   WEEKLY_SETS_MAX,
@@ -239,5 +240,30 @@ describe('suggestion ranking', () => {
       equipmentOf,
     );
     expect([...found]).toEqual(['BARBELL']);
+  });
+});
+
+describe('programMuscles', () => {
+  it('reports what the program COULD train, independent of any window', () => {
+    // The bug: after a week off every muscle had zero sets, so all 17 were
+    // filed as "not in your program" — including ones trained twice a week.
+    const covered = programMuscles(['Bench Press', 'Hip Thrust'], lookup);
+    expect([...covered].sort()).toEqual(['Chest', 'Glutes']);
+  });
+
+  it('counts only primary movers, not assisted ones', () => {
+    // Bench involves triceps, but no program exercise makes triceps the mover.
+    expect(programMuscles(['Bench Press'], lookup).has('Triceps')).toBe(false);
+  });
+
+  it('picks up a custom exercise through the user mapping', () => {
+    const covered = programMuscles(['Bulgarian Split Squat'], lookup, {
+      'Bulgarian Split Squat': 'Quadriceps',
+    });
+    expect([...covered]).toEqual(['Quadriceps']);
+  });
+
+  it('is empty for an unresolvable exercise with no mapping', () => {
+    expect(programMuscles(['Bulgarian Split Squat'], lookup).size).toBe(0);
   });
 });
