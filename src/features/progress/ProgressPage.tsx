@@ -1,5 +1,6 @@
 /**
- * Progress route: Charts / Body / Achievements sub-tabs, deep-linkable via
+ * Progress route: Charts / PRs / Recovery / Body / Daily / Achievements sub-tabs,
+ * deep-linkable via
  * the `?tab=` search param (e.g. /progress?tab=achievements).
  */
 import styled from '@emotion/styled';
@@ -9,11 +10,13 @@ import { ChartsTab } from './ChartsTab';
 import { PRsTab } from './PRsTab';
 import { BodyTab } from './BodyTab';
 import { AchievementsTab } from './AchievementsTab';
+import { RecoveryTab } from './RecoveryTab';
 import { MetricsTab } from '@/features/metrics/MetricsTab';
 
 const TABS = [
   { id: 'charts', label: 'Charts' },
   { id: 'prs', label: 'PRs' },
+  { id: 'recovery', label: 'Recovery' },
   { id: 'body', label: 'Body' },
   { id: 'daily', label: 'Daily' },
   { id: 'achievements', label: 'Achievements' },
@@ -29,7 +32,7 @@ const Panel = styled.div`
   margin-top: ${({ theme }) => theme.space[4]};
 `;
 
-/* Five labels do not fit at 375px — scroll the strip itself, never the page.
+/* Six labels do not fit at 375px — scroll the strip itself, never the page.
    Same treatment TrainPage needed when it reached five tabs. */
 const TabsScroller = styled.div`
   overflow-x: auto;
@@ -58,7 +61,7 @@ export function ProgressPage() {
 
   return (
     <>
-      <PageHeader title="Progress" subtitle="Charts · PRs · Body · Daily · Achievements" />
+      <PageHeader title="Progress" subtitle="Charts · PRs · Recovery · Body · Daily · Achievements" />
       <TabsScroller>
         <SegmentedTabs tabs={[...TABS]} value={tab} onChange={setTab} aria-label="Progress sections" />
       </TabsScroller>
@@ -67,6 +70,8 @@ export function ProgressPage() {
           <ChartsTab />
         ) : tab === 'prs' ? (
           <PRsTab />
+        ) : tab === 'recovery' ? (
+          <RecoveryTab />
         ) : tab === 'body' ? (
           <BodyTab />
         ) : tab === 'daily' ? (

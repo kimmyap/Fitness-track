@@ -203,6 +203,17 @@ export async function libraryAlternativesFor(logName: string): Promise<LibraryEx
 }
 
 /** True once the library is in memory (lets render paths use the sync lookup). */
+/**
+ * The library IF it is already in memory, without triggering a load.
+ *
+ * For callers that only run after something else has awaited
+ * `getExerciseLibrary()` — returning null rather than a promise keeps them
+ * synchronous and keeps the 1.2 MB chunk from being fetched by a render.
+ */
+export function getLoadedLibrary(): LibraryExercise[] | null {
+  return cachedLibrary;
+}
+
 export function isLibraryLoaded(): boolean {
   return cachedLibrary !== null;
 }

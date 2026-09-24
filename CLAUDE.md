@@ -125,6 +125,14 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   the user's own authored content use `keepValid` / `keepValidEntries`; only regenerable config
   maps may fall back wholesale.
 - **Reading never writes.** A malformed row stays byte-identical on disk. Tests assert this.
+- **A lookup that refuses to guess still needs a fallback the USER can set.**
+  `lookupExercise` resolves all 9 program exercises but, measured against 15 plausible names, misses
+  6 — including "Bulgarian Split Squat", which is in `legacySeed`. Silent misses are the danger: an
+  unresolved exercise reaches no muscle, so a balance view calls a muscle untrained on the day you
+  trained it and then tells you to train it again. Anything aggregating by exercise identity must
+  surface what it could not resolve (`muscleBalance` returns `unmatched`) and let the user map it
+  (`gymlog:muscleMap`). Never widen the matcher to close the gap — assigning the WRONG muscle
+  silently is the failure `lookupExercise` already declines to make.
 - **Adding a key touches TWO payloads** (`buildBackupPayload` in `storage.ts`, and
   `src/features/more/backup.ts`). Six keys are currently outside both and it is unowned — see
   `docs/HANDOFF.md` §2 for the table. TWO keys are deliberate omissions: `warmupProgress`
@@ -251,6 +259,21 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   /^Log Set$/})` no longer matches it. Two separate sweep runs read that as "the guard's second
   tap never logs", i.e. a fabricated bug in working code. A button whose label is the feedback
   cannot be re-found by its resting label.
+- **Check whether the feature already exists before designing it.** The muscle-recovery request
+  asked for an exercise→muscle schema and per-muscle volume; both already shipped —
+  `primary_muscles`/`secondary_muscles` on all 876 library rows, and `muscleVolumeSummary` already
+  counting primary-mover sets. Roughly half that request was answered by reading
+  `MuscleVolumeSection.tsx` first. This repo has already paid for rebuilding what the remote had.
+- **A ranking with no signal in it is the alphabet.** The suggestion drawer sorted beginner-first
+  then by name, and opened on "3/4 Sit-Up", "Air Bike" and "Alternate Heel Touchers" for a barbell
+  lifter. The library has no popularity data, so the honest signal was the user's OWN history:
+  equipment they have actually logged with, then compound over isolation. Sort keys that all tie
+  leave the last one deciding, and a name tiebreak decides everything.
+- **`display: flex` on a `<summary>` deletes the disclosure triangle.** Chromium draws the marker
+  only for `display: list-item`, so a collapsible section rendered as plain text with nothing
+  saying it opened. If you flex a summary you owe it an explicit chevron. Verified by reading the
+  computed transform — and the first probe read the heading icon instead of the chevron and
+  reported "not rotating", which is the same wrong-element mistake as the "Log Set" locator above.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

@@ -28,6 +28,7 @@ import {
   useProgramStore,
   useSettingsStore,
   useWeightModesStore,
+  useMuscleMapStore,
 } from '@/stores';
 import { generateId, isoDate, mergeById } from '@/lib/domain';
 import { saveLastBackupAt } from '@/lib/storage';
@@ -46,6 +47,7 @@ import type {
   MeasurementEntry,
   NotesMap,
   ThemePref,
+  MuscleMap,
   WeightInputModeMap,
 } from '@/lib/types';
 
@@ -79,6 +81,7 @@ export function buildBackupPayload(): BackupPayload {
     days: useProgramStore.getState().days,
     exerciseOrder: useProgramStore.getState().order,
     weightInputModes: useWeightModesStore.getState().modes,
+    muscleMap: useMuscleMapStore.getState().muscleMap,
     barWeight: useSettingsStore.getState().barWeightLbs,
     theme: themeRawFromPref(useSettingsStore.getState().themePref),
     lastProgramReview: useSettingsStore.getState().lastProgramReview,
@@ -277,6 +280,16 @@ export function applyImport(payload: IncomingBackup): void {
   if (modes) {
     const store = useWeightModesStore.getState();
     store.setModes({ ...store.modes, ...modes });
+  }
+  /*
+   * Muscle mappings merge the same way, incoming winning per exercise. Bad
+   * pairs are dropped at the READ boundary by `getMuscleMap`, not here, so an
+   * imported file with one junk value cannot take the rest of the map with it.
+   */
+  const muscles = asObject<MuscleMap>(payload.muscleMap);
+  if (muscles) {
+    const store = useMuscleMapStore.getState();
+    store.setMuscleMap({ ...store.muscleMap, ...muscles });
   }
   // barWeight: a number sets it, an explicit null clears it back to the standard bar
   if (typeof payload.barWeight === 'number' && Number.isFinite(payload.barWeight)) {

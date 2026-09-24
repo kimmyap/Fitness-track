@@ -23,6 +23,7 @@
  * functions that tree-shake. This file only needs a dozen of them.
  */
 import { z } from 'zod/mini';
+import { MUSCLE_GROUPS } from './types';
 
 const isoDate = z.string().check(z.regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD'));
 
@@ -148,6 +149,8 @@ export const nameKeySchema = z.string().check(z.minLength(1));
 export const excludedBuiltInsMapSchema = z.record(z.string(), z.array(z.string()));
 export const coreOverridesMapSchema = z.record(z.string(), coreOverrideSchema);
 export const weightInputModesSchema = z.record(z.string(), z.enum(['total', 'perSide']));
+/** Spread from the shared constant so the schema cannot drift from the type. */
+export const muscleGroupSchema = z.enum([...MUSCLE_GROUPS]);
 export const exerciseOrderSchema = z.record(z.string(), z.array(z.string()));
 export const achievementsSchema = z.array(z.string());
 export const daysSchema = z.array(z.string());

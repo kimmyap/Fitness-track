@@ -94,6 +94,10 @@ Requests for these have come in more than once. They are built:
 | Two-tap delete confirmation | `ConfirmDeleteAction`; `ConfirmTap` for full-width destructive actions |
 | Progress bars / rings | `ProgressRing`, and the bar in `TodayProgressCard` |
 | Per-exercise notes, archiving, reordering, day reassignment | all in `ExerciseCard` / Settings |
+| An exercise → muscle schema | `primary_muscles` / `secondary_muscles` on all 876 library rows, 17 groups (`MUSCLE_GROUPS` in `types.ts`) |
+| Volume per muscle group | `muscleVolumeSummary` in `features/progress/chartData.ts`, shown as Progress → Charts → Muscle volume |
+| Weekly set balance / recovery status | `muscleBalance` in `features/progress/muscleBalance.ts`, shown as Progress → Recovery |
+| Exercise suggestions | `alternativesFor` / `libraryAlternativesFor` (curated `alternative_ids`, ~4 per row) and the Recovery tab's drawer |
 
 The app is called **Fitness Track**. `gymlog` is only the legacy storage-key prefix — it is not
 the product name.

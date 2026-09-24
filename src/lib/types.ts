@@ -229,6 +229,12 @@ export interface BackupPayload {
   days?: string[];
   exerciseOrder?: ExerciseOrderMap;
   weightInputModes?: WeightInputModeMap;
+  /**
+   * Exercise name -> muscle group, for exercises the library cannot resolve.
+   * Carried because it is authored, not derived: without it a restored phone
+   * silently under-reports muscle balance rather than failing visibly.
+   */
+  muscleMap?: MuscleMap;
   /** Straight-bar weight in lbs; null = the standard bar. */
   barWeight?: number | null;
   /** ISO "YYYY-MM-DD". Drives the program-review nudge. */
@@ -244,6 +250,38 @@ export type StoredWeightInputMode = 'total' | 'perSide';
 /** gymlog:exerciseOrder — day name → ordered exercise names. NEW key. */
 export type ExerciseOrderMap = Record<string, string[]>;
 export type WeightInputModeMap = Record<string, StoredWeightInputMode>;
+
+/**
+ * The muscle vocabulary, taken verbatim from the exercise library's own
+ * `primary_muscles` / `secondary_muscles` values — all 17 distinct groups
+ * across its 876 rows, and nothing invented alongside them. Anything the app
+ * adds here that the library does not use would be a group no exercise can
+ * ever fill, which reads as "never trained" forever.
+ */
+export const MUSCLE_GROUPS = [
+  'Abdominals',
+  'Abductors',
+  'Adductors',
+  'Biceps',
+  'Calves',
+  'Chest',
+  'Forearms',
+  'Glutes',
+  'Hamstrings',
+  'Lats',
+  'Lower back',
+  'Middle back',
+  'Neck',
+  'Quadriceps',
+  'Shoulders',
+  'Traps',
+  'Triceps',
+] as const;
+
+export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
+
+/** Exercise name -> the muscle the user says it primarily works. */
+export type MuscleMap = Record<string, MuscleGroup>;
 
 /**
  * gymlog:warmupProgress — NEW key. Which movements of TODAY's warm-up are

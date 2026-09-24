@@ -9,6 +9,7 @@ export * from './goals';
 export * from './notes';
 export * from './achievements';
 export * from './weightModes';
+export * from './muscleMap';
 export * from './program';
 
 import { useEntriesStore } from './entries';

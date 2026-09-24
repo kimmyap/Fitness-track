@@ -38,7 +38,7 @@ and UX-rule sections are still good.
 
 - **Seven storage keys are live in code but absent from the "source of truth" spec.**
   `gymlog:weightInputModes`, `gymlog:barWeight`, `gymlog:exerciseOrder`, `gymlog:days`,
-  `gymlog:dailyMetrics`, `gymlog:cardio` and `gymlog:warmupProgress` all exist in `src/lib/storage.ts` and are
+  `gymlog:dailyMetrics`, `gymlog:cardio`, `gymlog:warmupProgress` and `gymlog:muscleMap` all exist in `src/lib/storage.ts` and are
   read/written by the app. `migration-spec.md` documents none of them; `CLAUDE.md` mentions only
   `weightInputModes`. Read the `STORAGE_KEYS` map in `src/lib/storage.ts` for the real list, and
   note the double-prefix quirk (logical key `gymlog:entries` → actual localStorage key
@@ -64,6 +64,10 @@ and UX-rule sections are still good.
   `days` UNIONs (see §11), `exerciseOrder` / `weightInputModes` spread per key with incoming
   winning, `barWeight` and `theme` apply when valid, and `lastProgramReview` backfills only when
   unset so a restore cannot move a review clock you are already running.
+  `muscleMap` (added 2026-09-24) joined both payloads on the same terms — spread per key,
+  incoming wins. It is IN, not out, because unlike the two omissions above it is authored: losing
+  it would not fail visibly, it would make the muscle balance quietly under-report on the new
+  device while looking entirely healthy.
 - ~~`deploy-pipeline.md` lags the workflow on action versions and step commands.~~ **Fixed
   2026-09-11**: its YAML snippet is now byte-identical to `.github/workflows/ci-deploy.yml`.
   If you change the workflow, re-sync the snippet or replace it with a link — it drifted twice.
@@ -121,8 +125,8 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-17:
-typecheck clean, lint clean, **455 tests across 30 files**, build succeeds. Since routes went
-lazy the headline number is the ENTRY chunk, **282.43 kB / 90.00 kB gzip** — not the whole
+typecheck clean, lint clean, **482 tests across 32 files**, build succeeds. Since routes went
+lazy the headline number is the ENTRY chunk, **282.47 kB / 90.02 kB gzip** — not the whole
 bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
 The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).
 (The previous revision said "401 across 27"; the file count was one high — there were 26. The
@@ -130,7 +134,7 @@ counts here are compared against by later sessions, so a wrong one is worse than
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps, 430 before the first full QA sweep.)
+were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps, 430 before the first full QA sweep, 455 before muscle balance.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
@@ -602,6 +606,43 @@ Not done, and each needs a decision rather than an implementation: nutrition tar
 hints are averages of your own history, because no target is stored and inventing one would be
 health advice). Persisting warm-up ticks was on this list and is now done —
 `gymlog:warmupProgress`, described above; so is route-level code splitting (gap #9, 2026-09-16).
+
+**`gymlog:muscleMap` — exercise → muscle group (added 2026-09-24).** `Record<string,
+MuscleGroup>`, where `MuscleGroup` is one of the 17 values `MUSCLE_GROUPS` in `types.ts` lists.
+Those 17 are taken VERBATIM from the exercise library's own `primary_muscles` / `secondary_muscles`
+values across its 876 rows — inventing an eighteenth would create a group no exercise can ever
+fill, which reads as "never trained" forever.
+
+WHY IT EXISTS, measured rather than assumed. The library resolves all 9 built-in program
+exercises. But `lookupExercise` deliberately refuses to guess on an ambiguous prefix, and against
+15 plausible user-typed names **6 missed**: "Bulgarian Split Squat" (a real custom exercise in
+`legacySeed`), "Incline Press", "Seated Row", "Leg Curl", "Bicep Curls", "Tricep Pushdown". An
+unresolved exercise contributes to NO muscle, so a recovery view would have reported a muscle as
+untrained on the day it was trained — and then recommended training it again. This key is how a
+user corrects that, once, per exercise.
+
+Read with `keepValidEntries`, NOT `getChecked`: these are authored decisions, so one bad pair must
+drop alone rather than taking the map with it (the `5eda04b` rule). The value is validated against
+the 17 groups, so a renamed group drops instead of inventing a muscle. The user's mapping WINS over
+the library on purpose — it is the more specific statement, and the only way to correct a wrong
+resolution. It names a PRIMARY muscle only; asking someone to enumerate secondary movers is anatomy
+homework to fix a display bug.
+
+**Muscle balance engine (`src/features/progress/muscleBalance.ts`, 2026-09-24).** Pure, and
+deliberately NOT in `domain.ts` — it needs `MuscleLookup` from `chartData.ts`, and putting it in
+`lib/` would invert that dependency. Rolling 7-day window, not calendar: `weekRange` is right for
+"this week vs last week" in the recap, but on a calendar week every Monday reads as a deload and
+Sunday's work stops counting overnight. Counts PRIMARY-mover sets only against 10-20/week —
+secondary involvement is carried separately and never added, or a deadlift's carryover would push
+almost every muscle into "optimal". Legacy multi-set rows (`sets: 3`) expand to their real count.
+Uses `isVolumeSet`, so drop sets are IN; that over-counts slightly against a SET benchmark, and is
+kept anyway because diverging would put the Recovery tab in open disagreement with the Muscle
+volume chart on the same page. Every unattributed set is returned in `unmatched` — never dropped.
+
+**Where it lives, and why not Today.** `RecoveryTab` is a 6th Progress tab. The muscle data is in
+the 1.2 MB library, and Progress is where that chunk already loads. A body-map card on Today would
+pull 1.2 MB onto the landing route, which `CLAUDE.md` forbids. Verified in a browser: **0 requests
+for the library chunk on Today, 1 after opening the Recovery tab.**
 
 **The PR toast printed a total as a per-side figure (fixed 2026-09-17).** On a PR the toast
 appends `(N per side)` for Barbell/Trap Bar and `(N per dumbbell)` for Dumbbell, restating the

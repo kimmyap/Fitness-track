@@ -24,6 +24,7 @@ import {
   equipmentWeightsSchema,
   excludedBuiltInsMapSchema,
   exerciseOrderSchema,
+  muscleGroupSchema,
   nameKeySchema,
   numberValueSchema,
   keepValid,
@@ -48,6 +49,8 @@ import type {
   GoalsMap,
   MeasurementEntry,
   NotesMap,
+  MuscleGroup,
+  MuscleMap,
   Unit,
   ExerciseOrderMap,
   WarmupProgress,
@@ -93,6 +96,16 @@ export const STORAGE_KEYS = {
    * getLastBackupAt for why carrying it would be actively misleading.
    */
   lastBackupAt: 'gymlog:lastBackupAt',
+  /**
+   * NEW: exercise name -> muscle group, for exercises the 876-row library
+   * cannot resolve on its own. AUTHORED content, not regenerable config: each
+   * pair is a decision the user made, so the reader drops bad ROWS rather than
+   * the map (see `keepValidEntries`). It IS carried in both backup payloads —
+   * unlike `warmupProgress` and `lastBackupAt`, losing these would silently
+   * un-map custom exercises on a restored phone, and the muscle balance would
+   * quietly under-report instead of failing loudly.
+   */
+  muscleMap: 'gymlog:muscleMap',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
@@ -264,6 +277,7 @@ function buildBackupPayload(label: string, failedKey?: StorageKey, failedValue?:
     days: readJSON<string[]>(STORAGE_KEYS.days, []),
     exerciseOrder: readJSON<ExerciseOrderMap>(STORAGE_KEYS.exerciseOrder, {}),
     weightInputModes: readJSON<WeightInputModeMap>(STORAGE_KEYS.weightInputModes, {}),
+    muscleMap: readJSON<MuscleMap>(STORAGE_KEYS.muscleMap, {}),
     barWeight: getBarWeight(),
     theme: getThemeRaw() ?? undefined,
     lastProgramReview: getLastProgramReview(),
@@ -392,6 +406,26 @@ export function getWeightInputModes(): WeightInputModeMap {
 }
 export function saveWeightInputModes(modes: WeightInputModeMap): Promise<boolean> {
   return setRawWithRetry(STORAGE_KEYS.weightInputModes, JSON.stringify(modes), 'Weight input mode');
+}
+
+/**
+ * User-authored exercise -> muscle mappings.
+ *
+ * `keepValidEntries`, not `getChecked`: one malformed pair must not erase every
+ * mapping the user made. The value is validated against the 17 muscle groups
+ * the library itself uses, so a renamed or invented group drops rather than
+ * creating a muscle that nothing else in the app knows about.
+ */
+export function getMuscleMap(): MuscleMap {
+  return keepValidEntries<MuscleGroup>(
+    getParsed(STORAGE_KEYS.muscleMap) ?? {},
+    nameKeySchema,
+    muscleGroupSchema,
+    STORAGE_KEYS.muscleMap,
+  );
+}
+export function saveMuscleMap(map: MuscleMap): Promise<boolean> {
+  return setRawWithRetry(STORAGE_KEYS.muscleMap, JSON.stringify(map), 'Muscle mapping');
 }
 
 export function getBodyweight(): BodyweightEntry[] {
