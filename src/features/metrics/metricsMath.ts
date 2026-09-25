@@ -6,22 +6,21 @@
  * would be dispensing health advice the user never asked this tracker for — an
  * average of their own recent days is grounded and needs no new storage.
  */
+import { dateWindow, parseIsoDate } from '@/lib/dates';
 import type { DailyMetric, DailyMetricsMap } from '@/lib/types';
 
 export type AveragedField = 'calories' | 'protein' | 'sleepHours';
 
-/** Dates in the window ending at `today`, inclusive, oldest first. */
+/**
+ * Dates in the window ending at `today`, inclusive, oldest first.
+ *
+ * Was its own copy of the parse-and-format pair, spelled a third way again
+ * (`new Date(`${iso}T00:00:00`)`). Same result, but a separate implementation
+ * is a separate thing to get wrong — see the header of `lib/dates.ts`.
+ */
 function windowDates(today: string, days: number): string[] {
-  const out: string[] = [];
-  const end = new Date(`${today}T00:00:00`);
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(end);
-    d.setDate(end.getDate() - i);
-    out.push(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
-    );
-  }
-  return out;
+  const end = parseIsoDate(today);
+  return end ? dateWindow(end, days) : [];
 }
 
 /**

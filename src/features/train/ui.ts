@@ -2,7 +2,7 @@
 import styled from '@emotion/styled';
 import { InputBase } from '@/components';
 import { toDisplayWeight } from '@/lib/domain';
-import { isoDate } from '@/lib/domain';
+import { dateWindow } from '@/lib/dates';
 import type { Unit } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -33,13 +33,7 @@ export function fmtTime(totalSeconds: number): string {
 
 /** Last 7 local dates (oldest first): today-6 … today. */
 export function last7Dates(now: Date = new Date()): string[] {
-  const out: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-    out.push(isoDate(d));
-  }
-  return out;
+  return dateWindow(now, 7);
 }
 
 // ---------------------------------------------------------------------------

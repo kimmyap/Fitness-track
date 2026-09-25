@@ -28,6 +28,8 @@
  * An unattributed set is a visible gap in this model, not a zero.
  */
 import { isVolumeSet } from '@/lib/domain';
+// Aliased: `daysSince` is also the name of a per-row field below.
+import { daysSince as daysSinceIso, startOfDay } from '@/lib/dates';
 import { MUSCLE_GROUPS } from '@/lib/types';
 import type { Entry, MuscleGroup, MuscleMap } from '@/lib/types';
 import type { MuscleLookup } from './chartData';
@@ -116,15 +118,6 @@ function recoveryStatus(daysSince: number | null): RecoveryStatus {
   return daysSince >= RECOVERED_AFTER_DAYS ? 'fresh' : 'recovering';
 }
 
-/** Local-midnight day difference, so a set logged last night is 1 day old, not 0.4. */
-function wholeDaysBetween(fromIso: string, now: Date): number {
-  const [y, m, d] = fromIso.split('-').map(Number);
-  if (!y || !m || !d) return 0;
-  const then = new Date(y, m - 1, d);
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.max(0, Math.round((today.getTime() - then.getTime()) / 86_400_000));
-}
-
 /**
  * The muscles a logged exercise works, preferring the user's own mapping.
  *
@@ -169,7 +162,7 @@ export function muscleBalance(
   now: Date = new Date(),
   resolve?: MuscleResolver,
 ): MuscleBalance {
-  const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const cutoff = startOfDay(now);
   cutoff.setDate(cutoff.getDate() - (BALANCE_WINDOW_DAYS - 1));
 
   const primarySets = new Map<string, number>();
@@ -182,7 +175,7 @@ export function muscleBalance(
 
   for (const entry of entries) {
     if (!isVolumeSet(entry)) continue;
-    if (wholeDaysBetween(entry.date, now) >= BALANCE_WINDOW_DAYS) continue;
+    if (daysSinceIso(entry.date, now) >= BALANCE_WINDOW_DAYS) continue;
 
     /*
      * `sets` is almost always 1 (this app logs set by set), but legacy rows
@@ -221,7 +214,7 @@ export function muscleBalance(
 
   const rows: MuscleBalanceRow[] = MUSCLE_GROUPS.map((muscle) => {
     const last = lastPrimary.get(muscle);
-    const daysSince = last === undefined ? null : wholeDaysBetween(last, now);
+    const daysSince = last === undefined ? null : daysSinceIso(last, now);
     const sets = primarySets.get(muscle) ?? 0;
     return {
       muscle,

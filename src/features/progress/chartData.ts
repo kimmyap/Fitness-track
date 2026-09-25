@@ -4,6 +4,7 @@
  */
 import { DAYS } from '@/lib/program';
 import { entryVolume, epley1RM, isoDate, isVolumeSet, weekRange, volumeInRange, displayDate } from '@/lib/domain';
+import { parseIsoDate } from '@/lib/dates';
 import { isLiftSet, type BodyweightEntry, type Entry, type LiftSetEntry } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -152,7 +153,7 @@ export function bodyweightSeries(bwEntries: BodyweightEntry[]): SeriesPoint[] {
 
 const dayMs = 86400000;
 /** Local midnight, so a "YYYY-MM-DD" never slips a day via UTC parsing. */
-const atLocalMidnight = (iso: string): number => new Date(`${iso}T00:00:00`).getTime();
+const atLocalMidnight = (iso: string): number => parseIsoDate(iso)?.getTime() ?? NaN;
 
 /**
  * Trailing N-calendar-day mean, for reading a bodyweight trend through daily

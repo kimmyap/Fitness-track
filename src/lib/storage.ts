@@ -35,6 +35,7 @@ import {
   warmupProgressSchema,
   weightInputModesSchema,
 } from './schemas';
+import { isoDate } from './dates';
 import type {
   BodyweightEntry,
   CardioSession,
@@ -232,9 +233,7 @@ async function deleteRaw(key: StorageKey): Promise<void> {
 export const AUTO_BACKUP_COOLDOWN_MS = 60000;
 let autoBackupCooldown = false;
 
-function isoDateLocal(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+
 
 /**
  * Build the legacy auto-backup payload from storage, substituting the value
@@ -304,7 +303,7 @@ function triggerAutoBackup(label: string, failedKey?: StorageKey, failedValue?: 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `gymlog-autobackup-${isoDateLocal(new Date())}-${Date.now()}.json`;
+    a.download = `gymlog-autobackup-${isoDate()}-${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

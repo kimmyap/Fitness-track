@@ -17,6 +17,7 @@ import type {
   Unit,
 } from './types';
 import { isLiftSet } from './types';
+import { parseIsoDate } from './dates';
 
 // ---------------------------------------------------------------------------
 // Ids / dates / formatting
@@ -27,26 +28,13 @@ export function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now();
 }
 
-/** Local "YYYY-MM-DD". */
-export function isoDate(d: Date = new Date()): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-/**
- * "YYYY-MM-DD" → local midnight of that calendar day.
- *
- * The inverse of `isoDate`, and it MUST be: `new Date("2026-09-21")` parses as
- * UTC midnight, so west of Greenwich it lands on the previous local day. Every
- * range boundary in this file is built in local time, so a UTC-parsed entry
- * compared against them silently falls outside the range — see `volumeInRange`.
- * Returns null for anything that is not a date string, so callers can skip it
- * rather than comparing against an Invalid Date, which is false either way.
+/*
+ * Calendar-day handling lives in `./dates` — one owner, because five copies of
+ * it is what let `volumeInRange` parse UTC while its range was local. These are
+ * re-exported because ~50 files already import them from here, and moving the
+ * import is churn with no benefit.
  */
-export function parseIsoDate(iso: string): Date | null {
-  const [y, m, d] = iso.split('-').map((part) => parseInt(part, 10));
-  if (!y || !m || !d) return null;
-  return new Date(y, m - 1, d);
-}
+export { isoDate, parseIsoDate, startOfDay, daysSince, dateWindow } from './dates';
 
 /** "M/D" without leading zeros, from "YYYY-MM-DD". */
 export function displayDate(iso: string): string {
@@ -1002,7 +990,7 @@ export function achievementUnlockDates(
   for (const day of days) {
     if (!remaining.length) break;
     // `now` is that day, so streaks are measured as they stood then.
-    const asOf = new Date(`${day}T00:00:00`);
+    const asOf = parseIsoDate(day) ?? new Date();
     const snap = achievementStatsSnapshot(
       entries.filter((e) => e.date <= day),
       bwEntries.filter((e) => e.date <= day),
