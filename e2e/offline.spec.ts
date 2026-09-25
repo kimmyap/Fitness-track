@@ -49,7 +49,28 @@ test.describe('offline shell', () => {
      */
     const isLibraryData = (u: string) => /\/exerciseLibrary-[^/]*\.js$/.test(u);
     expect(cached.some(isLibraryData)).toBe(false);
-    expect(cached.some((u) => u.includes('exerciseLibraryService'))).toBe(true);
+
+    /*
+     * The real contract is between the plugin and the worker: everything the
+     * plugin puts in the injected manifest must end up cached, and the library
+     * data must never be in that manifest.
+     *
+     * This replaces an assertion that named a CHUNK FILE —
+     * `exerciseLibraryService` — which is a build-output detail, not an
+     * invariant. Changing which modules import the service was enough to make
+     * rolldown fold that wrapper into a differently-named shared chunk, and the
+     * test went red while the thing it cared about (the 1.2 MB data staying out
+     * of the precache) was still true. Assert the manifest, not the filename.
+     */
+    const manifest = await page.evaluate(() => {
+      const el = document.getElementById('sw-precache');
+      return JSON.parse(el?.textContent ?? '[]') as string[];
+    });
+    expect(manifest.length).toBeGreaterThan(0);
+    expect(manifest.some(isLibraryData)).toBe(false);
+    for (const file of manifest) {
+      expect(cached.some((u) => u.endsWith(`/${file}`)), `${file} was not precached`).toBe(true);
+    }
 
     // Every lazy ROUTE chunk, by contrast, MUST be precached — that is the
     // whole point of the injected manifest.

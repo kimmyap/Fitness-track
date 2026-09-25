@@ -205,11 +205,18 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   worker's HTML scan cannot see them, since the woff2 URLs are inside `fonts.css` rather than the
   shell. Changing `STATIC_SHELL` means bumping `VERSION`, or existing clients keep an incomplete
   cache.
-- **A substring is not an identity.** `offline.spec.ts` asserted the 1.2 MB library was NOT
-  precached with `u.includes('exerciseLibrary')`. Once routes went lazy the 1.67 kB
-  `exerciseLibraryService` wrapper became a static import of a route and was precached correctly
-  — and the test failed, reading as a regression when nothing had regressed. Match the artifact,
-  not the substring: `/\/exerciseLibrary-[^/]*\.js$/`.
+- **A substring is not an identity — and a CHUNK NAME is not an invariant.** `offline.spec.ts`
+  asserted the 1.2 MB library was NOT precached with `u.includes('exerciseLibrary')`. Once routes
+  went lazy the 1.67 kB `exerciseLibraryService` wrapper became a static import of a route and was
+  precached correctly — and the test failed, reading as a regression when nothing had regressed.
+  Match the artifact, not the substring: `/\/exerciseLibrary-[^/]*\.js$/`. The fix for THAT then
+  added `expect(cached.some((u) => u.includes('exerciseLibraryService'))).toBe(true)`, which went
+  red on main a fortnight later: adding `useExerciseLibrary` changed which modules import the
+  service, so rolldown folded the wrapper into a chunk named after the hook instead. Nothing
+  regressed that time either — the 1.2 MB data was still out of the precache. Chunk filenames are
+  build OUTPUT and move whenever imports do. The assertion now checks the real contract, that every
+  file in the plugin's injected `sw-precache` manifest is in the cache and the library data is not
+  in that manifest, which is immune to renaming.
 - **Block service workers in tests that measure what the PAGE fetches.** A route-split test
   injected a 1200ms delay with `page.route` and passed in 886ms: the worker had precached the
   chunk, so the request never reached the network and the delay never applied. It was asserting
