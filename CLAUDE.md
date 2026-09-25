@@ -302,6 +302,27 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   kept passing after that card became collapsed-by-default, so they no longer proved the text was
   reachable — only that React had rendered it. Click the summary in the test the way a user must,
   or the assertion survives the content becoming invisible.
+- **A green suite in ONE timezone proves one timezone.** `volumeInRange` parsed entry dates with
+  `new Date("2026-09-21")` (UTC midnight) and compared them against `weekRange` / `monthRange`
+  boundaries built in LOCAL time. In America/Los_Angeles every Monday's sets and the 1st of every
+  month fell outside their own range and `weeklyRecap` returned half its total; in Sydney it lost
+  Sunday. CI runs in UTC, where the two clocks coincide, so 510 tests passed for the life of the
+  project. Dates are stored as bare "YYYY-MM-DD" — calendar days, not instants — so anything
+  comparing one against a Date must go through `lib/dates.ts`, which owns both directions.
+  `domain.timezone.test.ts` pins the boundaries in four zones and first asserts that mutating
+  `process.env.TZ` actually moves the offset, or it would pass vacuously in UTC.
+- **Five implementations of one conversion is how the drift happened.** Turning "YYYY-MM-DD" into
+  a Date existed as `new Date(y, m-1, d)`, ``new Date(`${iso}T00:00:00`)`` and `new Date(iso)` —
+  two correct spellings and one wrong one — across domain, storage, metricsMath, chartData and
+  muscleBalance. No owner meant no place for the rule to live, and nothing could notice one call
+  site disagreeing. `lib/dates.ts` is now that owner and the parse is the declared inverse of the
+  format.
+- **A failure status is not the absence of success.** Three components hand-rolled the same
+  lazy-library effect. `MuscleVolumeSection` handled a failed load by setting `ready` back to
+  FALSE, and its own render reads "not ready" as "still loading" — so offline it showed
+  "Loading exercise data…" forever, while `RecoveryTab` in the identical situation said so
+  properly. `useExerciseLibrary` makes idle/loading/ready/failed explicit. When you copy an async
+  effect, you copy its error handling too, and only one copy gets fixed.
 - **Playwright in a sandbox**: `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-<build>/chrome-linux/chrome npm run test:e2e`.
   Read the build number off `/opt/pw-browsers/` — never run `npx playwright install`.
 

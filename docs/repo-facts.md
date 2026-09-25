@@ -98,6 +98,8 @@ Requests for these have come in more than once. They are built:
 | Volume per muscle group | `muscleVolumeSummary` in `features/progress/chartData.ts`, shown as Progress → Charts → Muscle volume |
 | Weekly set balance / recovery status | `muscleBalance` in `features/progress/muscleBalance.ts`, shown as Progress → Recovery |
 | Exercise suggestions | `alternativesFor` / `libraryAlternativesFor` (curated `alternative_ids`, ~4 per row) and the Recovery tab's drawer |
+| A single `lib/domain.ts` | It is a FOLDER — `lib/domain/` with 13 modules behind a barrel. `@/lib/domain` still imports everything |
+| Date parsing/formatting | `lib/dates.ts` owns it. Never `new Date(isoString)` — that is UTC midnight and drops days west of Greenwich |
 | Matching a typed exercise name to muscles | `lookupExercise` (exact / singular / unique prefix, refuses ambiguity) then `resolveMuscle` in `features/progress/muscleResolve.ts` (notes → unanimous token match → muscle word), with `gymlog:muscleMap` as the user override |
 
 The app is called **Fitness Track**. `gymlog` is only the legacy storage-key prefix — it is not

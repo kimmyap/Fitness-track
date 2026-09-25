@@ -125,7 +125,7 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-17:
-typecheck clean, lint clean, **510 tests across 33 files**, build succeeds. Since routes went
+typecheck clean, lint clean, **556 tests across 37 files**, build succeeds. Since routes went
 lazy the headline number is the ENTRY chunk, **282.47 kB / 90.02 kB gzip** — not the whole
 bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
 The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).
@@ -134,7 +134,7 @@ counts here are compared against by later sessions, so a wrong one is worse than
 (It was 213 across 14 at `dc48617`, before the legacy seed fixture and the service worker each
 added a file; 262 across 18 before the metrics screen and the Today/Achievements passes; 323 across 23
 before the warm-up rework, 343 before its ticks were persisted, 352 before the backup payloads
-were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps, 430 before the first full QA sweep, 455 before muscle balance, 482 before the rest-week fix, 487 before tiered muscle resolution.)
+were completed, 361 before the warm-up ramp, 371 before stall detection, 384 before the PR log, 390 before session spans, 398 before per-side reps, 430 before the first full QA sweep, 455 before muscle balance, 482 before the rest-week fix, 487 before tiered muscle resolution, 510 before the timezone fix and the domain split.)
 
 `npm run build` runs `tsc -b --noEmit` itself, so the gate double-typechecks — harmless, ~5s.
 
@@ -647,6 +647,37 @@ built-ins, resolved through the same lookup and user mapping), so "Not trained t
 in your program" are separate sections with separate causes. With the built-in program that splits
 8 / 9. Found by opening the tab with data older than the window — the state a returning user lands
 in, which no happy-path fixture produces.
+
+**`lib/domain.ts` is now `lib/domain/` (2026-09-25).** One 1,405-line file with 110 exports
+across thirteen unrelated concerns, imported by ~50 modules, split along those concerns behind a
+barrel. **No call site moved** — `@/lib/domain` resolves to `lib/domain/index.ts` and re-exports
+everything, and the export surface was diffed before and after: 110 symbols, none missing, none
+added. Largest module is now `achievements.ts` at 295 lines.
+
+The dependency graph is one-way and shallow, which the single file could not show:
+leaves are `format`, `units`, `streaks`, `prs`, `history`, `session`, `misc`; then
+`weight <- units`, `plates <- units`, `volume <- streaks`, `rpe <- format, units`,
+`progression <- units, weight`, `achievements <- units, volume, streaks, prs`.
+`PLATE_SIZES` and `BAR_OPTIONS` moved from the plate-calculator section into `units`, because they
+are unit-keyed constants read by weight math, the calculator AND the progression ladder — leaving
+them beside one consumer was the only thing making `weight` and `plates` import each other.
+`domain/index.test.ts` asserts the re-export contract and that the graph stays acyclic; a cycle
+would not fail the build, it would surface as an undefined const at runtime in whichever module
+loaded second.
+
+**`lib/dates.ts` owns calendar days (2026-09-25).** Dates are stored as bare "YYYY-MM-DD" —
+calendar days, not instants — and the conversion had FIVE implementations in three spellings, one
+of which (`new Date(iso)`, UTC midnight) was wrong and shipped. See the timezone entry in
+CLAUDE.md. `domain` re-exports `isoDate` / `parseIsoDate` so the ~50 existing importers did not
+move.
+
+**`useExerciseLibrary` (2026-09-25)** replaces three hand-rolled copies of the lazy-library mount
+effect, whose error handling had diverged into a defect: `MuscleVolumeSection` treated a failed
+load as "still loading" and spun forever offline. Status is now explicit
+(idle/loading/ready/failed), it seeds from the module cache so a second consumer is ready on first
+paint, and it takes an `enabled` flag because `ExercisePicker` must not load until its modal opens.
+The 1.2 MB chunk is still reached only through the dynamic import — re-verified in a browser: 0
+requests on Today, 0 on Train, 1 on opening Recovery.
 
 **Tiered resolution for unmatched exercises (`muscleResolve.ts`, 2026-09-24).** Diagnosis first:
 of the 6 misses, 4 ("Incline Press", "Seated Row", "Leg Curl", "Tricep Pushdown") had 0 exact and
