@@ -165,7 +165,15 @@ describe('RecoveryTab', () => {
   });
 
   it('says so when the library cannot be loaded, rather than showing zeroes', async () => {
+    /*
+     * The cache MUST be cleared first. `useExerciseLibrary` seeds from the
+     * module cache, so with the library already in memory it reports ready
+     * without ever calling the mocked loader — which is correct behaviour, and
+     * would make this test pass while proving nothing. The scenario being
+     * tested is "not cached AND the load fails".
+     */
     const mod = await import('@/services/exerciseLibraryService');
+    mod.resetExerciseLibraryCache();
     const spy = vi.spyOn(mod, 'getExerciseLibrary').mockRejectedValueOnce(new Error('offline'));
 
     renderWithTheme(<RecoveryTab />);
@@ -173,5 +181,6 @@ describe('RecoveryTab', () => {
     // Crucially it must NOT claim every muscle is untrained.
     expect(screen.queryByText('Not in your program', { exact: false })).not.toBeInTheDocument();
     spy.mockRestore();
+    await mod.getExerciseLibrary(); // leave the cache warm for later files
   });
 });

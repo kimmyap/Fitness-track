@@ -14,16 +14,17 @@
  * as headed sections rather than a 17-row list so the answer ("what is behind")
  * is readable without counting.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import styled from '@emotion/styled';
 import { AlertTriangle, Activity, CheckCircle2, ChevronDown, CircleSlash, Flame, HelpCircle, Moon, Wand2 } from 'lucide-react';
 import { Badge, Button, Card, EmptyState } from '@/components';
 import { useCustomExercisesStore, useEntriesStore, useMuscleMapStore, useProgramStore } from '@/stores';
-import { getExerciseLibrary, getLoadedLibrary, lookupExercise } from '@/services/exerciseLibraryService';
+import { lookupExercise } from '@/services/exerciseLibraryService';
+import { useExerciseLibrary } from '@/services/useExerciseLibrary';
 import { CardTitle, Muted, Row, Stack } from '@/features/train/ui';
 import { exercisesForDay } from '@/lib/domain';
 import { DAYS } from '@/lib/program';
-import type { MuscleLookup } from './chartData';
+import { toMuscleLookup } from './chartData';
 import {
   BALANCE_WINDOW_DAYS,
   familiarEquipment,
@@ -220,25 +221,10 @@ export function RecoveryTab() {
   const order = useProgramStore((s) => s.order);
   const customExercises = useCustomExercisesStore((s) => s.customExercises);
   const excludedBuiltIns = useCustomExercisesStore((s) => s.excludedBuiltIns);
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const { status, library } = useExerciseLibrary();
+  const ready = status === 'ready';
+  const failed = status === 'failed';
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void getExerciseLibrary()
-      .then(() => {
-        if (!cancelled) setReady(true);
-      })
-      .catch(() => {
-        // Offline with the chunk uncached. Say so rather than showing zeroes,
-        // which would read as "you have trained nothing".
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   /*
    * Notes by exercise name. `AddExerciseSection` writes "Targets: <muscles>"
@@ -254,19 +240,13 @@ export function RecoveryTab() {
   }, [customExercises]);
 
   const resolve = useMemo(() => {
-    if (!ready) return undefined;
-    const library = getLoadedLibrary();
     if (!library) return undefined;
     return (name: string) => resolveMuscle(name, library, notesByExercise.get(name));
-  }, [notesByExercise, ready]);
+  }, [library, notesByExercise]);
 
   const balance = useMemo(() => {
     if (!ready) return null;
-    const lookup: MuscleLookup = (name) => {
-      const hit = lookupExercise(name);
-      return hit ? { primary: hit.primary_muscles, secondary: hit.secondary_muscles } : undefined;
-    };
-    return muscleBalance(entries, lookup, muscleMap, new Date(), resolve);
+    return muscleBalance(entries, toMuscleLookup(), muscleMap, new Date(), resolve);
   }, [entries, muscleMap, ready, resolve]);
 
   /*
@@ -280,11 +260,7 @@ export function RecoveryTab() {
     const names = programDays.flatMap((day) =>
       exercisesForDay(day, DAYS, customExercises, excludedBuiltIns, order[day]).map((e) => e.name),
     );
-    const lookup: MuscleLookup = (name) => {
-      const hit = lookupExercise(name);
-      return hit ? { primary: hit.primary_muscles, secondary: hit.secondary_muscles } : undefined;
-    };
-    return programMuscles(names, lookup, muscleMap, resolve);
+    return programMuscles(names, toMuscleLookup(), muscleMap, resolve);
   }, [customExercises, excludedBuiltIns, muscleMap, order, programDays, ready, resolve]);
 
   /* What the drawer may suggest: only equipment this history shows you use. */

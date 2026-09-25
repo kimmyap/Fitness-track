@@ -7,16 +7,16 @@
  * the same dynamic import the exercise picker uses. Opening Progress costs
  * nothing until this card is actually rendered.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import styled from '@emotion/styled';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Activity } from 'lucide-react';
+import { Activity, AlertTriangle } from 'lucide-react';
 import { Card, EmptyState, useReducedMotion } from '@/components';
 import { toDisplayWeight } from '@/lib/domain';
 import type { Unit } from '@/lib/types';
 import { useEntriesStore } from '@/stores';
-import { getExerciseLibrary, lookupExercise } from '@/services/exerciseLibraryService';
-import { muscleVolumeSummary, formatCompact, type MuscleLookup } from './chartData';
+import { useExerciseLibrary } from '@/services/useExerciseLibrary';
+import { muscleVolumeSummary, formatCompact, toMuscleLookup } from './chartData';
 import { ChartFrame, useChartTokens } from './ChartKit';
 
 const SectionTitle = styled.h2`
@@ -38,45 +38,45 @@ export function MuscleVolumeSection({ unit }: { unit: Unit }) {
   const entries = useEntriesStore((s) => s.entries);
   const tokens = useChartTokens();
   const reduced = useReducedMotion();
-  const [ready, setReady] = useState(false);
+  const { status } = useExerciseLibrary();
+  const ready = status === 'ready';
 
-  useEffect(() => {
-    let cancelled = false;
-    void getExerciseLibrary()
-      .then(() => {
-        if (!cancelled) setReady(true);
-      })
-      .catch(() => {
-        // Offline with the chunk uncached: the rest of Progress still works.
-        if (!cancelled) setReady(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const rows = useMemo(() => {
-    if (!ready) return [];
-    const lookup: MuscleLookup = (name) => {
-      const hit = lookupExercise(name);
-      return hit ? { primary: hit.primary_muscles, secondary: hit.secondary_muscles } : undefined;
-    };
-    return muscleVolumeSummary(entries, lookup).slice(0, MAX_MUSCLES);
-  }, [entries, ready]);
+  const rows = useMemo(
+    () => (ready ? muscleVolumeSummary(entries, toMuscleLookup()).slice(0, MAX_MUSCLES) : []),
+    [entries, ready],
+  );
 
   if (!ready || !rows.length) {
+    /*
+     * Three states, not two. A failed load used to fall back to `ready = false`
+     * and render as "Loading exercise data…" forever, because the absence of
+     * success was being read as "still in progress".
+     */
+    const empty =
+      status === 'failed'
+        ? {
+            icon: AlertTriangle,
+            title: 'Muscle data unavailable offline',
+            description:
+              'The exercise library has not been cached on this device yet. Open this card once while online and it will work offline afterwards.',
+          }
+        : status === 'ready'
+          ? {
+              icon: Activity,
+              title: 'No data yet',
+              description:
+                'Volume per muscle appears once you log working sets for exercises in the library.',
+            }
+          : {
+              icon: Activity,
+              title: 'Loading exercise data…',
+              description:
+                'The muscle map loads on demand, so it only downloads when you open this card.',
+            };
     return (
       <Card as="section">
         <SectionTitle>Muscle volume</SectionTitle>
-        <EmptyState
-          icon={Activity}
-          title={ready ? 'No data yet' : 'Loading exercise data…'}
-          description={
-            ready
-              ? 'Volume per muscle appears once you log working sets for exercises in the library.'
-              : 'The muscle map loads on demand, so it only downloads when you open this card.'
-          }
-        />
+        <EmptyState icon={empty.icon} title={empty.title} description={empty.description} />
       </Card>
     );
   }

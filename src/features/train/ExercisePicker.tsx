@@ -10,11 +10,8 @@ import { useEffect, useMemo, useState } from 'react';
 import styled from '@emotion/styled';
 import { ChevronLeft, Dumbbell, Search } from 'lucide-react';
 import { Badge, Button, EmptyState, Field, FieldLabel, Modal, Skeleton, TextInput } from '@/components';
-import {
-  alternativesFor,
-  getExerciseLibrary,
-  type LibraryExercise,
-} from '@/services/exerciseLibraryService';
+import { alternativesFor, type LibraryExercise } from '@/services/exerciseLibraryService';
+import { useExerciseLibrary } from '@/services/useExerciseLibrary';
 import { Muted, Row, SelectBase, Stack } from './ui';
 
 /** Categories that belong in a lifting tracker; the rest are opt-in. */
@@ -155,32 +152,18 @@ export function ExercisePicker({
   mode = 'select',
   title = 'Exercise library',
 }: ExercisePickerProps) {
-  const [library, setLibrary] = useState<LibraryExercise[] | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
+  /*
+   * `open` gates the load: never on mount, or the 1.2 MB chunk downloads for
+   * everyone whether they open the picker or not.
+   */
+  const { status, library, retry } = useExerciseLibrary(open);
+  const loadFailed = status === 'failed';
   const [query, setQuery] = useState('');
   const [muscle, setMuscle] = useState('');
   const [equipment, setEquipment] = useState('');
   const [includeNonLifting, setIncludeNonLifting] = useState(false);
   const [detail, setDetail] = useState<LibraryExercise | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
-
-  // Load on first open only — never on mount, or the chunk downloads for
-  // everyone whether they open the picker or not.
-  useEffect(() => {
-    if (!open || library) return;
-    let active = true;
-    setLoadFailed(false);
-    getExerciseLibrary()
-      .then((loaded) => {
-        if (active) setLibrary(loaded);
-      })
-      .catch(() => {
-        if (active) setLoadFailed(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [open, library]);
 
   useEffect(() => {
     setImageFailed(false);
@@ -222,14 +205,7 @@ export function ExercisePicker({
           title="Couldn't load the exercise library"
           description="Check your connection and try again."
           action={
-            <Button
-              onClick={() => {
-                setLoadFailed(false);
-                setLibrary(null);
-              }}
-            >
-              Retry
-            </Button>
+            <Button onClick={retry}>Retry</Button>
           }
         />
       ) : !library ? (

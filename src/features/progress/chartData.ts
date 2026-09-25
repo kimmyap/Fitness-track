@@ -5,6 +5,7 @@
 import { DAYS } from '@/lib/program';
 import { entryVolume, epley1RM, isoDate, isVolumeSet, weekRange, volumeInRange, displayDate } from '@/lib/domain';
 import { parseIsoDate } from '@/lib/dates';
+import { lookupExercise } from '@/services/exerciseLibraryService';
 import { isLiftSet, type BodyweightEntry, type Entry, type LiftSetEntry } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -196,6 +197,19 @@ export interface MuscleVolumeSummary {
 /** What a logged exercise name targets. Supplied by the caller so this stays
  *  pure, and so the 1.2 MB exercise library is only loaded when actually shown. */
 export type MuscleLookup = (exerciseName: string) => { primary: string[]; secondary: string[] } | undefined;
+
+/**
+ * The library's own resolver, adapted to `MuscleLookup`.
+ *
+ * Three components wrote this same two-line adapter inline. Keeping it beside
+ * the type means the shape and its only real producer change together.
+ */
+export function toMuscleLookup(): MuscleLookup {
+  return (name) => {
+    const hit = lookupExercise(name);
+    return hit ? { primary: hit.primary_muscles, secondary: hit.secondary_muscles } : undefined;
+  };
+}
 
 /**
  * Volume per muscle group over the given entries, highest first. Uses the same
