@@ -7,12 +7,14 @@ import type { AnyExercise, GoalsMap } from '../types';
 
 // Misc business logic
 // ---------------------------------------------------------------------------
+import { daysSince, parseIsoDate } from '../dates';
 
 /** Whole weeks since the last program review (0 when never reviewed). ≥6 triggers the nudge. */
 export function weeksSinceReview(lastProgramReviewAt: string | null, now: Date = new Date()): number {
   if (!lastProgramReviewAt) return 0;
-  const days = Math.floor((now.getTime() - new Date(lastProgramReviewAt).getTime()) / 86400000);
-  return Math.floor(days / 7);
+  // `daysSince` compares local day starts; the old form subtracted a UTC
+  // midnight from a local instant, which is a whole day out at the edges.
+  return Math.floor(daysSince(lastProgramReviewAt, now) / 7);
 }
 
 /** Weeks threshold for the program-review nudge. */
@@ -27,12 +29,15 @@ export const PROGRAM_REVIEW_NUDGE_WEEKS = 6;
  */
 export function daysSinceBackup(lastBackupAt: string | null, now: Date = new Date()): number | null {
   if (!lastBackupAt) return null;
-  const then = new Date(lastBackupAt).getTime();
-  if (Number.isNaN(then)) return null;
-  const days = Math.floor((now.getTime() - then) / 86400000);
-  // A clock set backwards would otherwise read as a negative age and hide the
-  // nudge; treat anything in the future as "just now" rather than as a warning.
-  return Math.max(0, days);
+  /*
+   * The null check stays ahead of the arithmetic: null and 0 mean opposite
+   * things here, and `daysSince` returns 0 for an unparseable string, which
+   * would turn "this file is corrupt" into "exported today".
+   */
+  if (parseIsoDate(lastBackupAt) === null) return null;
+  // Already clamped at 0 by `daysSince`, so a clock set backwards reads as
+  // "just now" rather than as a negative age that would hide the nudge.
+  return daysSince(lastBackupAt, now);
 }
 
 /**

@@ -14,7 +14,16 @@
  * would turn every test below into a vacuous pass in UTC.
  */
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import { monthRange, monthlyRecap, volumeInRange, weekRange, weeklyRecap } from './domain';
+import {
+  computeStats,
+  daysSinceBackup,
+  monthRange,
+  monthlyRecap,
+  volumeInRange,
+  weekRange,
+  weeklyRecap,
+  weeksSinceReview,
+} from './domain';
 import type { Entry } from './types';
 
 /*
@@ -104,5 +113,77 @@ describe('a malformed date is skipped, not compared as Invalid Date', () => {
   it('contributes nothing rather than throwing', () => {
     const [mon, sun] = weekRange(0, wednesday());
     expect(volumeInRange([set('not-a-date'), set('2026-09-23')], mon, sun)).toBe(1000);
+  });
+});
+
+describe.each(['UTC', 'America/Los_Angeles', 'Australia/Sydney', 'Asia/Kolkata'])(
+  'counts that compare a stored DAY against now, in %s',
+  (tz) => {
+    beforeEach(() => setZone(tz));
+
+    it('counts the 1st of the month in this month', () => {
+      // `new Date("2026-09-01")` is UTC midnight, which is 31 August west of
+      // Greenwich — the day drops out of its own month.
+      const stats = computeStats([set('2026-09-01'), set('2026-09-23')], wednesday());
+      expect(stats.thisMonthCount).toBe(2);
+    });
+
+    it('counts the 1st in monthlyRecap days too', () => {
+      expect(monthlyRecap([set('2026-09-01')], wednesday()).thisMonthDays).toBe(1);
+    });
+
+    it('starts a streak from a session logged today', () => {
+      const today = set('2026-09-23');
+      expect(computeStats([today], wednesday()).streak).toBe(1);
+    });
+
+    it('counts consecutive days as a streak', () => {
+      const entries = ['2026-09-21', '2026-09-22', '2026-09-23'].map(set);
+      expect(computeStats(entries, wednesday()).streak).toBe(3);
+    });
+
+    it('breaks a streak on a gap of more than four days', () => {
+      const entries = [set('2026-09-23'), set('2026-09-10')].map((e) => e);
+      expect(computeStats(entries, wednesday()).streak).toBe(1);
+    });
+
+    it('reads a backup made today as 0 days old, never null or 1', () => {
+      expect(daysSinceBackup('2026-09-23', wednesday())).toBe(0);
+    });
+
+    it('still returns null for a backup date it cannot parse', () => {
+      // null and 0 are opposite states; an unparseable value must not read as
+      // "exported today".
+      expect(daysSinceBackup('corrupt', wednesday())).toBeNull();
+    });
+
+    it('measures the program-review age in whole weeks', () => {
+      // 42 days = exactly 6 weeks, the nudge threshold.
+      expect(weeksSinceReview('2026-08-12', wednesday())).toBe(6);
+    });
+  },
+);
+
+/**
+ * The question this file grew to answer: what happens to a week of history
+ * logged in one zone when it is READ in another, as on a trip.
+ */
+describe('history logged in one zone, read in another', () => {
+  const week = ['2026-09-21', '2026-09-22', '2026-09-23'].map(set);
+
+  it('gives the same recap, streak and month count in every zone', () => {
+    const results = ['America/Los_Angeles', 'Australia/Sydney', 'Asia/Kolkata', 'UTC'].map((tz) => {
+      setZone(tz);
+      const stats = computeStats(week, wednesday());
+      return {
+        week: weeklyRecap(week, wednesday()).thisWeek,
+        month: monthlyRecap(week, wednesday()).thisMonth,
+        streak: stats.streak,
+        monthCount: stats.thisMonthCount,
+      };
+    });
+    // Every zone must agree with the first, because a calendar day is a
+    // calendar day wherever you read it from.
+    for (const r of results) expect(r).toEqual(results[0]);
   });
 });

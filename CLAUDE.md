@@ -318,6 +318,18 @@ These are recorded because each was a live bug or a false premise, not a hypothe
   comparing one against a Date must go through `lib/dates.ts`, which owns both directions.
   `domain.timezone.test.ts` pins the boundaries in four zones and first asserts that mutating
   `process.env.TZ` actually moves the offset, or it would pass vacuously in UTC.
+  **The first fix caught one of SEVEN sites.** A grep for `new Date(e.date)` found only
+  `volumeInRange`, and the claim "that is the only one" was wrong — `computeStats` (this month's
+  count AND the streak), `monthlyRecap`'s `thisMonthDays` THIRTY LINES BELOW the line being fixed,
+  `weeksSinceReview`, `daysSinceBackup` and `cardioMinutesInLastDays` all did the same thing
+  through a differently-named variable. Sweep for EVERY `new Date(` and classify: sorting
+  comparisons are safe (both sides shift equally), `T00:00:00` is safe, and anything comparing a
+  stored day against `now` or reading local fields off the result is the bug.
+- **Local parsing makes a day 23 or 25 hours long.** `computeStats` scored streak gaps with
+  `Math.floor(diff / 86400000)`, which is exact while dates parse as UTC midnights but wrong the
+  moment they parse locally: a spring-forward day is 23 hours and floors to a gap of 0. Anything
+  measuring whole days between local dates must round, which is why `daysSince` in `lib/dates.ts`
+  does and why callers should use it rather than re-deriving the subtraction.
 - **Five implementations of one conversion is how the drift happened.** Turning "YYYY-MM-DD" into
   a Date existed as `new Date(y, m-1, d)`, ``new Date(`${iso}T00:00:00`)`` and `new Date(iso)` —
   two correct spellings and one wrong one — across domain, storage, metricsMath, chartData and

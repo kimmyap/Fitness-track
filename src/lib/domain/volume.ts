@@ -104,9 +104,10 @@ export function monthlyRecap(
   const [lastStart, lastEnd] = monthRange(-1, now);
   const thisMonth = volumeInRange(entries, thisStart, thisEnd);
   const lastMonth = volumeInRange(entries, lastStart, lastEnd);
+  // Same local parse as `volumeInRange` above — this sibling had the same bug.
   const thisMonthDays = trainingDates(entries).filter((d) => {
-    const dt = new Date(d);
-    return dt >= thisStart && dt <= thisEnd;
+    const dt = parseIsoDate(d);
+    return dt !== null && dt >= thisStart && dt <= thisEnd;
   }).length;
   return { thisMonth, lastMonth, thisMonthDays };
 }

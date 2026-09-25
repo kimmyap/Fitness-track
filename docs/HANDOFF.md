@@ -125,7 +125,7 @@ npm run typecheck && npm run lint && npm run test:run && npm run build
 ```
 
 All four must pass before a commit. Verified green on 2026-09-17:
-typecheck clean, lint clean, **556 tests across 37 files**, build succeeds. Since routes went
+typecheck clean, lint clean, **589 tests across 37 files**, build succeeds. Since routes went
 lazy the headline number is the ENTRY chunk, **282.47 kB / 90.02 kB gzip** — not the whole
 bundle, which is now spread across per-route chunks (ProgressPage 412 kB is the largest).
 The self-hosted fonts are two separate woff2 assets (59.2 kB total, all weights).

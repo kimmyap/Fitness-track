@@ -3,6 +3,7 @@
  *
  * Split out of the former single `domain.ts`; see ./index.ts.
  */
+import { daysSince, parseIsoDate } from '../dates';
 import type { Entry } from '../types';
 
 // Streak + fire tiers (gap-tolerant, counts SESSIONS not days)
@@ -23,20 +24,32 @@ export interface Stats {
 export function computeStats(entries: Entry[], now: Date = new Date()): Stats {
   const dates = trainingDates(entries);
   const totalWorkouts = dates.length;
+  /*
+   * `parseIsoDate`, not `new Date(d)`. The latter is UTC midnight, so west of
+   * Greenwich "2026-09-01" lands on 31 August LOCAL and drops out of its own
+   * month — the same defect `volumeInRange` had, in its sibling.
+   */
   const thisMonthCount = dates.filter((d) => {
-    const dt = new Date(d);
-    return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+    const dt = parseIsoDate(d);
+    return dt !== null && dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
   }).length;
   let streak = 0;
   if (dates.length) {
-    const sorted = [...dates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-    let prev = new Date(sorted[0] as string);
-    const daysSinceLast = Math.floor((now.getTime() - prev.getTime()) / 86400000);
-    if (daysSinceLast <= 4) {
+    // Sorting by string is equivalent for "YYYY-MM-DD" and needs no parsing.
+    const sorted = [...dates].sort((a, b) => b.localeCompare(a));
+    let prev = sorted[0] as string;
+    /*
+     * `daysSince` compares local DAY STARTS and rounds. Both matter: the old
+     * form mixed an instant (`now`) with a UTC midnight, and once parsing is
+     * local a spring-forward day is 23 hours, which `Math.floor` would score as
+     * a gap of 0 and quietly make the streak more forgiving than it reads.
+     */
+    if (daysSince(prev, now) <= 4) {
       streak = 1;
       for (let i = 1; i < sorted.length; i++) {
-        const cur = new Date(sorted[i] as string);
-        const gap = Math.floor((prev.getTime() - cur.getTime()) / 86400000);
+        const cur = sorted[i] as string;
+        const prevDate = parseIsoDate(prev);
+        const gap = prevDate ? daysSince(cur, prevDate) : Infinity;
         if (gap <= 4) {
           streak++;
           prev = cur;

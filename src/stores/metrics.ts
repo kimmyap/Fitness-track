@@ -14,6 +14,7 @@ import {
   saveDailyMetrics,
 } from '@/lib/storage';
 import { generateId, isoDate } from '@/lib/domain';
+import { dateWindow, parseIsoDate } from '@/lib/dates';
 import type { CardioSession, DailyMetric, DailyMetricsMap } from '@/lib/types';
 
 export interface MetricsState {
@@ -99,8 +100,11 @@ export function cardioForDate(sessions: CardioSession[], date: string): CardioSe
 
 /** Total minutes logged in the last `days` days, ending today. */
 export function cardioMinutesInLastDays(sessions: CardioSession[], days: number, today = isoDate()): number {
-  const cutoff = new Date(today);
-  cutoff.setDate(cutoff.getDate() - (days - 1));
-  const from = isoDate(cutoff);
+  /*
+   * `new Date(today)` was UTC midnight while `isoDate` reformats in LOCAL, so
+   * west of Greenwich the window came out a day too wide — a "last 7 days"
+   * total that quietly covered eight.
+   */
+  const from = dateWindow(parseIsoDate(today) ?? new Date(), days)[0] ?? today;
   return sessions.filter((c) => c.date >= from && c.date <= today).reduce((sum, c) => sum + c.minutes, 0);
 }
