@@ -32,6 +32,22 @@ export function isoDate(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * "YYYY-MM-DD" → local midnight of that calendar day.
+ *
+ * The inverse of `isoDate`, and it MUST be: `new Date("2026-09-21")` parses as
+ * UTC midnight, so west of Greenwich it lands on the previous local day. Every
+ * range boundary in this file is built in local time, so a UTC-parsed entry
+ * compared against them silently falls outside the range — see `volumeInRange`.
+ * Returns null for anything that is not a date string, so callers can skip it
+ * rather than comparing against an Invalid Date, which is false either way.
+ */
+export function parseIsoDate(iso: string): Date | null {
+  const [y, m, d] = iso.split('-').map((part) => parseInt(part, 10));
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
 /** "M/D" without leading zeros, from "YYYY-MM-DD". */
 export function displayDate(iso: string): string {
   const [, m, d] = iso.split('-');
@@ -49,10 +65,9 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
  * Greenwich.
  */
 export function displayDateWithWeekday(iso: string): string {
-  const [y, m, d] = iso.split('-').map((part) => parseInt(part, 10));
-  if (!y || !m || !d) return displayDate(iso);
-  const weekday = WEEKDAYS[new Date(y, m - 1, d).getDay()];
-  return `${weekday} ${m}/${d}`;
+  const parsed = parseIsoDate(iso);
+  if (!parsed) return displayDate(iso);
+  return `${WEEKDAYS[parsed.getDay()]} ${parsed.getMonth() + 1}/${parsed.getDate()}`;
 }
 
 /** Legacy number formatting: round to `decimals` (default 1), '--' for non-numbers. */
@@ -372,12 +387,21 @@ export function isVolumeSet(e: Entry): e is LiftSetEntry {
   return isLiftSet(e) && Boolean(e.weight) && Boolean(e.sets) && Boolean(e.reps) && !e.warmupSet && !e.assistedPullup;
 }
 
+/**
+ * Volume for entries whose DAY falls inside [start, end].
+ *
+ * `parseIsoDate`, not `new Date(e.date)`. The old form parsed UTC midnight
+ * while `weekRange` and `monthRange` build local boundaries, so the comparison
+ * mixed two clocks: measured in America/Los_Angeles, every Monday's sets and
+ * the 1st of every month fell outside their own range and `weeklyRecap`
+ * returned half its true total. It looked correct only because CI runs in UTC.
+ */
 export function volumeInRange(entries: Entry[], start: Date, end: Date): number {
   return entries
     .filter(isVolumeSet)
     .filter((e) => {
-      const d = new Date(e.date);
-      return d >= start && d <= end;
+      const d = parseIsoDate(e.date);
+      return d !== null && d >= start && d <= end;
     })
     .reduce((sum, e) => sum + entryVolume(e), 0);
 }
